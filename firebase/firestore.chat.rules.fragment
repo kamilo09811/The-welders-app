@@ -1,0 +1,2 @@
+// Zawartość przeniesiona do: firebase/firestore.rules
+// (conversations + messages; funkcja onlyChatConversationMetaFields na początku tego pliku).

@@ -1,0 +1,220 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { authColors as C } from '@/constants/auth-ui';
+
+export default function WelcomeScreen() {
+  const router = useRouter();
+
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="dark" />
+      <View style={styles.root}>
+        <View style={styles.circleBig} />
+        <View style={styles.circleSmall} />
+
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <View style={styles.heroCard}>
+            <Text style={styles.brand}>TheWeldersWorld</Text>
+            <Text style={styles.title}>Rynek pracy dla spawaczy</Text>
+            <Text style={styles.subtitle}>
+              Miejsce, w którym spawacze znajdują dobre zlecenia, a pracodawcy sprawdzonych specjalistów.
+            </Text>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.stripsColumn}>
+              <View style={[styles.strip, styles.stripBlue]}>
+                <View style={styles.stripIconCol}>
+                  <View style={[styles.stripIconCircle, styles.stripIconCircleBlue]}>
+                    <MaterialIcons name="engineering" size={18} color="#1D4ED8" />
+                  </View>
+                </View>
+                <View style={styles.stripTextCol}>
+                  <Text style={styles.stripTitle}>Dla spawaczy</Text>
+                  <Text style={styles.stripText}>
+                    Przeglądaj oferty z jasną stawką, lokalizacją i trybem pracy dopasowanym do Ciebie.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.strip, styles.stripGreen]}>
+                <View style={styles.stripIconCol}>
+                  <View style={[styles.stripIconCircle, styles.stripIconCircleGreen]}>
+                    <MaterialIcons name="business-center" size={18} color="#059669" />
+                  </View>
+                </View>
+                <View style={styles.stripTextCol}>
+                  <Text style={styles.stripTitle}>Dla firm</Text>
+                  <Text style={styles.stripText}>
+                    Dodawaj zlecenia, filtruj kandydatów i buduj stały zespół spawalniczy.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.strip, styles.stripOrange]}>
+                <View style={styles.stripIconCol}>
+                  <View style={[styles.stripIconCircle, styles.stripIconCircleOrange]}>
+                    <MaterialIcons name="home-repair-service" size={18} color="#EA580C" />
+                  </View>
+                </View>
+                <View style={styles.stripTextCol}>
+                  <Text style={styles.stripTitle}>Dla osób prywatnych</Text>
+                  <Text style={styles.stripText}>
+                    Szukasz kogoś do bramy, ogrodzenia albo naprawy konstrukcji? Dodaj proste ogłoszenie.
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+
+          <View style={styles.actionsCard}>
+            <Text style={styles.sectionLabel}>Wybierz typ konta i przejdź do logowania</Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                { backgroundColor: pressed ? '#f97316' : '#fb923c' },
+              ]}
+              onPress={() => router.push({ pathname: '/login', params: { role: 'welder' } })}>
+              <MaterialIcons name="engineering" size={22} color="#FFFFFF" />
+              <View style={styles.primaryTextCol}>
+                <Text style={styles.primaryBtnText}>Jestem spawaczem</Text>
+                <Text style={styles.primaryBtnSub}>Chcę przeglądać oferty i aplikować</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                { backgroundColor: pressed ? '#f97316' : '#fb923c' },
+              ]}
+              onPress={() => router.push({ pathname: '/login', params: { role: 'employer' } })}>
+              <MaterialIcons name="business" size={22} color="#FFFFFF" />
+              <View style={styles.primaryTextCol}>
+                <Text style={styles.primaryBtnText}>Szukam spawaczy / zleceniodawców</Text>
+                <Text style={styles.primaryBtnSub}>Chcę dodawać ogłoszenia i kontaktować się</Text>
+              </View>
+            </Pressable>
+
+            <View style={styles.secondaryRow}>
+              <Text style={[styles.secondaryText, { color: C.muted }]}>Nie masz jeszcze konta? </Text>
+              <Pressable onPress={() => router.push('/register')}>
+                <Text style={[styles.link, { color: C.primary }]}>Zarejestruj się</Text>
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  circleBig: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(56, 189, 248, 0.13)',
+    top: -80,
+    right: -60,
+  },
+  circleSmall: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(251, 146, 60, 0.18)',
+    bottom: -40,
+    left: -40,
+  },
+  safe: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 28,
+    gap: 18,
+  },
+
+  heroCard: {
+    borderRadius: 20,
+    padding: 18,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+  },
+
+  brand: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2, color: '#E5EDFF', marginTop: 2 },
+  title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 4 },
+  subtitle: { fontSize: 14, color: '#E2E8F0', lineHeight: 20, marginTop: 6 },
+
+  stripsColumn: {
+    paddingTop: 14,
+    paddingBottom: 2,
+    rowGap: 8,
+  },
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+  },
+  stripBlue: { borderColor: 'rgba(59, 130, 246, 0.4)', borderLeftWidth: 4 },
+  stripGreen: { borderColor: 'rgba(16, 185, 129, 0.4)', borderLeftWidth: 4 },
+  stripOrange: { borderColor: 'rgba(249, 115, 22, 0.4)', borderLeftWidth: 4 },
+  stripIconCol: {
+    paddingTop: 2,
+    paddingRight: 8,
+  },
+  stripIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+  },
+  stripIconCircleBlue: { backgroundColor: 'rgba(219, 234, 254, 0.9)' },
+  stripIconCircleGreen: { backgroundColor: 'rgba(220, 252, 231, 0.9)' },
+  stripIconCircleOrange: { backgroundColor: 'rgba(255, 237, 213, 0.9)' },
+  stripTextCol: {
+    flex: 1,
+  },
+  stripTitle: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  stripText: { fontSize: 12, color: '#4B5563', marginTop: 2 },
+
+  actionsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 18,
+    gap: 12,
+  },
+  sectionLabel: { fontSize: 14, fontWeight: '600', color: '#0F172A', marginBottom: 2 },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  primaryTextCol: { flex: 1, gap: 2 },
+  primaryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  primaryBtnSub: { color: '#FFFBEB', fontSize: 12 },
+
+  secondaryRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 4 },
+  secondaryText: { fontSize: 14 },
+  link: { fontSize: 14, fontWeight: '700' },
+});

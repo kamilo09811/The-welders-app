@@ -1,0 +1,321 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Haptics from 'expo-haptics';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { GoogleFirebaseSignInButton } from '@/components/google-firebase-sign-in-button';
+import { authColors as C } from '@/constants/auth-ui';
+import { getFirebaseAuth } from '@/lib/firebaseAuth';
+import { isFirebaseConfigured } from '@/lib/firebaseConfig';
+import { mapAuthError } from '@/lib/mapAuthError';
+import { needsEmailVerification } from '@/lib/auth-email';
+import { sendAccountVerificationEmail } from '@/lib/auth-verification';
+import { createUserProfile } from '@/lib/user-profile';
+
+const MIN_PASSWORD_LEN = 6;
+
+export default function RegisterScreen() {
+  const router = useRouter();
+  const { role } = useLocalSearchParams<{ role?: string }>();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const roleHint =
+    role === 'welder'
+      ? 'Rejestracja — konto spawacza'
+      : role === 'employer'
+        ? 'Rejestracja — firma / zlecenia'
+        : 'Załóż konto';
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/welcome');
+    }
+  }, [router]);
+
+  const onRegister = useCallback(async () => {
+    setError(null);
+    const trimmed = email.trim();
+    if (!trimmed || !password || !confirm) {
+      setError('Wypełnij wszystkie pola.');
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LEN) {
+      setError(`Hasło musi mieć co najmniej ${MIN_PASSWORD_LEN} znaków.`);
+      return;
+    }
+    if (password !== confirm) {
+      setError('Hasła muszą być takie same.');
+      return;
+    }
+    if (!isFirebaseConfigured()) {
+      setError('Brak konfiguracji Firebase.');
+      return;
+    }
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setBusy(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), trimmed, password);
+      await createUserProfile(
+        cred.user.uid,
+        role === 'employer' ? 'employer' : 'welder',
+        cred.user.emailVerified
+      );
+      const sent = await sendAccountVerificationEmail(cred.user);
+      if (Platform.OS !== 'web') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      if (needsEmailVerification(cred.user)) {
+        router.replace({
+          pathname: '/verify-email',
+          params: sent.ok ? {} : { sendError: sent.message },
+        });
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (e) {
+      setError(mapAuthError(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [email, password, confirm, role, router]);
+
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="dark" />
+      <View style={[styles.root, { backgroundColor: C.bg }]}>
+        <SafeAreaView style={styles.flex} edges={['top', 'left', 'right']}>
+          <KeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={0}>
+            <ScrollView
+              contentContainerStyle={styles.scroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}>
+              <View style={styles.topBar}>
+                <Pressable
+                  onPress={goBack}
+                  hitSlop={12}
+                  style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
+                  <MaterialIcons name="arrow-back" size={22} color={C.text} />
+                </Pressable>
+                <Text style={styles.topTitle}>Rejestracja</Text>
+                <View style={styles.topSpacer} />
+              </View>
+
+              <Text style={styles.hint}>{roleHint}</Text>
+
+              <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
+                <Text style={styles.label}>E-mail</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
+                  placeholder="twoj@email.pl"
+                  placeholderTextColor={C.placeholder}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!busy}
+                />
+
+                <Text style={[styles.label, styles.labelSpaced]}>Hasło</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
+                  placeholder={`min. ${MIN_PASSWORD_LEN} znaków`}
+                  placeholderTextColor={C.placeholder}
+                  secureTextEntry
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!busy}
+                />
+
+                <Text style={[styles.label, styles.labelSpaced]}>Powtórz hasło</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
+                  placeholder="powtórz hasło"
+                  placeholderTextColor={C.placeholder}
+                  secureTextEntry
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  value={confirm}
+                  onChangeText={setConfirm}
+                  editable={!busy}
+                />
+
+                {error ? (
+                  <Text style={[styles.error, { color: C.error }]} accessibilityLiveRegion="polite">
+                    {error}
+                  </Text>
+                ) : null}
+
+                <Pressable
+                  onPress={onRegister}
+                  disabled={busy}
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    { backgroundColor: pressed ? C.primaryPressed : C.primary },
+                    busy && styles.btnDisabled,
+                  ]}>
+                  {busy ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Utwórz konto</Text>
+                  )}
+                </Pressable>
+
+                <View style={styles.dividerRow}>
+                  <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
+                  <Text style={[styles.dividerText, { color: C.muted }]}>lub</Text>
+                  <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
+                </View>
+
+                <GoogleFirebaseSignInButton
+                  disabled={busy}
+                  onFirebaseError={setError}
+                  oauthRole={role === 'employer' ? 'employer' : 'welder'}
+                />
+              </View>
+
+              <View style={styles.loginRow}>
+                <Text style={[styles.loginLead, { color: C.muted }]}>Masz już konto? </Text>
+                <Pressable
+                  onPress={() =>
+                    router.replace({
+                      pathname: '/login',
+                      ...(role === 'welder' || role === 'employer' ? { params: { role } } : {}),
+                    })
+                  }>
+                  <Text style={[styles.loginLink, { color: C.primary }]}>Zaloguj się</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 28, paddingTop: 4 },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -8,
+  },
+  topTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '700',
+    color: C.text,
+  },
+  topSpacer: { width: 40 },
+  hint: {
+    fontSize: 14,
+    color: C.muted,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+      },
+      android: { elevation: 3 },
+      default: {},
+    }),
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.text,
+    marginBottom: 6,
+  },
+  labelSpaced: { marginTop: 4 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+    fontSize: 16,
+  },
+  error: {
+    marginTop: 14,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  primaryBtn: {
+    marginTop: 18,
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  btnDisabled: { opacity: 0.7 },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 22,
+    gap: 12,
+  },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerText: { fontSize: 13, fontWeight: '600' },
+  loginRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  loginLead: { fontSize: 15 },
+  loginLink: { fontSize: 15, fontWeight: '700' },
+});

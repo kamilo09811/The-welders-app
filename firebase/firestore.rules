@@ -1,0 +1,98 @@
+rules_version = '2';
+// SCALONY SZABLON — wklej całość w Firebase Console → Firestore → Rules.
+// Zawiera: czat (conversations + messages), powiadomienia in-app, profile użytkowników,
+// ustawienia (users/.../meta), ogłoszenia (listings), zgłoszenia (applications).
+// Dostosuj lub zacieśnij przed produkcją (np. Cloud Functions zamiast luźnych create na notifications).
+
+function onlyChatConversationMetaFields() {
+  return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+    'lastMessageText',
+    'lastMessageAt',
+    'lastMessageSenderId',
+    'updatedAt',
+    'readAt',
+    'mutedBy',
+    'participantNames',
+    'participantAvatars',
+  ]);
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+
+      // Ustawienia: users/{uid}/meta/settings (dowolny dokument w meta)
+      match /meta/{metaDocId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Powiadomienia in-app (wcześniej: firestore.notifications.rules.fragment)
+      match /notifications/{notifId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+          && request.auth.uid == request.resource.data.actorUid
+          && request.resource.data.recipientUid == userId
+          && request.resource.data.read == false
+          && request.resource.data.kind in ['application_new', 'application_status', 'chat_message']
+          && request.resource.data.title is string
+          && request.resource.data.body is string;
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null
+          && request.auth.uid == reviewId
+          && request.resource.data.reviewerId == request.auth.uid
+          && request.resource.data.rating is number
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5;
+        allow delete: if request.auth != null && request.auth.uid == reviewId;
+      }
+    }
+
+    match /listings/{listingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.authorId;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.authorId;
+    }
+
+    match /applications/{applicationId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.applicantId
+            || request.auth.uid == resource.data.authorId);
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.applicantId
+        && request.resource.data.authorId is string
+        && request.resource.data.listingId is string;
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.authorId;
+    }
+
+    // Czat (wcześniej: firestore.chat.rules.fragment)
+    match /conversations/{conversationId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.participantIds;
+      allow create: if request.auth != null
+        && request.auth.uid in request.resource.data.participantIds;
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participantIds
+        && onlyChatConversationMetaFields();
+    }
+
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read: if request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+      allow create: if request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds
+        && request.resource.data.senderId == request.auth.uid;
+    }
+  }
+}

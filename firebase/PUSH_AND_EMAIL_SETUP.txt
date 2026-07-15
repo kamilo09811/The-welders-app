@@ -1,0 +1,26 @@
+Push (Expo) + weryfikacja e-mail — co zrobić poza kodem
+=====================================================
+
+1) Firebase Authentication
+   - Włącz metodę „E-mail / hasło”.
+   - Szablony → „Weryfikacja adresu e-mail” — ustaw język polski i sprawdź link (domena autoryzowana w Auth → Settings → Authorized domains).
+
+2) Expo Push (token w Firestore: users/{uid}/meta/push, pole expoPushToken)
+   - Zaloguj się: npx expo login
+   - W katalogu aplikacji: npx eas init   (powstanie projectId)
+   - Skopiuj projectId do pliku .env jako EXPO_PUBLIC_EAS_PROJECT_ID=...  (app.config.js go wczytuje do extra.eas.projectId)
+   - Zbuduj aplikację (development lub production): npx expo run:android / run:ios albo EAS Build — powiadomienia nie działają w Expo Go.
+
+3) Cloud Functions (wysyłka push po utworzeniu in-app notification)
+   - npm install w katalogu functions (już zrobione w repo przy pierwszym setupie)
+   - Zainstaluj Firebase CLI: npm i -g firebase-tools
+   - firebase login && firebase use <twój_project_id>
+   - firebase deploy --only functions
+   - Wymaga planu Blaze (wyjście do internetu — api.expo.dev).
+
+4) Ustawienia użytkownika
+   - Przełącznik „Wiadomości i odpowiedzi” (Firestore users/.../meta/settings, notifMessages) musi być włączony, aby aplikacja zapisała token push.
+
+5) Ekran „Potwierdź e-mail”
+   - Po rejestracji e-mail/hasło użytkownik trafia na /verify-email do czasu kliknięcia linku w mailu.
+   - Google Sign-In zwykle ma już zweryfikowany e-mail — omija ten krok.
