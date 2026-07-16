@@ -20,7 +20,6 @@ import {
 } from 'firebase/firestore';
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
-import { pushInAppNotification } from '@/lib/in-app-notifications';
 
 /** Liczba najnowszych wiadomości z nasłuchu na żywo + rozmiar strony przy dociąganiu historii. */
 export const CHAT_MESSAGE_PAGE_SIZE = 35;
@@ -191,50 +190,6 @@ export async function createOrGetConversation(input: {
   return conversationId;
 }
 
-async function notifyConversationPeersInApp(
-  conversationId: string,
-  senderId: string,
-  textPreview: string,
-  isImage: boolean
-) {
-  try {
-    const cref = doc(getFirebaseFirestore(), 'conversations', conversationId);
-    const snap = await getDoc(cref);
-    if (!snap.exists()) return;
-    const data = snap.data() as Record<string, unknown>;
-    const participantIds = Array.isArray(data.participantIds)
-      ? data.participantIds.filter((x): x is string => typeof x === 'string')
-      : [];
-    const participantNames =
-      typeof data.participantNames === 'object' && data.participantNames !== null
-        ? (data.participantNames as Record<string, string>)
-        : {};
-    const mutedBy =
-      typeof data.mutedBy === 'object' && data.mutedBy !== null ? (data.mutedBy as Record<string, boolean>) : {};
-    const listingTitle = typeof data.listingTitle === 'string' ? data.listingTitle : 'Rozmowa';
-    const listingId = typeof data.listingId === 'string' ? data.listingId : undefined;
-    const senderName = participantNames[senderId] || 'Użytkownik';
-    const preview = isImage ? (textPreview.trim() || 'Zdjęcie') : textPreview.trim();
-    const suffix = listingTitle ? ` · ${listingTitle}` : '';
-    for (const pid of participantIds) {
-      if (!pid || pid === senderId) continue;
-      if (mutedBy[pid]) continue;
-      void pushInAppNotification({
-        recipientUid: pid,
-        actorUid: senderId,
-        kind: 'chat_message',
-        title: 'Nowa wiadomość',
-        body: `${senderName}: ${preview}${suffix}`,
-        listingId,
-        listingTitle,
-        conversationId,
-      });
-    }
-  } catch {
-    // brak uprawnień / sieć
-  }
-}
-
 export async function sendConversationMessage(conversationId: string, senderId: string, text: string) {
   const trimmed = text.trim();
   if (!trimmed) return;
@@ -254,7 +209,7 @@ export async function sendConversationMessage(conversationId: string, senderId: 
     },
     { merge: true }
   );
-  void notifyConversationPeersInApp(conversationId, senderId, trimmed, false);
+  // Powiadomienie in-app + push: Cloud Function onChatMessageNotify
 }
 
 export async function sendConversationImageMessage(
@@ -284,7 +239,7 @@ export async function sendConversationImageMessage(
     },
     { merge: true }
   );
-  void notifyConversationPeersInApp(conversationId, senderId, cap || 'Zdjęcie', true);
+  // Powiadomienie in-app + push: Cloud Function onChatMessageNotify
 }
 
 export async function markConversationRead(conversationId: string, userId: string) {
