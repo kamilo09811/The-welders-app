@@ -26,7 +26,7 @@ import { needsEmailVerification } from '@/lib/auth-email';
 import { sendAccountVerificationEmail } from '@/lib/auth-verification';
 import { createUserProfile } from '@/lib/user-profile';
 
-const MIN_PASSWORD_LEN = 6;
+const MIN_PASSWORD_LEN = 8;
 
 export default function RegisterScreen() {
   const router = useRouter();

@@ -63,8 +63,9 @@ export default function ListingDetailsScreen() {
       });
       setApplyMessage('');
       setFeedback('Zgłoszenie zostało wysłane.');
-    } catch {
-      setFeedback('Nie udało się wysłać zgłoszenia.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      setFeedback(msg || 'Nie udało się wysłać zgłoszenia.');
     } finally {
       setBusyApply(false);
     }
