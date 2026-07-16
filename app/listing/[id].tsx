@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -13,7 +13,7 @@ import { createOrGetConversation } from '@/lib/chat';
 import { deleteListing } from '@/lib/market-listings';
 import { useListingApplications, useMyListingApplication } from '@/lib/use-listing-applications';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
-import { useMarketListings } from '@/lib/use-market-listings';
+import { useMarketListing } from '@/lib/use-market-listings';
 
 const STATUS_LABEL: Record<ListingApplication['status'], string> = {
   new: 'Nowe',
@@ -24,11 +24,10 @@ const STATUS_LABEL: Record<ListingApplication['status'], string> = {
 
 export default function ListingDetailsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id: idParam } = useLocalSearchParams<{ id?: string }>();
+  const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
-  const { listings } = useMarketListings();
-
-  const listing = useMemo(() => listings.find((item) => item.id === id), [id, listings]);
+  const { listing, loading: loadingListing } = useMarketListing(id);
 
   const isAuthor = Boolean(uid && listing && listing.authorId === uid);
   const [applyMessage, setApplyMessage] = useState('');
@@ -116,8 +115,14 @@ export default function ListingDetailsScreen() {
 
           {!listing ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>Nie znaleziono ogłoszenia</Text>
-              <Text style={styles.emptySub}>To ogłoszenie mogło zostać usunięte lub jeszcze się ładuje.</Text>
+              {loadingListing ? (
+                <ActivityIndicator color="#0E4AA4" />
+              ) : (
+                <>
+                  <Text style={styles.emptyTitle}>Nie znaleziono ogłoszenia</Text>
+                  <Text style={styles.emptySub}>To ogłoszenie mogło zostać usunięte.</Text>
+                </>
+              )}
             </View>
           ) : (
             <>
