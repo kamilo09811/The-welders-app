@@ -1,7 +1,16 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-listings';
@@ -38,7 +47,6 @@ function wynikSlowo(n: number): string {
   return 'wyników';
 }
 
-/** Brak geo — dopasowanie tekstowe pola lokalizacji do miasta bazowego z ustawień. */
 function matchesSettingsLocation(
   listingLocation: string,
   baseCity: string,
@@ -63,7 +71,7 @@ function hoursAgoLabel(createdAt: Date | null) {
   return `${hours} h temu`;
 }
 
-function ListingCard({
+function ListingRow({
   item,
   role,
   showGrossRate,
@@ -76,50 +84,43 @@ function ListingCard({
 }) {
   const rateSuffix = showGrossRate ? ' PLN/h brutto' : ' PLN/h netto';
   return (
-    <View style={styles.card}>
-      <View style={styles.cardTopRow}>
-        <View style={styles.cardBadges}>
-          <Text style={styles.cardType}>{item.type}</Text>
-          <Text style={[styles.cardType, styles.intentBadge]}>{INTENT_LABEL[item.intent]}</Text>
+    <Pressable style={styles.listingRow} onPress={onPress}>
+      <View style={styles.listingTop}>
+        <View style={styles.listingBadges}>
+          <Text style={styles.metaBadge}>{item.type}</Text>
+          <Text style={[styles.metaBadge, styles.intentBadge]}>{INTENT_LABEL[item.intent]}</Text>
         </View>
-        <Text style={styles.cardRate}>
+        <Text style={styles.listingRate}>
           {item.rateMin}-{item.rateMax}
           {rateSuffix}
         </Text>
       </View>
-
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardCompany}>{item.company || 'Ogłoszenie prywatne'}</Text>
-
+      <Text style={styles.listingTitle}>{item.title}</Text>
+      <Text style={styles.listingCompany}>{item.company || 'Ogłoszenie prywatne'}</Text>
       <View style={styles.metaRow}>
-        <MaterialIcons name="place" size={16} color="#64748B" />
+        <MaterialIcons name="place" size={15} color="#64748B" />
         <Text style={styles.metaText}>{item.location}</Text>
-        <Text style={styles.metaDot}>•</Text>
+        <Text style={styles.metaDot}>·</Text>
         <Text style={styles.metaText}>{item.mode}</Text>
+        <Text style={styles.metaDot}>·</Text>
+        <Text style={styles.metaText}>{hoursAgoLabel(item.createdAt)}</Text>
       </View>
-
-      <View style={styles.tagsWrap}>
-        {item.tags.map((tag) => (
-          <View key={tag} style={styles.tag}>
-            <Text style={styles.tagText}>{tag}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.cardBottomRow}>
-        <Text style={styles.posted}>Opublikowano {hoursAgoLabel(item.createdAt)}</Text>
-        <Pressable style={styles.cardCta} onPress={onPress}>
-          <Text style={styles.cardCtaText}>{role === 'welder' ? 'Aplikuj' : 'Szczegóły'}</Text>
-        </Pressable>
-      </View>
-    </View>
+      {item.tags.length > 0 ? (
+        <View style={styles.tagsWrap}>
+          {item.tags.slice(0, 4).map((tag) => (
+            <Text key={tag} style={styles.tagText}>
+              {tag}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      <Text style={styles.listingCta}>{role === 'welder' ? 'Zobacz i aplikuj →' : 'Zobacz szczegóły →'}</Text>
+    </Pressable>
   );
 }
 
 export default function MarketplaceScreen() {
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
-  const filtersOffsetY = useRef(0);
   const { uid, profile } = useCurrentUserProfile();
   const { settings } = useUserSettings();
   const { listings, loading } = useMarketListings();
@@ -129,18 +130,34 @@ export default function MarketplaceScreen() {
     settings.onlyVerified
   );
   const role: Role = profile.role === 'employer' ? 'employer' : 'welder';
+
+  const [query, setQuery] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [location, setLocation] = useState('Wszystkie');
-  const [type, setType] = useState('Wszystkie');
+  const [type, setType] = useState<'Wszystkie' | ListingType>('Wszystkie');
   const [intent, setIntent] = useState<'Wszystkie' | ListingIntent>('Wszystkie');
-  const [sort, setSort] = useState<Sort>('rateDesc');
+  const [sort, setSort] = useState<Sort>('newest');
   const [onlyMine, setOnlyMine] = useState(false);
 
   const chipsLocation = useMemo(() => {
-    const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) => a.localeCompare(b, 'pl'));
+    const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) =>
+      a.localeCompare(b, 'pl')
+    );
     return ['Wszystkie', ...unique];
   }, [listings]);
 
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (location !== 'Wszystkie') n += 1;
+    if (type !== 'Wszystkie') n += 1;
+    if (intent !== 'Wszystkie') n += 1;
+    if (sort !== 'newest') n += 1;
+    if (onlyMine) n += 1;
+    return n;
+  }, [intent, location, onlyMine, sort, type]);
+
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
     const data = listings.filter((i) => {
       if (!uid) return i.targetRole === role;
       if (onlyMine) return i.authorId === uid;
@@ -153,22 +170,25 @@ export default function MarketplaceScreen() {
       location === 'Wszystkie'
         ? afterSettingsLocation
         : afterSettingsLocation.filter((i) => i.location.toLowerCase() === location.toLowerCase());
-
     const afterType = type === 'Wszystkie' ? afterLocation : afterLocation.filter((i) => i.type === type);
     const afterIntent =
       intent === 'Wszystkie' ? afterType : afterType.filter((i) => i.intent === intent);
-
+    const afterQuery = !q
+      ? afterIntent
+      : afterIntent.filter(
+          (i) =>
+            i.title.toLowerCase().includes(q) ||
+            i.company.toLowerCase().includes(q) ||
+            i.location.toLowerCase().includes(q) ||
+            i.tags.some((t) => t.toLowerCase().includes(q))
+        );
     const afterVerified = settings.onlyVerified
-      ? afterIntent.filter((i) => verifiedByAuthor[i.authorId] === true)
-      : afterIntent;
+      ? afterQuery.filter((i) => verifiedByAuthor[i.authorId] === true)
+      : afterQuery;
 
     return [...afterVerified].sort((a, b) => {
-      if (sort === 'rateAsc') {
-        return a.rateMax - b.rateMax;
-      }
-      if (sort === 'newest') {
-        return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
-      }
+      if (sort === 'rateAsc') return a.rateMax - b.rateMax;
+      if (sort === 'newest') return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
       return b.rateMax - a.rateMax;
     });
   }, [
@@ -176,6 +196,7 @@ export default function MarketplaceScreen() {
     listings,
     location,
     onlyMine,
+    query,
     role,
     settings.baseCity,
     settings.onlyVerified,
@@ -186,176 +207,316 @@ export default function MarketplaceScreen() {
     verifiedByAuthor,
   ]);
 
+  const resetFilters = () => {
+    setLocation('Wszystkie');
+    setType('Wszystkie');
+    setIntent('Wszystkie');
+    setSort('newest');
+    setOnlyMine(false);
+  };
+
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Text style={styles.brand}>TheWeldersWorld</Text>
-          <Text style={styles.title}>
-            {role === 'welder' ? 'Oferty dla spawaczy' : 'Zlecenia i kandydaci'}
-          </Text>
-          <Text style={styles.subtitle}>
-            Lista ogłoszeń z filtrowaniem według lokalizacji, formy współpracy i sortowania po stawce.
-          </Text>
-
-          <View style={styles.roleSwitch}>
-            <View style={[styles.roleBtn, styles.roleBtnActive]}>
-              <Text style={[styles.roleBtnText, styles.roleBtnTextActive]}>{ROLE_LABELS[role]}</Text>
+    <View style={styles.root}>
+      <LinearGradient colors={['#0A2F6B', '#0E4AA4', '#E8EEF7']} locations={[0, 0.28, 0.55]} style={styles.bgGlow} />
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.hero}>
+            <View style={styles.heroOrbA} />
+            <View style={styles.heroOrbB} />
+            <View style={styles.heroTopRow}>
+              <Text style={styles.brand}>TheWeldersWorld</Text>
+              <View style={styles.roleBadge}>
+                <MaterialIcons
+                  name={role === 'welder' ? 'engineering' : 'business-center'}
+                  size={14}
+                  color="#DCEBFF"
+                />
+                <Text style={styles.roleBadgeText}>{ROLE_LABELS[role]}</Text>
+              </View>
             </View>
+            <Text style={styles.title}>
+              {role === 'welder' ? 'Oferty dla spawaczy' : 'Zlecenia i kandydaci'}
+            </Text>
+            <Text style={styles.subtitle}>Szukaj po tytule, mieście lub tagu — reszta filtrów w jednym miejscu.</Text>
+            <Pressable style={styles.addBtn} onPress={() => router.push('/listing/new')}>
+              <MaterialIcons name="add" size={18} color="#0E4AA4" />
+              <Text style={styles.addBtnText}>Dodaj ogłoszenie</Text>
+            </Pressable>
           </View>
 
-          <Pressable style={styles.addBtn} onPress={() => router.push('/listing/new')}>
-            <MaterialIcons name="add-circle-outline" size={17} color="#0E4AA4" />
-            <Text style={styles.addBtnText}>Dodaj ogłoszenie</Text>
-          </Pressable>
-        </View>
-
-        <View
-          style={styles.section}
-          onLayout={(e) => {
-            filtersOffsetY.current = e.nativeEvent.layout.y;
-          }}>
-          <Text style={styles.sectionTitle}>Lokalizacja</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowChips}>
-            {chipsLocation.map((c) => (
-              <Chip key={c} label={c} active={location === c} onPress={() => setLocation(c)} />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Forma współpracy</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowChips}>
-            {chipsType.map((c) => (
-              <Chip key={c} label={c} active={type === c} onPress={() => setType(c)} />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Intencja</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowChips}>
-            {chipsIntent.map((c) => (
-              <Chip
-                key={c}
-                label={c === 'Wszystkie' ? 'Wszystkie' : INTENT_LABEL[c]}
-                active={intent === c}
-                onPress={() => setIntent(c)}
+          <View style={styles.quickBar}>
+            <View style={styles.searchField}>
+              <MaterialIcons name="search" size={20} color="#64748B" />
+              <TextInput
+                style={styles.searchInput}
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Szukaj ofert…"
+                placeholderTextColor="#94A3B8"
+                returnKeyType="search"
               />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sortowanie</Text>
-          <View style={styles.sortWrap}>
-            <Chip
-              label="Stawka: od najwyższej"
-              active={sort === 'rateDesc'}
-              onPress={() => setSort('rateDesc')}
-            />
-            <Chip
-              label="Stawka: od najniższej"
-              active={sort === 'rateAsc'}
-              onPress={() => setSort('rateAsc')}
-            />
-            <Chip label="Najnowsze" active={sort === 'newest'} onPress={() => setSort('newest')} />
+              {query ? (
+                <Pressable onPress={() => setQuery('')} hitSlop={8}>
+                  <MaterialIcons name="close" size={18} color="#94A3B8" />
+                </Pressable>
+              ) : null}
+            </View>
+            <Pressable style={styles.filtersBtn} onPress={() => setFiltersOpen(true)}>
+              <MaterialIcons name="tune" size={18} color="#FFFFFF" />
+              <Text style={styles.filtersBtnText}>Filtry</Text>
+              {activeFilterCount > 0 ? (
+                <View style={styles.filtersCount}>
+                  <Text style={styles.filtersCountText}>{activeFilterCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Widok</Text>
-          <View style={styles.sortWrap}>
-            <Chip label="Wszystkie widoczne" active={!onlyMine} onPress={() => setOnlyMine(false)} />
-            <Chip label="Moje ogłoszenia" active={onlyMine} onPress={() => setOnlyMine(true)} />
-          </View>
-        </View>
+          {settings.baseCity.trim() || settings.onlyVerified ? (
+            <Pressable style={styles.prefsLine} onPress={() => router.push('/(tabs)/explore')}>
+              <Text style={styles.prefsLineText} numberOfLines={1}>
+                Preferencje: {[settings.baseCity.trim(), settings.onlyVerified ? 'tylko zweryfikowani' : '']
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+              <MaterialIcons name="chevron-right" size={18} color="#64748B" />
+            </Pressable>
+          ) : null}
 
-        <View style={styles.listHeader}>
-          <Text style={styles.sectionTitle}>
+          <Text style={styles.resultsLabel}>
             {filtered.length} {wynikSlowo(filtered.length)}
           </Text>
-          <Pressable
-            style={styles.filterBtn}
-            onPress={() => scrollRef.current?.scrollTo({ y: filtersOffsetY.current, animated: true })}>
-            <MaterialIcons name="tune" size={16} color="#0E4AA4" />
-            <Text style={styles.filterBtnText}>Więcej filtrów</Text>
+
+          {loading || (settings.onlyVerified && verifiedLoading) ? (
+            <Text style={styles.emptyText}>Ładowanie ogłoszeń…</Text>
+          ) : filtered.length === 0 ? (
+            <View style={styles.emptyBlock}>
+              <Text style={styles.emptyTitle}>Brak wyników</Text>
+              <Text style={styles.emptyText}>Zmień wyszukiwanie albo otwórz filtry.</Text>
+              {activeFilterCount > 0 ? (
+                <Pressable onPress={resetFilters}>
+                  <Text style={styles.resetLink}>Wyczyść filtry</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : (
+            filtered.map((item) => (
+              <ListingRow
+                key={item.id}
+                item={item}
+                role={role}
+                showGrossRate={settings.showGrossRate}
+                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
+              />
+            ))
+          )}
+        </ScrollView>
+      </SafeAreaView>
+
+      <Modal visible={filtersOpen} animationType="slide" transparent onRequestClose={() => setFiltersOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setFiltersOpen(false)} />
+        <View style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Filtry</Text>
+            <Pressable onPress={resetFilters}>
+              <Text style={styles.resetLink}>Wyczyść</Text>
+            </Pressable>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
+            <Text style={styles.sheetSection}>Lokalizacja</Text>
+            <View style={styles.chipWrap}>
+              {chipsLocation.map((c) => (
+                <Chip key={c} label={c} active={location === c} onPress={() => setLocation(c)} />
+              ))}
+            </View>
+            <Text style={styles.sheetSection}>Forma współpracy</Text>
+            <View style={styles.chipWrap}>
+              {chipsType.map((c) => (
+                <Chip key={c} label={c} active={type === c} onPress={() => setType(c)} />
+              ))}
+            </View>
+            <Text style={styles.sheetSection}>Intencja</Text>
+            <View style={styles.chipWrap}>
+              {chipsIntent.map((c) => (
+                <Chip
+                  key={c}
+                  label={c === 'Wszystkie' ? 'Wszystkie' : INTENT_LABEL[c]}
+                  active={intent === c}
+                  onPress={() => setIntent(c)}
+                />
+              ))}
+            </View>
+            <Text style={styles.sheetSection}>Sortowanie</Text>
+            <View style={styles.chipWrap}>
+              <Chip label="Najnowsze" active={sort === 'newest'} onPress={() => setSort('newest')} />
+              <Chip label="Stawka ↓" active={sort === 'rateDesc'} onPress={() => setSort('rateDesc')} />
+              <Chip label="Stawka ↑" active={sort === 'rateAsc'} onPress={() => setSort('rateAsc')} />
+            </View>
+            <Text style={styles.sheetSection}>Widok</Text>
+            <View style={styles.chipWrap}>
+              <Chip label="Wszystkie" active={!onlyMine} onPress={() => setOnlyMine(false)} />
+              <Chip label="Moje ogłoszenia" active={onlyMine} onPress={() => setOnlyMine(true)} />
+            </View>
+          </ScrollView>
+          <Pressable style={styles.sheetApply} onPress={() => setFiltersOpen(false)}>
+            <Text style={styles.sheetApplyText}>
+              Pokaż {filtered.length} {wynikSlowo(filtered.length)}
+            </Text>
           </Pressable>
         </View>
-
-        {loading || (settings.onlyVerified && verifiedLoading) ? (
-          <View style={styles.card}>
-            <Text style={styles.posted}>Ładowanie ogłoszeń...</Text>
-          </View>
-        ) : filtered.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Brak wyników dla wybranych filtrów.</Text>
-            <Text style={styles.posted}>Zmień filtry lub dodaj nowe ogłoszenie.</Text>
-          </View>
-        ) : (
-          filtered.map((item) => (
-            <ListingCard
-              key={item.id}
-              item={item}
-              role={role}
-              showGrossRate={settings.showGrossRate}
-              onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
-            />
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
-  content: { padding: 16, paddingBottom: 32, gap: 12 },
+  root: { flex: 1, backgroundColor: '#E8EEF7' },
+  bgGlow: { ...StyleSheet.absoluteFillObject },
+  safe: { flex: 1 },
+  content: { paddingHorizontal: 16, paddingBottom: 36, gap: 12 },
+
   hero: {
-    backgroundColor: '#0E4AA4',
-    borderRadius: 18,
-    padding: 16,
+    marginTop: 4,
+    paddingTop: 8,
+    paddingBottom: 8,
+    overflow: 'hidden',
   },
-  brand: { color: '#BFD7FF', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  title: { color: '#FFFFFF', fontSize: 23, fontWeight: '800', marginTop: 6 },
-  subtitle: { color: '#DCEBFF', marginTop: 6, fontSize: 14, lineHeight: 20 },
-  roleSwitch: {
-    marginTop: 14,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 12,
-    padding: 4,
+  heroOrbA: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -60,
+    right: -40,
+  },
+  heroOrbB: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(191,215,255,0.12)',
+    top: 40,
+    left: -50,
+  },
+  heroTopRow: {
     flexDirection: 'row',
-    gap: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
-  roleBtn: { flex: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  roleBtnActive: { backgroundColor: '#FFFFFF' },
-  roleBtnText: { color: '#E8F0FF', fontWeight: '700', fontSize: 13 },
-  roleBtnTextActive: { color: '#0E4AA4' },
+  brand: { color: '#BFD7FF', fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  roleBadgeText: { color: '#E8F0FF', fontSize: 11, fontWeight: '600' },
+  title: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginTop: 10, letterSpacing: -0.3 },
+  subtitle: { color: '#D7E6FF', marginTop: 6, fontSize: 14, lineHeight: 20, maxWidth: 320 },
   addBtn: {
-    marginTop: 10,
+    marginTop: 14,
     alignSelf: 'flex-start',
     backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  addBtnText: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
+  addBtnText: { color: '#0E4AA4', fontWeight: '700', fontSize: 13 },
 
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#10233E' },
-  rowChips: { gap: 8, paddingRight: 4 },
-  sortWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quickBar: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  searchField: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(213,222,234,0.9)',
+  },
+  searchInput: { flex: 1, color: '#0F172A', fontSize: 15, padding: 0 },
+  filtersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0E4AA4',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  filtersBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  filtersCount: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#F97316',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filtersCountText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+
+  prefsLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+  },
+  prefsLineText: { flex: 1, color: '#475569', fontSize: 12 },
+
+  resultsLabel: { color: '#10233E', fontSize: 15, fontWeight: '700', marginTop: 4 },
+
+  listingRow: {
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(148,163,184,0.45)',
+    gap: 5,
+  },
+  listingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  listingBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 },
+  metaBadge: {
+    color: '#334155',
+    fontSize: 11,
+    fontWeight: '700',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  intentBadge: { color: '#C2410C', backgroundColor: 'rgba(255,247,237,0.95)' },
+  listingRate: { color: '#0E4AA4', fontWeight: '800', fontSize: 13 },
+  listingTitle: { color: '#0F172A', fontSize: 17, fontWeight: '700' },
+  listingCompany: { color: '#475569', fontSize: 13 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
+  metaText: { color: '#64748B', fontSize: 12 },
+  metaDot: { color: '#94A3B8' },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
+  tagText: { color: '#64748B', fontSize: 11, fontWeight: '600' },
+  listingCta: { color: '#0E4AA4', fontWeight: '700', fontSize: 12, marginTop: 4 },
+
+  emptyBlock: { paddingVertical: 28, gap: 6 },
+  emptyTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800' },
+  emptyText: { color: '#64748B', fontSize: 13, lineHeight: 18 },
+  resetLink: { color: '#0E4AA4', fontWeight: '700', fontSize: 13 },
 
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D5DEEA',
     backgroundColor: '#FFFFFF',
@@ -363,55 +524,42 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: '#0E4AA4', borderColor: '#0E4AA4' },
   chipText: { color: '#334155', fontWeight: '600', fontSize: 12 },
   chipTextActive: { color: '#FFFFFF' },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
-  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  filterBtn: {
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.4)' },
+  sheet: {
+    backgroundColor: '#F8FAFC',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '78%',
+    paddingBottom: 16,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  sheetHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D5DEEA',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  filterBtnText: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
-
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    padding: 14,
-    gap: 8,
+  sheetTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  sheetBody: { paddingHorizontal: 16, paddingBottom: 20, gap: 10 },
+  sheetSection: { color: '#10233E', fontSize: 13, fontWeight: '700', marginTop: 8 },
+  sheetApply: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: '#0E4AA4',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardType: {
-    backgroundColor: '#F1F5FB',
-    color: '#294267',
-    fontWeight: '700',
-    fontSize: 11,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  intentBadge: {
-    backgroundColor: '#FFF7ED',
-    color: '#C2410C',
-  },
-  cardRate: { fontSize: 14, color: '#0E4AA4', fontWeight: '800' },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  cardCompany: { fontSize: 14, color: '#334155' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { color: '#64748B', fontSize: 12 },
-  metaDot: { color: '#94A3B8', marginHorizontal: 2 },
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tag: { backgroundColor: '#F8FAFD', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
-  tagText: { fontSize: 11, color: '#475569', fontWeight: '600' },
-  cardBottomRow: { marginTop: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  posted: { color: '#64748B', fontSize: 12 },
-  cardCta: { backgroundColor: '#0E4AA4', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 7 },
-  cardCtaText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
+  sheetApplyText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
 });
