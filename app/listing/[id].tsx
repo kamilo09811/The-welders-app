@@ -13,6 +13,7 @@ import { createOrGetConversation } from '@/lib/chat';
 import { deleteListing } from '@/lib/market-listings';
 import { useListingApplications, useMyListingApplication } from '@/lib/use-listing-applications';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
+import { formatRateLabel, useUserSettings } from '@/lib/user-settings';
 import { useMarketListings } from '@/lib/use-market-listings';
 
 const STATUS_LABEL: Record<ListingApplication['status'], string> = {
@@ -26,6 +27,7 @@ export default function ListingDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { uid, profile } = useCurrentUserProfile();
+  const { settings } = useUserSettings();
   const { listings } = useMarketListings();
 
   const listing = useMemo(() => listings.find((item) => item.id === id), [id, listings]);
@@ -139,7 +141,7 @@ export default function ListingDetailsScreen() {
                 </View>
 
                 <Text style={styles.rateLabel}>
-                  Stawka: {listing.rateMin}-{listing.rateMax} PLN/h
+                  Stawka: {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate)}
                 </Text>
 
                 <View style={styles.tagsWrap}>

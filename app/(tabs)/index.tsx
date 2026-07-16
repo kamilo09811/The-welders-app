@@ -1,16 +1,20 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-listings';
+import { matchesLocationPreference } from '@/lib/pl-cities';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
-import { useUserSettings, type UserSettings } from '@/lib/user-settings';
+import {
+  formatRateLabel,
+  useUserSettings,
+  type SettingsSort,
+} from '@/lib/user-settings';
 
 type Role = 'welder' | 'employer';
-type Sort = 'rateDesc' | 'rateAsc' | 'newest';
 
 const ROLE_LABELS: Record<Role, string> = {
   welder: 'Konto spawacza',
@@ -38,17 +42,6 @@ function wynikSlowo(n: number): string {
   return 'wyników';
 }
 
-/** Brak geo — dopasowanie tekstowe pola lokalizacji do miasta bazowego z ustawień. */
-function matchesSettingsLocation(
-  listingLocation: string,
-  baseCity: string,
-  _radius: UserSettings['radius']
-): boolean {
-  const city = baseCity.trim();
-  if (!city) return true;
-  return listingLocation.toLowerCase().includes(city.toLowerCase());
-}
-
 function Chip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
@@ -74,7 +67,6 @@ function ListingCard({
   showGrossRate: boolean;
   onPress: () => void;
 }) {
-  const rateSuffix = showGrossRate ? ' PLN/h brutto' : ' PLN/h netto';
   return (
     <View style={styles.card}>
       <View style={styles.cardTopRow}>
@@ -82,10 +74,7 @@ function ListingCard({
           <Text style={styles.cardType}>{item.type}</Text>
           <Text style={[styles.cardType, styles.intentBadge]}>{INTENT_LABEL[item.intent]}</Text>
         </View>
-        <Text style={styles.cardRate}>
-          {item.rateMin}-{item.rateMax}
-          {rateSuffix}
-        </Text>
+        <Text style={styles.cardRate}>{formatRateLabel(item.rateMin, item.rateMax, showGrossRate)}</Text>
       </View>
 
       <Text style={styles.cardTitle}>{item.title}</Text>
@@ -121,7 +110,7 @@ export default function MarketplaceScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const filtersOffsetY = useRef(0);
   const { uid, profile } = useCurrentUserProfile();
-  const { settings } = useUserSettings();
+  const { settings, loading: settingsLoading } = useUserSettings();
   const { listings, loading } = useMarketListings();
   const authorIds = useMemo(() => listings.map((i) => i.authorId), [listings]);
   const { verifiedByAuthor, loading: verifiedLoading } = useAuthorsEmailVerified(
@@ -132,22 +121,47 @@ export default function MarketplaceScreen() {
   const [location, setLocation] = useState('Wszystkie');
   const [type, setType] = useState('Wszystkie');
   const [intent, setIntent] = useState<'Wszystkie' | ListingIntent>('Wszystkie');
-  const [sort, setSort] = useState<Sort>('rateDesc');
+  const [sort, setSort] = useState<SettingsSort>('newest');
   const [onlyMine, setOnlyMine] = useState(false);
+  const prefsSeeded = useRef(false);
+
+  useEffect(() => {
+    if (settingsLoading || prefsSeeded.current) return;
+    prefsSeeded.current = true;
+    setSort(settings.defaultSort);
+    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
+  }, [settings.defaultSort, settings.preferredIntent, settingsLoading]);
 
   const chipsLocation = useMemo(() => {
     const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) => a.localeCompare(b, 'pl'));
     return ['Wszystkie', ...unique];
   }, [listings]);
 
+  const activePrefsLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (settings.baseCity.trim()) {
+      parts.push(
+        settings.radius === 'Cała Polska'
+          ? settings.baseCity.trim()
+          : `${settings.baseCity.trim()} · ${settings.radius}`
+      );
+    }
+    if (settings.minRate > 0) parts.push(`min. ${settings.minRate} PLN/h`);
+    if (settings.preferredModes.length) parts.push(settings.preferredModes.join(', '));
+    if (settings.onlyVerified) parts.push('tylko zweryfikowani');
+    return parts.join(' · ');
+  }, [settings.baseCity, settings.minRate, settings.onlyVerified, settings.preferredModes, settings.radius]);
+
   const filtered = useMemo(() => {
     const data = listings.filter((i) => {
       if (!uid) return i.targetRole === role;
       if (onlyMine) return i.authorId === uid;
+      if (settings.hideOwnInFeed && i.authorId === uid) return false;
       return i.targetRole === role || i.authorId === uid;
     });
+
     const afterSettingsLocation = data.filter((i) =>
-      matchesSettingsLocation(i.location, settings.baseCity, settings.radius)
+      matchesLocationPreference(i.location, settings.baseCity, settings.radius)
     );
     const afterLocation =
       location === 'Wszystkie'
@@ -158,17 +172,21 @@ export default function MarketplaceScreen() {
     const afterIntent =
       intent === 'Wszystkie' ? afterType : afterType.filter((i) => i.intent === intent);
 
+    const afterModes =
+      settings.preferredModes.length === 0
+        ? afterIntent
+        : afterIntent.filter((i) => settings.preferredModes.includes(i.mode));
+
+    const afterMinRate =
+      settings.minRate > 0 ? afterModes.filter((i) => i.rateMax >= settings.minRate) : afterModes;
+
     const afterVerified = settings.onlyVerified
-      ? afterIntent.filter((i) => verifiedByAuthor[i.authorId] === true)
-      : afterIntent;
+      ? afterMinRate.filter((i) => verifiedByAuthor[i.authorId] === true)
+      : afterMinRate;
 
     return [...afterVerified].sort((a, b) => {
-      if (sort === 'rateAsc') {
-        return a.rateMax - b.rateMax;
-      }
-      if (sort === 'newest') {
-        return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
-      }
+      if (sort === 'rateAsc') return a.rateMax - b.rateMax;
+      if (sort === 'newest') return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
       return b.rateMax - a.rateMax;
     });
   }, [
@@ -178,7 +196,10 @@ export default function MarketplaceScreen() {
     onlyMine,
     role,
     settings.baseCity,
+    settings.hideOwnInFeed,
+    settings.minRate,
     settings.onlyVerified,
+    settings.preferredModes,
     settings.radius,
     sort,
     type,
@@ -212,6 +233,19 @@ export default function MarketplaceScreen() {
             <Text style={styles.addBtnText}>Dodaj ogłoszenie</Text>
           </Pressable>
         </View>
+
+        {activePrefsLabel ? (
+          <Pressable style={styles.prefsBanner} onPress={() => router.push('/(tabs)/explore')}>
+            <MaterialIcons name="tune" size={18} color="#0E4AA4" />
+            <View style={styles.prefsTextWrap}>
+              <Text style={styles.prefsTitle}>Aktywne preferencje</Text>
+              <Text style={styles.prefsSub} numberOfLines={2}>
+                {activePrefsLabel}
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color="#64748B" />
+          </Pressable>
+        ) : null}
 
         <View
           style={styles.section}
@@ -293,7 +327,7 @@ export default function MarketplaceScreen() {
         ) : filtered.length === 0 ? (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Brak wyników dla wybranych filtrów.</Text>
-            <Text style={styles.posted}>Zmień filtry lub dodaj nowe ogłoszenie.</Text>
+            <Text style={styles.posted}>Zmień filtry w ustawieniach lub dodaj nowe ogłoszenie.</Text>
           </View>
         ) : (
           filtered.map((item) => (
@@ -346,6 +380,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   addBtnText: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
+
+  prefsBanner: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#DFE6F2',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  prefsTextWrap: { flex: 1, gap: 2 },
+  prefsTitle: { color: '#0F172A', fontSize: 13, fontWeight: '700' },
+  prefsSub: { color: '#64748B', fontSize: 12 },
 
   section: { gap: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#10233E' },
@@ -401,7 +449,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
     color: '#C2410C',
   },
-  cardRate: { fontSize: 14, color: '#0E4AA4', fontWeight: '800' },
+  cardRate: { fontSize: 13, color: '#0E4AA4', fontWeight: '800', maxWidth: '46%', textAlign: 'right' },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
   cardCompany: { fontSize: 14, color: '#334155' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
