@@ -18,7 +18,7 @@ function formatWhen(d: Date | null): string {
   }
 }
 
-function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 'notifications' {
+function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 'work-outline' | 'notifications' {
   switch (kind) {
     case 'application_new':
       return 'inbox';
@@ -26,6 +26,8 @@ function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 
       return 'flag';
     case 'chat_message':
       return 'chat';
+    case 'listing_new':
+      return 'work-outline';
     default:
       return 'notifications';
   }
@@ -41,6 +43,10 @@ export default function NotificationsCenterScreen() {
       if (uid && !n.read) void markInAppNotificationRead(uid, n.id);
       if (n.kind === 'chat_message' && n.conversationId) {
         router.push({ pathname: '/messages/[id]', params: { id: n.conversationId } });
+        return;
+      }
+      if (n.kind === 'listing_new' && n.listingId) {
+        router.push({ pathname: '/listing/[id]', params: { id: n.listingId } });
         return;
       }
       if (n.listingId) {
@@ -108,7 +114,7 @@ export default function NotificationsCenterScreen() {
           </View>
         ) : items.length === 0 ? (
           <View style={styles.card}>
-            <Text style={styles.note}>Brak powiadomień. Pojawią się przy zgłoszeniach, zmianie statusu i nowych wiadomościach.</Text>
+            <Text style={styles.note}>Brak powiadomień. Pojawią się przy nowych ofertach, zgłoszeniach, zmianie statusu i wiadomościach.</Text>
           </View>
         ) : (
           <FlatList

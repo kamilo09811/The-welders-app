@@ -3,7 +3,33 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { saveUserSettings, useUserSettings } from '@/lib/user-settings';
+import type { WorkMode } from '@/lib/market-listings';
+import { PL_CITIES } from '@/lib/pl-cities';
+import { useCurrentUserProfile } from '@/lib/user-profile';
+import {
+  saveUserSettings,
+  useUserSettings,
+  type SettingsIntentPref,
+  type SettingsRadius,
+  type SettingsSort,
+  type UserSettings,
+} from '@/lib/user-settings';
+
+const RADIUS_OPTIONS: SettingsRadius[] = ['25 km', '50 km', '100 km', 'Cała Polska'];
+const SORT_OPTIONS: { value: SettingsSort; label: string }[] = [
+  { value: 'newest', label: 'Najnowsze' },
+  { value: 'rateDesc', label: 'Stawka ↓' },
+  { value: 'rateAsc', label: 'Stawka ↑' },
+];
+const INTENT_OPTIONS: { value: SettingsIntentPref; label: string }[] = [
+  { value: 'all', label: 'Wszystkie' },
+  { value: 'offer', label: 'Oferuję' },
+  { value: 'seek', label: 'Poszukuję' },
+];
+const MODE_OPTIONS: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
+const CITY_SUGGESTIONS = [...new Set(PL_CITIES.map((c) => c.name))].sort((a, b) =>
+  a.localeCompare(b, 'pl')
+);
 
 function Pill({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return (
@@ -41,30 +67,40 @@ function SettingRow({
 }
 
 export default function SettingsScreen() {
+  const { profile } = useCurrentUserProfile();
   const { uid, settings, loading } = useUserSettings();
-  const [baseCity, setBaseCity] = useState('');
-  const [notifNewJobs, setNotifNewJobs] = useState(true);
-  const [notifMessages, setNotifMessages] = useState(true);
-  const [onlyVerified, setOnlyVerified] = useState(false);
-  const [showGrossRate, setShowGrossRate] = useState(true);
-  const [radius, setRadius] = useState<'25 km' | '50 km' | '100 km' | 'Cała Polska'>('50 km');
+  const [draft, setDraft] = useState<UserSettings>(settings);
   const [isEditing, setIsEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showCityHints, setShowCityHints] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
-    setBaseCity(settings.baseCity);
-    setNotifNewJobs(settings.notifNewJobs);
-    setNotifMessages(settings.notifMessages);
-    setOnlyVerified(settings.onlyVerified);
-    setShowGrossRate(settings.showGrossRate);
-    setRadius(settings.radius);
+    setDraft(settings);
   }, [isEditing, settings]);
 
   useEffect(() => {
     setIsEditing(false);
   }, [uid]);
+
+  const patch = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
+    setIsEditing(true);
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleMode = (mode: WorkMode) => {
+    setIsEditing(true);
+    setDraft((prev) => {
+      const has = prev.preferredModes.includes(mode);
+      return {
+        ...prev,
+        preferredModes: has
+          ? prev.preferredModes.filter((m) => m !== mode)
+          : [...prev.preferredModes, mode],
+      };
+    });
+  };
 
   const onSave = async () => {
     if (!uid) {
@@ -74,16 +110,14 @@ export default function SettingsScreen() {
     setBusy(true);
     setMessage(null);
     try {
-      await saveUserSettings(uid, {
-        baseCity: baseCity.trim(),
-        notifNewJobs,
-        notifMessages,
-        onlyVerified,
-        showGrossRate,
-        radius,
-      });
+      const next: UserSettings = {
+        ...draft,
+        baseCity: draft.baseCity.trim(),
+        minRate: Number.isFinite(draft.minRate) ? Math.max(0, Math.round(draft.minRate)) : 0,
+      };
+      await saveUserSettings(uid, next);
       setIsEditing(false);
-      setMessage('Ustawienia zapisane.');
+      setMessage('Ustawienia zapisane — rynek i powiadomienia używają ich od razu.');
     } catch {
       setMessage('Nie udało się zapisać ustawień.');
     } finally {
@@ -91,88 +125,166 @@ export default function SettingsScreen() {
     }
   };
 
+  const cityHints = CITY_SUGGESTIONS.filter((c) =>
+    draft.baseCity.trim()
+      ? c.toLowerCase().includes(draft.baseCity.trim().toLowerCase())
+      : true
+  ).slice(0, 8);
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Ustawienia</Text>
           <Text style={styles.headerSub}>
-            Preferencje aplikacji: powiadomienia, filtry i sposób wyświetlania stawek.
+            Preferencje rynku, powiadomień i wyświetlania — synchronizowane w całej aplikacji.
           </Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Lokalizacja i zasięg</Text>
+          <Text style={styles.cardHint}>
+            Filtruje rynek po mieście bazowym. Zasięg liczymy po znanych miastach PL (bez GPS).
+          </Text>
           <TextInput
             style={styles.input}
-            value={baseCity}
+            value={draft.baseCity}
             onChangeText={(v) => {
-              setIsEditing(true);
-              setBaseCity(v);
+              patch('baseCity', v);
+              setShowCityHints(true);
             }}
+            onFocus={() => setShowCityHints(true)}
             placeholder="Miasto bazowe (np. Katowice)"
             placeholderTextColor="#94A3B8"
           />
+          {!draft.baseCity.trim() && profile.city.trim() ? (
+            <Pressable
+              onPress={() => {
+                patch('baseCity', profile.city.trim());
+                setShowCityHints(false);
+              }}>
+              <Text style={styles.linkHint}>Użyj miasta z profilu: {profile.city.trim()}</Text>
+            </Pressable>
+          ) : null}
+          {showCityHints && cityHints.length > 0 ? (
+            <View style={styles.hintsWrap}>
+              {cityHints.map((c) => (
+                <Pill
+                  key={c}
+                  active={draft.baseCity.trim().toLowerCase() === c.toLowerCase()}
+                  label={c}
+                  onPress={() => {
+                    patch('baseCity', c);
+                    setShowCityHints(false);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
           <View style={styles.segmentWrap}>
-            {(['25 km', '50 km', '100 km', 'Cała Polska'] as const).map((r) => (
-              <Pill
-                key={r}
-                active={radius === r}
-                label={r}
-                onPress={() => {
-                  setIsEditing(true);
-                  setRadius(r);
-                }}
-              />
+            {RADIUS_OPTIONS.map((r) => (
+              <Pill key={r} active={draft.radius === r} label={r} onPress={() => patch('radius', r)} />
             ))}
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Powiadomienia</Text>
-          <Text style={styles.cardHint}>
-            Push wymaga zbudowanej aplikacji (nie Expo Go), uprawnień systemu oraz w .env zmiennej
-            EXPO_PUBLIC_EAS_PROJECT_ID (projekt EAS). W Firebase włącz szablon „Weryfikacja adresu e-mail”.
-          </Text>
-          <SettingRow
-            icon="work-outline"
-            title="Nowe oferty i zlecenia"
-            subtitle="Powiadomienie, gdy pojawi się pasujące ogłoszenie"
-            value={notifNewJobs}
-            onChange={(v) => {
-              setIsEditing(true);
-              setNotifNewJobs(v);
+          <Text style={styles.cardTitle}>Preferencje rynku</Text>
+          <Text style={styles.cardHint}>Domyślne filtry przy wejściu na Rynek (możesz je zmienić lokalnie na liście).</Text>
+          <Text style={styles.fieldLabel}>Domyślne sortowanie</Text>
+          <View style={styles.segmentWrap}>
+            {SORT_OPTIONS.map((o) => (
+              <Pill
+                key={o.value}
+                active={draft.defaultSort === o.value}
+                label={o.label}
+                onPress={() => patch('defaultSort', o.value)}
+              />
+            ))}
+          </View>
+          <Text style={styles.fieldLabel}>Domyślna intencja</Text>
+          <View style={styles.segmentWrap}>
+            {INTENT_OPTIONS.map((o) => (
+              <Pill
+                key={o.value}
+                active={draft.preferredIntent === o.value}
+                label={o.label}
+                onPress={() => patch('preferredIntent', o.value)}
+              />
+            ))}
+          </View>
+          <Text style={styles.fieldLabel}>Preferowany tryb pracy</Text>
+          <View style={styles.segmentWrap}>
+            {MODE_OPTIONS.map((m) => (
+              <Pill
+                key={m}
+                active={draft.preferredModes.includes(m)}
+                label={m}
+                onPress={() => toggleMode(m)}
+              />
+            ))}
+          </View>
+          <Text style={styles.fieldLabel}>Minimalna stawka (PLN/h, 0 = bez limitu)</Text>
+          <TextInput
+            style={styles.input}
+            value={draft.minRate === 0 ? '' : String(draft.minRate)}
+            onChangeText={(v) => {
+              const n = Number(v.replace(/[^\d]/g, ''));
+              patch('minRate', Number.isFinite(n) ? n : 0);
             }}
+            keyboardType="numeric"
+            placeholder="np. 40"
+            placeholderTextColor="#94A3B8"
           />
           <SettingRow
-            icon="chat-bubble-outline"
-            title="Wiadomości i odpowiedzi"
-            subtitle="Informacja o nowych rozmowach"
-            value={notifMessages}
-            onChange={(v) => {
-              setIsEditing(true);
-              setNotifMessages(v);
-            }}
+            icon="visibility-off"
+            title="Ukryj własne ogłoszenia"
+            subtitle="Na rynku nie pokazuj swoich ofert w widoku domyślnym"
+            value={draft.hideOwnInFeed}
+            onChange={(v) => patch('hideOwnInFeed', v)}
           />
           <SettingRow
             icon="verified"
             title="Tylko zweryfikowane konta"
-            subtitle="Pokazuj ogłoszenia od zweryfikowanych użytkowników"
-            value={onlyVerified}
-            onChange={(v) => {
-              setIsEditing(true);
-              setOnlyVerified(v);
-            }}
+            subtitle="Pokazuj ogłoszenia od użytkowników z potwierdzonym e-mailem"
+            value={draft.onlyVerified}
+            onChange={(v) => patch('onlyVerified', v)}
           />
           <SettingRow
             icon="payments"
             title="Pokazuj stawki brutto"
-            subtitle="Spójny widok wynagrodzeń"
-            value={showGrossRate}
-            onChange={(v) => {
-              setIsEditing(true);
-              setShowGrossRate(v);
-            }}
+            subtitle="Etykieta brutto/netto na rynku i w szczegółach ogłoszenia"
+            value={draft.showGrossRate}
+            onChange={(v) => patch('showGrossRate', v)}
+          />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Powiadomienia</Text>
+          <Text style={styles.cardHint}>
+            Push wymaga buildu EAS (nie Expo Go) oraz EXPO_PUBLIC_EAS_PROJECT_ID. In-app w aplikacji działa
+            zawsze, gdy przełącznik jest włączony.
+          </Text>
+          <SettingRow
+            icon="work-outline"
+            title="Nowe oferty i zlecenia"
+            subtitle="Alert, gdy pojawi się ogłoszenie pasujące do Twojej roli i lokalizacji"
+            value={draft.notifNewJobs}
+            onChange={(v) => patch('notifNewJobs', v)}
+          />
+          <SettingRow
+            icon="assignment"
+            title="Zgłoszenia i statusy"
+            subtitle="Nowe aplikacje do Twoich ofert oraz zmiany statusu Twoich zgłoszeń"
+            value={draft.notifApplications}
+            onChange={(v) => patch('notifApplications', v)}
+          />
+          <SettingRow
+            icon="chat-bubble-outline"
+            title="Wiadomości"
+            subtitle="Nowe wiadomości w rozmowach (z uwzględnieniem wyciszenia wątku)"
+            value={draft.notifMessages}
+            onChange={(v) => patch('notifMessages', v)}
           />
         </View>
 
@@ -197,7 +309,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12, paddingBottom: 32 },
   header: { backgroundColor: '#0E4AA4', borderRadius: 18, padding: 16 },
   headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
-  headerSub: { color: '#DCEBFF', marginTop: 6 },
+  headerSub: { color: '#DCEBFF', marginTop: 6, lineHeight: 20 },
 
   card: {
     backgroundColor: '#FFFFFF',
@@ -208,7 +320,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardTitle: { color: '#10233E', fontSize: 15, fontWeight: '700' },
-  cardHint: { color: '#64748B', fontSize: 11, lineHeight: 16, marginBottom: 4 },
+  cardHint: { color: '#64748B', fontSize: 11, lineHeight: 16 },
+  fieldLabel: { color: '#334155', fontSize: 12, fontWeight: '700', marginTop: 4 },
+  linkHint: { color: '#0E4AA4', fontSize: 12, fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderColor: '#D5DEEA',
@@ -219,6 +333,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
   },
+  hintsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
   segmentWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {

@@ -15,8 +15,13 @@ import {
 } from 'firebase/firestore';
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
+import { getUserSettings, wantsNotification } from '@/lib/user-settings';
 
-export type InAppNotificationKind = 'application_new' | 'application_status' | 'chat_message';
+export type InAppNotificationKind =
+  | 'application_new'
+  | 'application_status'
+  | 'chat_message'
+  | 'listing_new';
 
 export type InAppNotification = {
   id: string;
@@ -44,7 +49,10 @@ function notificationsCol(uid: string) {
 function normalizeNotification(id: string, data: FirestoreInAppNotification): InAppNotification {
   const kind = data.kind;
   const safeKind: InAppNotificationKind =
-    kind === 'application_status' || kind === 'chat_message' || kind === 'application_new'
+    kind === 'application_status' ||
+    kind === 'chat_message' ||
+    kind === 'application_new' ||
+    kind === 'listing_new'
       ? kind
       : 'application_new';
   return {
@@ -73,9 +81,17 @@ export async function pushInAppNotification(input: {
   listingTitle?: string;
   applicationId?: string;
   conversationId?: string;
+  /** Pomiń sprawdzenie ustawień odbiorcy (np. gdy już sprawdzone). */
+  skipSettingsCheck?: boolean;
 }) {
   if (!input.recipientUid || !input.actorUid || input.recipientUid === input.actorUid) return;
   try {
+    if (!input.skipSettingsCheck) {
+      const settings = await getUserSettings(input.recipientUid);
+      if (!wantsNotification(settings, input.kind === 'listing_new' ? 'listing_new' : input.kind)) {
+        return;
+      }
+    }
     const docPayload: Record<string, unknown> = {
       recipientUid: input.recipientUid,
       actorUid: input.actorUid,
