@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -77,12 +78,46 @@ function normalizeListing(id: string, data: FirestoreListing): MarketListing {
   };
 }
 
+function listingRef(id: string) {
+  return doc(getFirebaseFirestore(), LISTINGS_COLLECTION, id);
+}
+
+/** Lista marketplace — pełna kolekcja (filtry po stronie klienta). */
 export function subscribeListings(cb: (items: MarketListing[]) => void, onError?: (error: unknown) => void) {
   const q = query(collection(getFirebaseFirestore(), LISTINGS_COLLECTION), orderBy('createdAt', 'desc'));
   return onSnapshot(
     q,
     (snap) => {
       cb(snap.docs.map((d) => normalizeListing(d.id, d.data() as FirestoreListing)));
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
+}
+
+/** Jednorazowy odczyt jednego ogłoszenia (szczegóły / edycja). */
+export async function getListing(id: string): Promise<MarketListing | null> {
+  if (!id) return null;
+  const snap = await getDoc(listingRef(id));
+  if (!snap.exists()) return null;
+  return normalizeListing(snap.id, snap.data() as FirestoreListing);
+}
+
+/** Live-subskrypcja jednego dokumentu — zamiast całej kolekcji na ekranach detail/edit. */
+export function subscribeListing(
+  id: string,
+  cb: (item: MarketListing | null) => void,
+  onError?: (error: unknown) => void
+) {
+  if (!id) {
+    cb(null);
+    return () => {};
+  }
+  return onSnapshot(
+    listingRef(id),
+    (snap) => {
+      cb(snap.exists() ? normalizeListing(snap.id, snap.data() as FirestoreListing) : null);
     },
     (error) => {
       onError?.(error);
@@ -100,7 +135,7 @@ export async function createListing(input: CreateListingInput) {
 
 export async function updateListing(id: string, input: UpdateListingInput) {
   await setDoc(
-    doc(getFirebaseFirestore(), LISTINGS_COLLECTION, id),
+    listingRef(id),
     {
       ...input,
       updatedAt: serverTimestamp(),
@@ -110,5 +145,5 @@ export async function updateListing(id: string, input: UpdateListingInput) {
 }
 
 export async function deleteListing(id: string) {
-  await deleteDoc(doc(getFirebaseFirestore(), LISTINGS_COLLECTION, id));
+  await deleteDoc(listingRef(id));
 }
