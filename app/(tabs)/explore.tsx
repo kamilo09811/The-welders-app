@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -92,17 +93,16 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Ustawienia</Text>
-          <Text style={styles.headerSub}>
-            Preferencje aplikacji: powiadomienia, filtry i sposób wyświetlania stawek.
-          </Text>
-        </View>
+    <View style={styles.root}>
+      <LinearGradient colors={['#0A2F6B', '#E8EEF7']} locations={[0, 0.38]} style={styles.bgGlow} />
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Ustawienia</Text>
+            <Text style={styles.headerSub}>Preferencje rynku, powiadomień i wyświetlania.</Text>
+          </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Lokalizacja i zasięg</Text>
+          <Text style={styles.sectionTitle}>Lokalizacja i zasięg</Text>
           <TextInput
             style={styles.input}
             value={baseCity}
@@ -126,18 +126,17 @@ export default function SettingsScreen() {
               />
             ))}
           </View>
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Powiadomienia</Text>
-          <Text style={styles.cardHint}>
-            Push wymaga zbudowanej aplikacji (nie Expo Go), uprawnień systemu oraz w .env zmiennej
-            EXPO_PUBLIC_EAS_PROJECT_ID (projekt EAS). W Firebase włącz szablon „Weryfikacja adresu e-mail”.
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionTitle}>Powiadomienia i widok</Text>
+          <Text style={styles.hint}>
+            Push wymaga buildu EAS (nie Expo Go) oraz EXPO_PUBLIC_EAS_PROJECT_ID.
           </Text>
           <SettingRow
             icon="work-outline"
             title="Nowe oferty i zlecenia"
-            subtitle="Powiadomienie, gdy pojawi się pasujące ogłoszenie"
+            subtitle="Gdy pojawi się pasujące ogłoszenie"
             value={notifNewJobs}
             onChange={(v) => {
               setIsEditing(true);
@@ -147,7 +146,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon="chat-bubble-outline"
             title="Wiadomości i odpowiedzi"
-            subtitle="Informacja o nowych rozmowach"
+            subtitle="Nowe rozmowy i wiadomości"
             value={notifMessages}
             onChange={(v) => {
               setIsEditing(true);
@@ -157,7 +156,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon="verified"
             title="Tylko zweryfikowane konta"
-            subtitle="Pokazuj ogłoszenia od zweryfikowanych użytkowników"
+            subtitle="Filtruj rynek po potwierdzonym e-mailu"
             value={onlyVerified}
             onChange={(v) => {
               setIsEditing(true);
@@ -167,18 +166,18 @@ export default function SettingsScreen() {
           <SettingRow
             icon="payments"
             title="Pokazuj stawki brutto"
-            subtitle="Spójny widok wynagrodzeń"
+            subtitle="Etykieta brutto / netto na liście"
             value={showGrossRate}
             onChange={(v) => {
               setIsEditing(true);
               setShowGrossRate(v);
             }}
           />
-        </View>
 
-        <View style={styles.card}>
-          {loading ? <Text style={styles.cardNote}>Ładowanie ustawień...</Text> : null}
-          {message ? <Text style={styles.cardNote}>{message}</Text> : null}
+          <View style={styles.divider} />
+
+          {loading ? <Text style={styles.note}>Ładowanie ustawień…</Text> : null}
+          {message ? <Text style={styles.note}>{message}</Text> : null}
           <Pressable
             style={[styles.saveBtn, busy && styles.saveBtnDisabled]}
             disabled={busy}
@@ -186,46 +185,41 @@ export default function SettingsScreen() {
             <MaterialIcons name="save" size={18} color="#FFFFFF" />
             <Text style={styles.saveBtnText}>{busy ? 'Zapisywanie...' : 'Zapisz ustawienia'}</Text>
           </Pressable>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
-  header: { backgroundColor: '#0E4AA4', borderRadius: 18, padding: 16 },
-  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
-  headerSub: { color: '#DCEBFF', marginTop: 6 },
+  root: { flex: 1, backgroundColor: '#E8EEF7' },
+  bgGlow: { ...StyleSheet.absoluteFillObject },
+  safe: { flex: 1 },
+  content: { padding: 16, gap: 12, paddingBottom: 36 },
+  header: { paddingTop: 4, paddingBottom: 8 },
+  headerTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', letterSpacing: -0.3 },
+  headerSub: { color: '#D7E6FF', marginTop: 6, lineHeight: 20 },
 
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    padding: 14,
-    gap: 10,
-  },
-  cardTitle: { color: '#10233E', fontSize: 15, fontWeight: '700' },
-  cardHint: { color: '#64748B', fontSize: 11, lineHeight: 16, marginBottom: 4 },
+  sectionTitle: { color: '#10233E', fontSize: 15, fontWeight: '800', marginTop: 8 },
+  hint: { color: '#64748B', fontSize: 11, lineHeight: 16, marginTop: -4 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(100,116,139,0.35)', marginVertical: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#D5DEEA',
-    borderRadius: 11,
-    backgroundColor: '#F8FAFD',
+    borderColor: 'rgba(213,222,234,0.95)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.88)',
     color: '#0F172A',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     fontSize: 14,
   },
 
   segmentWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
-    borderRadius: 999,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D5DEEA',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -233,27 +227,28 @@ const styles = StyleSheet.create({
   pillText: { color: '#334155', fontSize: 12, fontWeight: '600' },
   pillTextActive: { color: '#FFFFFF' },
 
-  settingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   settingIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#EFF6FF',
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: 'rgba(239,246,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   settingTextWrap: { flex: 1 },
   settingTitle: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
   settingSub: { color: '#64748B', fontSize: 12 },
-  cardNote: { color: '#64748B', fontSize: 12 },
+  note: { color: '#475569', fontSize: 12 },
   saveBtn: {
-    borderRadius: 11,
+    borderRadius: 12,
     backgroundColor: '#0E4AA4',
-    paddingVertical: 11,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
+    marginTop: 4,
   },
   saveBtnDisabled: { opacity: 0.65 },
   saveBtnText: { color: '#FFFFFF', fontWeight: '700' },
