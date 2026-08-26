@@ -15,7 +15,11 @@ import {
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
 
-export type InAppNotificationKind = 'application_new' | 'application_status' | 'chat_message';
+export type InAppNotificationKind =
+  | 'application_new'
+  | 'application_status'
+  | 'chat_message'
+  | 'listing_new';
 
 export type InAppNotification = {
   id: string;
@@ -43,7 +47,10 @@ function notificationsCol(uid: string) {
 function normalizeNotification(id: string, data: FirestoreInAppNotification): InAppNotification {
   const kind = data.kind;
   const safeKind: InAppNotificationKind =
-    kind === 'application_status' || kind === 'chat_message' || kind === 'application_new'
+    kind === 'application_status' ||
+    kind === 'chat_message' ||
+    kind === 'application_new' ||
+    kind === 'listing_new'
       ? kind
       : 'application_new';
   return {

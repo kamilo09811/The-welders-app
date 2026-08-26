@@ -13,6 +13,7 @@ import { createOrGetConversation } from '@/lib/chat';
 import { deleteListing } from '@/lib/market-listings';
 import { useListingApplications, useMyListingApplication } from '@/lib/use-listing-applications';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
+import { formatRateLabel, useUserSettings } from '@/lib/user-settings';
 import { useMarketListing } from '@/lib/use-market-listings';
 
 const STATUS_LABEL: Record<ListingApplication['status'], string> = {
@@ -27,6 +28,7 @@ export default function ListingDetailsScreen() {
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
+  const { settings } = useUserSettings();
   const { listing, loading: loadingListing } = useMarketListing(id);
 
   const isAuthor = Boolean(uid && listing && listing.authorId === uid);
@@ -145,7 +147,7 @@ export default function ListingDetailsScreen() {
                 </View>
 
                 <Text style={styles.rateLabel}>
-                  Stawka: {listing.rateMin}-{listing.rateMax} PLN/h
+                  Stawka: {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate)}
                 </Text>
 
                 <View style={styles.tagsWrap}>

@@ -1,7 +1,6 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -13,13 +12,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
 import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-listings';
+import { matchesLocationPreference } from '@/lib/pl-cities';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
-import { useUserSettings, type UserSettings } from '@/lib/user-settings';
+import {
+  formatRateLabel,
+  useUserSettings,
+  type SettingsSort,
+} from '@/lib/user-settings';
 
 type Role = 'welder' | 'employer';
-type Sort = 'rateDesc' | 'rateAsc' | 'newest';
 
 const ROLE_LABELS: Record<Role, string> = {
   welder: 'Konto spawacza',
@@ -47,16 +52,6 @@ function wynikSlowo(n: number): string {
   return 'wyników';
 }
 
-function matchesSettingsLocation(
-  listingLocation: string,
-  baseCity: string,
-  _radius: UserSettings['radius']
-): boolean {
-  const city = baseCity.trim();
-  if (!city) return true;
-  return listingLocation.toLowerCase().includes(city.toLowerCase());
-}
-
 function Chip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
@@ -82,7 +77,6 @@ function ListingRow({
   showGrossRate: boolean;
   onPress: () => void;
 }) {
-  const rateSuffix = showGrossRate ? ' PLN/h brutto' : ' PLN/h netto';
   return (
     <Pressable style={styles.listingRow} onPress={onPress}>
       <View style={styles.listingTop}>
@@ -90,10 +84,7 @@ function ListingRow({
           <Text style={styles.metaBadge}>{item.type}</Text>
           <Text style={[styles.metaBadge, styles.intentBadge]}>{INTENT_LABEL[item.intent]}</Text>
         </View>
-        <Text style={styles.listingRate}>
-          {item.rateMin}-{item.rateMax}
-          {rateSuffix}
-        </Text>
+        <Text style={styles.listingRate}>{formatRateLabel(item.rateMin, item.rateMax, showGrossRate)}</Text>
       </View>
       <Text style={styles.listingTitle}>{item.title}</Text>
       <Text style={styles.listingCompany}>{item.company || 'Ogłoszenie prywatne'}</Text>
@@ -122,7 +113,7 @@ function ListingRow({
 export default function MarketplaceScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
-  const { settings } = useUserSettings();
+  const { settings, loading: settingsLoading } = useUserSettings();
   const { listings, loading } = useMarketListings();
   const authorIds = useMemo(() => listings.map((i) => i.authorId), [listings]);
   const { verifiedByAuthor, loading: verifiedLoading } = useAuthorsEmailVerified(
@@ -136,8 +127,16 @@ export default function MarketplaceScreen() {
   const [location, setLocation] = useState('Wszystkie');
   const [type, setType] = useState<'Wszystkie' | ListingType>('Wszystkie');
   const [intent, setIntent] = useState<'Wszystkie' | ListingIntent>('Wszystkie');
-  const [sort, setSort] = useState<Sort>('newest');
+  const [sort, setSort] = useState<SettingsSort>('newest');
   const [onlyMine, setOnlyMine] = useState(false);
+  const prefsSeeded = useRef(false);
+
+  useEffect(() => {
+    if (settingsLoading || prefsSeeded.current) return;
+    prefsSeeded.current = true;
+    setSort(settings.defaultSort);
+    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
+  }, [settings.defaultSort, settings.preferredIntent, settingsLoading]);
 
   const chipsLocation = useMemo(() => {
     const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) =>
@@ -151,20 +150,21 @@ export default function MarketplaceScreen() {
     if (location !== 'Wszystkie') n += 1;
     if (type !== 'Wszystkie') n += 1;
     if (intent !== 'Wszystkie') n += 1;
-    if (sort !== 'newest') n += 1;
+    if (sort !== settings.defaultSort) n += 1;
     if (onlyMine) n += 1;
     return n;
-  }, [intent, location, onlyMine, sort, type]);
+  }, [intent, location, onlyMine, settings.defaultSort, sort, type]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const data = listings.filter((i) => {
       if (!uid) return i.targetRole === role;
       if (onlyMine) return i.authorId === uid;
+      if (settings.hideOwnInFeed && i.authorId === uid) return false;
       return i.targetRole === role || i.authorId === uid;
     });
     const afterSettingsLocation = data.filter((i) =>
-      matchesSettingsLocation(i.location, settings.baseCity, settings.radius)
+      matchesLocationPreference(i.location, settings.baseCity, settings.radius)
     );
     const afterLocation =
       location === 'Wszystkie'
@@ -173,9 +173,15 @@ export default function MarketplaceScreen() {
     const afterType = type === 'Wszystkie' ? afterLocation : afterLocation.filter((i) => i.type === type);
     const afterIntent =
       intent === 'Wszystkie' ? afterType : afterType.filter((i) => i.intent === intent);
+    const afterModes =
+      settings.preferredModes.length === 0
+        ? afterIntent
+        : afterIntent.filter((i) => settings.preferredModes.includes(i.mode));
+    const afterMinRate =
+      settings.minRate > 0 ? afterModes.filter((i) => i.rateMax >= settings.minRate) : afterModes;
     const afterQuery = !q
-      ? afterIntent
-      : afterIntent.filter(
+      ? afterMinRate
+      : afterMinRate.filter(
           (i) =>
             i.title.toLowerCase().includes(q) ||
             i.company.toLowerCase().includes(q) ||
@@ -199,7 +205,10 @@ export default function MarketplaceScreen() {
     query,
     role,
     settings.baseCity,
+    settings.hideOwnInFeed,
+    settings.minRate,
     settings.onlyVerified,
+    settings.preferredModes,
     settings.radius,
     sort,
     type,
@@ -210,8 +219,8 @@ export default function MarketplaceScreen() {
   const resetFilters = () => {
     setLocation('Wszystkie');
     setType('Wszystkie');
-    setIntent('Wszystkie');
-    setSort('newest');
+    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
+    setSort(settings.defaultSort);
     setOnlyMine(false);
   };
 
@@ -272,10 +281,19 @@ export default function MarketplaceScreen() {
             </Pressable>
           </View>
 
-          {settings.baseCity.trim() || settings.onlyVerified ? (
+          {settings.baseCity.trim() || settings.onlyVerified || settings.minRate > 0 ? (
             <Pressable style={styles.prefsLine} onPress={() => router.push('/(tabs)/explore')}>
               <Text style={styles.prefsLineText} numberOfLines={1}>
-                Preferencje: {[settings.baseCity.trim(), settings.onlyVerified ? 'tylko zweryfikowani' : '']
+                Preferencje:{' '}
+                {[
+                  settings.baseCity.trim()
+                    ? settings.radius === 'Cała Polska'
+                      ? settings.baseCity.trim()
+                      : `${settings.baseCity.trim()} · ${settings.radius}`
+                    : '',
+                  settings.minRate > 0 ? `min. ${settings.minRate} PLN/h` : '',
+                  settings.onlyVerified ? 'tylko zweryfikowani' : '',
+                ]
                   .filter(Boolean)
                   .join(' · ')}
               </Text>

@@ -25,8 +25,12 @@ Push (Expo) + weryfikacja e-mail — co zrobić poza kodem
    - firebase deploy --only functions,firestore:rules,storage
    - Wymaga planu Blaze (wyjście do internetu — api.expo.dev).
 
-4) Ustawienia użytkownika
-   - Przełącznik „Wiadomości i odpowiedzi” (Firestore users/.../meta/settings, notifMessages) musi być włączony, aby aplikacja zapisała token push.
+4) Ustawienia użytkownika (Firestore users/.../meta/settings)
+   - notifMessages — wiadomości czatu
+   - notifApplications — zgłoszenia / statusy
+   - notifNewJobs — nowe oferty (Cloud Function onListingCreatedNotify)
+   Token push jest zapisywany, gdy którakolwiek z tych opcji jest włączona.
+   Po zmianach: firebase deploy --only functions,firestore:rules,storage
 
 5) Ekran „Potwierdź e-mail”
    - Po rejestracji e-mail/hasło użytkownik trafia na /verify-email do czasu kliknięcia linku w mailu.
