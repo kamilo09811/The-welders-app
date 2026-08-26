@@ -53,7 +53,10 @@ Po sukcesie:
 
 - Reguly Firestore i Storage beda aktywne w projekcie.
 - Indeksy zostana utworzone lub zaktualizowane (duze indeksy moga budowac sie kilka minut).
-- Funkcja `onInAppNotificationPush` (Firestore trigger na `users/{userId}/notifications/{notifId}`) zostanie wdrozona w `europe-west1`.
+- Funkcje w `europe-west1`:
+  - `onApplicationCreatedNotify` / `onApplicationStatusNotify` / `onChatMessageNotify` — tworzą powiadomienia in-app
+  - `onInAppNotificationPush` — Expo Push po utworzeniu in-app notification
+- Klient nie może tworzyć dokumentów w `users/.../notifications` (tylko Cloud Functions).
 
 Jesli pojawi sie **401 / invalid authentication**: uruchom ponownie `firebase login` i sprobuj deploy jeszcze raz.
 
