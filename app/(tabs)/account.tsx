@@ -185,7 +185,7 @@ export default function AccountScreen() {
             icon="chat-bubble-outline"
             label="Wiadomości"
             badge={messagesUnreadCount}
-            onPress={() => router.push('/messages' as never)}
+            onPress={() => router.push('/(tabs)/messages' as never)}
           />
           {uid ? (
             <NavRow

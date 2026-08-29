@@ -16,7 +16,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
 import {
@@ -43,6 +43,7 @@ function formatMsgTime(d: Date | null): string {
 
 export default function ConversationScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
@@ -53,6 +54,8 @@ export default function ConversationScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const composerBottomPad = Math.max(insets.bottom, 8) + 10;
 
   const otherId = useMemo(() => {
     if (!uid || !conversation) return '';
@@ -285,7 +288,7 @@ export default function ConversationScreen() {
             </Pressable>
           ) : null}
 
-          <View style={styles.composer}>
+          <View style={[styles.composer, { paddingBottom: composerBottomPad }]}>
             <Pressable
               style={[styles.iconBtn, (uploadingImage || sending) && styles.iconBtnDisabled]}
               onPress={onAttachPress}
@@ -430,7 +433,7 @@ const styles = StyleSheet.create({
   feedbackText: { color: '#B91C1C', fontSize: 12, flex: 1 },
   composer: {
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingTop: 10,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
