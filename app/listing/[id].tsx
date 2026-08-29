@@ -17,7 +17,6 @@ import {
 import {
   deleteListing,
   isQuickListing,
-  quickSlotsRemaining,
 } from '@/lib/market-listings';
 import { useListingApplications, useMyListingApplication } from '@/lib/use-listing-applications';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
