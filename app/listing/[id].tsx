@@ -63,6 +63,24 @@ export default function ListingDetailsScreen() {
     return list;
   }, [applications, quick]);
 
+  /** Sloty z listing + natychmiast własny awatar po dołączeniu (zanim dojdzie snapshot). */
+  const displaySlotApplicants = useMemo(() => {
+    const fromListing = listing?.quickSlots?.applicants || [];
+    if (!uid || !quick) return fromListing;
+    if (fromListing.some((a) => a.uid === uid)) return fromListing;
+    if (!myApplication) return fromListing;
+    return [
+      ...fromListing,
+      {
+        uid,
+        name: myApplication.applicantName || profile.fullName || 'Ty',
+        avatarUrl: myApplication.applicantAvatarUrl || profile.avatarUrl || '',
+        applicationId: myApplication.id,
+        joinedAt: myApplication.createdAt,
+      },
+    ].slice(0, 5);
+  }, [listing?.quickSlots?.applicants, uid, quick, myApplication, profile.avatarUrl, profile.fullName]);
+
   const slotsLeft = listing ? quickSlotsRemaining(listing) : 0;
   const canJoinQuick =
     quick &&
@@ -227,7 +245,7 @@ export default function ListingDetailsScreen() {
                         ? 'Komplet 5 najszybszych — czekamy na wybór.'
                         : `Wolne miejsca: ${slotsLeft}. Pierwsze 5 osób wchodzi do gry.`}
                   </Text>
-                  <QuickSlotsAvatars applicants={listing.quickSlots?.applicants || []} />
+                  <QuickSlotsAvatars applicants={displaySlotApplicants} />
                 </View>
               ) : null}
 

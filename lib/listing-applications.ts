@@ -7,6 +7,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -18,6 +19,7 @@ import {
   getListing,
   isQuickListing,
   markQuickListingAwarded,
+  QUICK_SLOT_MAX,
   quickSlotsRemaining,
   type MarketListing,
 } from '@/lib/market-listings';
@@ -139,34 +141,115 @@ export async function createApplication(input: CreateApplicationInput) {
     getListingPublisherName(input.applicantProfile) ||
     input.applicantProfile.fullName ||
     'Użytkownik';
+  const applicantAvatarUrl = input.applicantProfile.avatarUrl || '';
+  const message =
+    input.message.trim() ||
+    (isQuickListing(listing)
+      ? 'Chcę dołączyć do szybkiego zlecenia — jestem gotowy/a od razu.'
+      : 'Jestem zainteresowany/a tym ogłoszeniem.');
+
+  const db = getFirebaseFirestore();
+  const listingRef = doc(db, 'listings', input.listingId);
 
   try {
-    await setDoc(ref, {
-      listingId: input.listingId,
-      listingTitle: listing.title || input.listingTitle,
-      authorId: listing.authorId,
-      applicantId: input.applicantId,
-      applicantRole: input.applicantRole,
-      applicantName,
-      applicantAvatarUrl: input.applicantProfile.avatarUrl || '',
-      applicantPhone: input.applicantProfile.phone || '',
-      message:
-        input.message.trim() ||
-        (isQuickListing(listing)
-          ? 'Chcę dołączyć do szybkiego zlecenia — jestem gotowy/a od razu.'
-          : 'Jestem zainteresowany/a tym ogłoszeniem.'),
-      status: 'new',
-      createdAt: serverTimestamp(),
-    });
+    if (isQuickListing(listing)) {
+      // Transakcja: zgłoszenie + od razu awatar w slotach (bez czekania na Cloud Function).
+      await runTransaction(db, async (tx) => {
+        const listingSnap = await tx.get(listingRef);
+        if (!listingSnap.exists()) {
+          throw new Error('Ogłoszenie nie istnieje lub zostało usunięte.');
+        }
+        const live = listingSnap.data() as Record<string, unknown>;
+        if (live.kind !== 'quick') {
+          throw new Error('To nie jest szybkie zlecenie.');
+        }
+        if (live.quickStatus === 'awarded' || live.quickStatus === 'closed') {
+          throw new Error('To szybkie zlecenie jest już rozstrzygnięte.');
+        }
+        const rawSlots =
+          live.quickSlots && typeof live.quickSlots === 'object'
+            ? (live.quickSlots as {
+                max?: number;
+                applicants?: Array<Record<string, unknown>>;
+              })
+            : {};
+        const max =
+          typeof rawSlots.max === 'number' && rawSlots.max > 0 ? rawSlots.max : QUICK_SLOT_MAX;
+        const applicants = Array.isArray(rawSlots.applicants) ? [...rawSlots.applicants] : [];
+        if (applicants.some((a) => a && a.uid === input.applicantId)) {
+          throw new Error('Już aplikowałeś na to ogłoszenie.');
+        }
+        if (applicants.length >= max) {
+          throw new Error('Limit 5 najszybszych zgłoszeń został wyczerpany.');
+        }
+
+        tx.set(ref, {
+          listingId: input.listingId,
+          listingTitle: listing.title || input.listingTitle,
+          authorId: listing.authorId,
+          applicantId: input.applicantId,
+          applicantRole: input.applicantRole,
+          applicantName,
+          applicantAvatarUrl,
+          applicantPhone: input.applicantProfile.phone || '',
+          message,
+          status: 'new',
+          createdAt: serverTimestamp(),
+        });
+
+        const nextApplicants = [
+          ...applicants,
+          {
+            uid: input.applicantId,
+            name: applicantName,
+            avatarUrl: applicantAvatarUrl,
+            applicationId: id,
+            joinedAt: serverTimestamp(),
+          },
+        ];
+        const filled = nextApplicants.length;
+        tx.set(
+          listingRef,
+          {
+            quickSlots: { max, filled, applicants: nextApplicants },
+            quickStatus: filled >= max ? 'full' : 'open',
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+    } else {
+      await setDoc(ref, {
+        listingId: input.listingId,
+        listingTitle: listing.title || input.listingTitle,
+        authorId: listing.authorId,
+        applicantId: input.applicantId,
+        applicantRole: input.applicantRole,
+        applicantName,
+        applicantAvatarUrl,
+        applicantPhone: input.applicantProfile.phone || '',
+        message,
+        status: 'new',
+        createdAt: serverTimestamp(),
+      });
+    }
   } catch (error) {
+    if (error instanceof Error && (
+      error.message.startsWith('Już aplikowałeś') ||
+      error.message.startsWith('Limit 5') ||
+      error.message.startsWith('To szybkie') ||
+      error.message.startsWith('Ogłoszenie nie istnieje')
+    )) {
+      throw error;
+    }
     if (isPermissionDenied(error)) {
       throw new Error(
-        'Brak uprawnień do wysłania zgłoszenia. Zdeployuj najnowsze reguły Firestore i upewnij się, że nie aplikujesz na własne ogłoszenie.'
+        'Brak uprawnień do wysłania zgłoszenia. Zdeployuj najnowsze reguły Firestore (firebase deploy --only firestore:rules).'
       );
     }
     throw error;
   }
-  // Powiadomienie + sloty quick: Cloud Function onApplicationCreatedNotify
+  // Powiadomienie: Cloud Function onApplicationCreatedNotify
 }
 
 export async function updateApplicationStatus(

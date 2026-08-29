@@ -90,6 +90,27 @@ function validReviewWrite(userId) {
     && request.resource.data.text.size() <= 2000;
 }
 
+function isQuickSlotSelfJoin() {
+  // Kandydat może tylko dopisać siebie do quickSlots (1 miejsce).
+  let before = resource.data;
+  let after = request.resource.data;
+  let beforeApplicants = ('quickSlots' in before && 'applicants' in before.quickSlots)
+    ? before.quickSlots.applicants
+    : [];
+  let afterApplicants = after.quickSlots.applicants;
+  return before.kind == 'quick'
+    && after.kind == 'quick'
+    && after.authorId == before.authorId
+    && after.title == before.title
+    && after.diff(before).changedKeys().hasOnly(['quickSlots', 'quickStatus', 'updatedAt'])
+    && afterApplicants is list
+    && afterApplicants.size() <= 5
+    && afterApplicants.size() == beforeApplicants.size() + 1
+    && afterApplicants[afterApplicants.size() - 1].uid == request.auth.uid
+    && afterApplicants[afterApplicants.size() - 1].applicationId is string
+    && afterApplicants[afterApplicants.size() - 1].name is string;
+}
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -140,7 +161,12 @@ service cloud.firestore {
         && request.auth.uid == request.resource.data.authorId
         && request.resource.data.authorId is string
         && request.resource.data.title is string;
-      allow update, delete: if isSignedIn()
+      allow update: if isSignedIn()
+        && (
+          request.auth.uid == resource.data.authorId
+          || isQuickSlotSelfJoin()
+        );
+      allow delete: if isSignedIn()
         && request.auth.uid == resource.data.authorId;
     }
 
