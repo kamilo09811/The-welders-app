@@ -19,14 +19,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GoogleFirebaseSignInButton } from '@/components/google-firebase-sign-in-button';
 import { authColors as C } from '@/constants/auth-ui';
+import { needsEmailVerification } from '@/lib/auth-email';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { isFirebaseConfigured } from '@/lib/firebaseConfig';
-import { needsEmailVerification } from '@/lib/auth-email';
 import { mapAuthError } from '@/lib/mapAuthError';
+import { usePreferences } from '@/lib/preferences-context';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { role } = useLocalSearchParams<{ role?: string }>();
+  const { t, locale } = usePreferences();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,10 +36,10 @@ export default function LoginScreen() {
 
   const roleHint =
     role === 'welder'
-      ? 'Konto spawacza'
+      ? t('auth.loginHintWelder')
       : role === 'employer'
-        ? 'Konto pracodawcy / zleceniodawcy'
-        : 'Zaloguj się do konta';
+        ? t('auth.loginHintEmployer')
+        : t('auth.loginHint');
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -50,11 +52,11 @@ export default function LoginScreen() {
   const onEmailLogin = useCallback(async () => {
     setError(null);
     if (!email.trim() || !password) {
-      setError('Podaj e-mail i hasło.');
+      setError(t('auth.fillEmailPassword'));
       return;
     }
     if (!isFirebaseConfigured()) {
-      setError('Brak konfiguracji Firebase (lib/firebaseConfig).');
+      setError(t('auth.firebaseMissing'));
       return;
     }
     setBusy(true);
@@ -70,14 +72,14 @@ export default function LoginScreen() {
         router.replace('/(tabs)');
       }
     } catch (e) {
-      setError(mapAuthError(e));
+      setError(mapAuthError(e, locale));
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } finally {
       setBusy(false);
     }
-  }, [email, password, router]);
+  }, [email, password, locale, router, t]);
 
   const goForgotPassword = useCallback(() => {
     router.push({
@@ -114,14 +116,14 @@ export default function LoginScreen() {
                   style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
                   <MaterialIcons name="arrow-back" size={22} color={C.text} />
                 </Pressable>
-                <Text style={styles.topTitle}>Logowanie</Text>
+                <Text style={styles.topTitle}>{t('auth.loginTitle')}</Text>
                 <View style={styles.topSpacer} />
               </View>
 
               <Text style={styles.hint}>{roleHint}</Text>
 
               <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
-                <Text style={styles.label}>E-mail</Text>
+                <Text style={styles.label}>{t('auth.email')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder="twoj@email.pl"
@@ -136,7 +138,7 @@ export default function LoginScreen() {
                   editable={!busy}
                 />
 
-                <Text style={[styles.label, styles.labelSpaced]}>Hasło</Text>
+                <Text style={[styles.label, styles.labelSpaced]}>{t('auth.password')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder="••••••••"
@@ -150,7 +152,7 @@ export default function LoginScreen() {
                 />
 
                 <Pressable onPress={goForgotPassword} style={styles.forgotWrap}>
-                  <Text style={[styles.forgot, { color: C.primary }]}>Zapomniałeś hasła?</Text>
+                  <Text style={[styles.forgot, { color: C.primary }]}>{t('auth.forgotPassword')}</Text>
                 </Pressable>
 
                 {error ? (
@@ -170,13 +172,13 @@ export default function LoginScreen() {
                   {busy ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Zaloguj się</Text>
+                    <Text style={styles.primaryBtnText}>{t('auth.login')}</Text>
                   )}
                 </Pressable>
 
                 <View style={styles.dividerRow}>
                   <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
-                  <Text style={[styles.dividerText, { color: C.muted }]}>lub</Text>
+                  <Text style={[styles.dividerText, { color: C.muted }]}>{t('auth.or')}</Text>
                   <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
                 </View>
 
@@ -188,9 +190,9 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.registerRow}>
-                <Text style={[styles.registerLead, { color: C.muted }]}>Nie masz konta? </Text>
+                <Text style={[styles.registerLead, { color: C.muted }]}>{t('auth.noAccount')} </Text>
                 <Pressable onPress={goRegister}>
-                  <Text style={[styles.registerLink, { color: C.primary }]}>Zarejestruj się</Text>
+                  <Text style={[styles.registerLink, { color: C.primary }]}>{t('auth.register')}</Text>
                 </Pressable>
               </View>
             </ScrollView>
