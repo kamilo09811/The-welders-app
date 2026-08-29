@@ -113,6 +113,18 @@ export async function saveUserSettings(uid: string, settings: UserSettings) {
   );
 }
 
+/** Dopisz wybrane pola bez nadpisywania reszty dokumentu domyślnymi wartościami. */
+export async function patchUserSettings(uid: string, patch: Partial<UserSettings>) {
+  await setDoc(
+    settingsDoc(uid),
+    {
+      ...patch,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
 export async function getUserSettings(uid: string): Promise<UserSettings> {
   const snap = await getDoc(settingsDoc(uid));
   if (!snap.exists()) return { ...DEFAULT_SETTINGS };
@@ -163,6 +175,9 @@ export function useUserSettings() {
       setLoading(false);
       return;
     }
+    // Ważne: trzymaj loading=true do pierwszego snapshota, inaczej migracja
+    // motywu/języka może nadpisać preferencje rynku domyślnymi wartościami.
+    setLoading(true);
     const unsub = onSnapshot(
       settingsDoc(uid),
       (snap) => {

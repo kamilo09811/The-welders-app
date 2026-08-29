@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-listings';
+import type { ListingIntent, ListingType, MarketListing, WorkMode } from '@/lib/market-listings';
 import { isQuickListing } from '@/lib/market-listings';
 import { matchesLocationPreference } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
@@ -35,6 +35,8 @@ import type { TranslationKey } from '@/lib/i18n';
 
 type Role = 'welder' | 'employer';
 
+const ALL_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
+
 const chipsType: ('Wszystkie' | ListingType)[] = [
   'Wszystkie',
   'Umowa o pracę',
@@ -42,6 +44,10 @@ const chipsType: ('Wszystkie' | ListingType)[] = [
   'Umowa zlecenie',
 ];
 const chipsIntent: ('Wszystkie' | ListingIntent)[] = ['Wszystkie', 'offer', 'seek'];
+
+function effectiveRate(item: MarketListing): number {
+  return Math.max(item.rateMin || 0, item.rateMax || 0);
+}
 
 function Chip({
   active,
@@ -185,27 +191,24 @@ export default function MarketplaceScreen() {
   const [type, setType] = useState<'Wszystkie' | ListingType>('Wszystkie');
   const [intent, setIntent] = useState<'Wszystkie' | ListingIntent>('Wszystkie');
   const [sort, setSort] = useState<SettingsSort>('newest');
+  const [modeFilter, setModeFilter] = useState<WorkMode[]>([]);
   const [onlyMine, setOnlyMine] = useState(false);
-  const prefsSeeded = useRef(false);
+  const [hideOwn, setHideOwn] = useState(false);
 
+  // Preferencje z Ustawień są źródłem prawdy — synchronizuj po każdym zapisie / załadowaniu.
   useEffect(() => {
     if (settingsLoading) return;
-    if (!prefsSeeded.current) {
-      prefsSeeded.current = true;
-      setSort(settings.defaultSort);
-      setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
-    }
-  }, [settings.defaultSort, settings.preferredIntent, settingsLoading]);
-
-  useEffect(() => {
-    if (!prefsSeeded.current || settingsLoading) return;
     setSort(settings.defaultSort);
-  }, [settings.defaultSort, settingsLoading]);
-
-  useEffect(() => {
-    if (!prefsSeeded.current || settingsLoading) return;
     setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
-  }, [settings.preferredIntent, settingsLoading]);
+    setModeFilter([...settings.preferredModes]);
+    setHideOwn(settings.hideOwnInFeed);
+  }, [
+    settings.defaultSort,
+    settings.hideOwnInFeed,
+    settings.preferredIntent,
+    settings.preferredModes,
+    settingsLoading,
+  ]);
 
   const chipsLocation = useMemo(() => {
     const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) =>
@@ -219,10 +222,22 @@ export default function MarketplaceScreen() {
     if (location !== 'Wszystkie') n += 1;
     if (type !== 'Wszystkie') n += 1;
     if (intent !== 'Wszystkie') n += 1;
+    if (modeFilter.length > 0) n += 1;
     if (sort !== settings.defaultSort) n += 1;
+    if (hideOwn !== settings.hideOwnInFeed) n += 1;
     if (onlyMine) n += 1;
     return n;
-  }, [intent, location, onlyMine, settings.defaultSort, sort, type]);
+  }, [
+    hideOwn,
+    intent,
+    location,
+    modeFilter.length,
+    onlyMine,
+    settings.defaultSort,
+    settings.hideOwnInFeed,
+    sort,
+    type,
+  ]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -237,7 +252,7 @@ export default function MarketplaceScreen() {
       }
       if (!uid) return i.targetRole === role;
       if (onlyMine) return i.authorId === uid;
-      if (settings.hideOwnInFeed && i.authorId === uid) return false;
+      if (hideOwn && i.authorId === uid) return false;
       return i.targetRole === role || i.authorId === uid;
     });
     const afterSettingsLocation = data.filter((i) =>
@@ -251,13 +266,13 @@ export default function MarketplaceScreen() {
     const afterIntent =
       intent === 'Wszystkie' ? afterType : afterType.filter((i) => i.intent === intent);
     const afterModes =
-      settings.preferredModes.length === 0
+      modeFilter.length === 0
         ? afterIntent
-        : afterIntent.filter((i) => settings.preferredModes.includes(i.mode));
+        : afterIntent.filter((i) => modeFilter.includes(i.mode));
     const afterMinRate =
       settings.minRate > 0
         ? afterModes.filter((i) => {
-            const top = Math.max(i.rateMin || 0, i.rateMax || 0);
+            const top = effectiveRate(i);
             // Ogłoszenia bez stawki nie wypadają z feedu przy filtrze minRate.
             if (top <= 0) return true;
             return top >= settings.minRate;
@@ -270,29 +285,29 @@ export default function MarketplaceScreen() {
             i.title.toLowerCase().includes(q) ||
             i.company.toLowerCase().includes(q) ||
             i.location.toLowerCase().includes(q) ||
-            i.tags.some((t) => t.toLowerCase().includes(q))
+            i.tags.some((tag) => tag.toLowerCase().includes(q))
         );
     const afterVerified = settings.onlyVerified
       ? afterQuery.filter((i) => verifiedByAuthor[i.authorId] === true)
       : afterQuery;
 
     return [...afterVerified].sort((a, b) => {
-      if (sort === 'rateAsc') return a.rateMax - b.rateMax;
-      if (sort === 'newest') return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
-      return b.rateMax - a.rateMax;
+      if (sort === 'rateAsc') return effectiveRate(a) - effectiveRate(b);
+      if (sort === 'rateDesc') return effectiveRate(b) - effectiveRate(a);
+      return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
     });
   }, [
+    hideOwn,
     intent,
     listings,
     location,
+    modeFilter,
     onlyMine,
     query,
     role,
     settings.baseCity,
-    settings.hideOwnInFeed,
     settings.minRate,
     settings.onlyVerified,
-    settings.preferredModes,
     settings.radius,
     sort,
     type,
@@ -300,11 +315,19 @@ export default function MarketplaceScreen() {
     verifiedByAuthor,
   ]);
 
+  const toggleModeFilter = (mode: WorkMode) => {
+    setModeFilter((prev) =>
+      prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]
+    );
+  };
+
   const resetFilters = () => {
     setLocation('Wszystkie');
     setType('Wszystkie');
     setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
     setSort(settings.defaultSort);
+    setModeFilter([...settings.preferredModes]);
+    setHideOwn(settings.hideOwnInFeed);
     setOnlyMine(false);
   };
 
@@ -367,9 +390,15 @@ export default function MarketplaceScreen() {
             </Pressable>
           </View>
 
-          {settings.baseCity.trim() || settings.onlyVerified || settings.minRate > 0 ? (
+          {settings.baseCity.trim() ||
+          settings.onlyVerified ||
+          settings.minRate > 0 ||
+          settings.preferredModes.length > 0 ||
+          settings.preferredIntent !== 'all' ||
+          settings.defaultSort !== 'newest' ||
+          settings.hideOwnInFeed ? (
             <Pressable style={styles.prefsLine} onPress={() => router.push('/(tabs)/explore')}>
-              <Text style={[styles.prefsLineText, { color: colors.textMuted }]} numberOfLines={1}>
+              <Text style={[styles.prefsLineText, { color: colors.textMuted }]} numberOfLines={2}>
                 {[
                   settings.baseCity.trim()
                     ? settings.radius === 'Cała Polska'
@@ -377,6 +406,20 @@ export default function MarketplaceScreen() {
                       : `${settings.baseCity.trim()} · ${settings.radius}`
                     : '',
                   settings.minRate > 0 ? t('market.minRateStrip', { n: settings.minRate }) : '',
+                  settings.preferredIntent === 'offer'
+                    ? t('settings.intentOffer')
+                    : settings.preferredIntent === 'seek'
+                      ? t('settings.intentSeek')
+                      : '',
+                  settings.preferredModes.length > 0
+                    ? settings.preferredModes.map((m) => workModeLabel(m, t)).join(', ')
+                    : '',
+                  settings.defaultSort === 'rateDesc'
+                    ? t('settings.sortRateDesc')
+                    : settings.defaultSort === 'rateAsc'
+                      ? t('settings.sortRateAsc')
+                      : '',
+                  settings.hideOwnInFeed ? t('settings.hideOwn') : '',
                   settings.onlyVerified ? t('settings.onlyVerified') : '',
                 ]
                   .filter(Boolean)
@@ -444,7 +487,7 @@ export default function MarketplaceScreen() {
                 />
               ))}
             </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.preferredModes')}</Text>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('listing.collabType')}</Text>
             <View style={styles.chipWrap}>
               {chipsType.map((c) => (
                 <Chip
@@ -454,6 +497,24 @@ export default function MarketplaceScreen() {
                   }
                   active={type === c}
                   onPress={() => setType(c)}
+                  colors={colors}
+                />
+              ))}
+            </View>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.preferredModes')}</Text>
+            <View style={styles.chipWrap}>
+              <Chip
+                label={t('market.allFilter')}
+                active={modeFilter.length === 0}
+                onPress={() => setModeFilter([])}
+                colors={colors}
+              />
+              {ALL_MODES.map((mode) => (
+                <Chip
+                  key={mode}
+                  label={workModeLabel(mode, t)}
+                  active={modeFilter.includes(mode)}
+                  onPress={() => toggleModeFilter(mode)}
                   colors={colors}
                 />
               ))}
@@ -500,7 +561,22 @@ export default function MarketplaceScreen() {
             <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.hideOwn')}</Text>
             <View style={styles.chipWrap}>
               <Chip
-                label={t('settings.intentAll')}
+                label={t('market.allFilter')}
+                active={!hideOwn}
+                onPress={() => setHideOwn(false)}
+                colors={colors}
+              />
+              <Chip
+                label={t('settings.hideOwn')}
+                active={hideOwn}
+                onPress={() => setHideOwn(true)}
+                colors={colors}
+              />
+            </View>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('market.myListings')}</Text>
+            <View style={styles.chipWrap}>
+              <Chip
+                label={t('market.allFilter')}
                 active={!onlyMine}
                 onPress={() => setOnlyMine(false)}
                 colors={colors}

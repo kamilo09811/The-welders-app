@@ -5,6 +5,7 @@ import { isAppLocale, translate, type AppLocale, type TranslationKey } from '@/l
 import { getAppColors, type AppColors, type AppThemeMode } from '@/lib/theme';
 import {
   DEFAULT_SETTINGS,
+  patchUserSettings,
   saveUserSettings,
   useUserSettings,
   type UserSettings,
@@ -101,24 +102,23 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     settings.theme,
   ]);
 
-  // Migracja: po logowaniu przenieś lokalny motyw/język na konto, jeśli jeszcze ich nie ma.
+  // Migracja: po logowaniu dopisz TYLKO brakujący motyw/język — nigdy nie nadpisuj
+  // preferencji rynku (sort, intencja, tryby, hideOwn itd.) pełnym dumpem DEFAULT.
   useEffect(() => {
     if (!cacheReady || loading || !uid) return;
     if (remoteMeta.hasTheme && remoteMeta.hasLocale) return;
     if (migratedRef.current === uid) return;
     migratedRef.current = uid;
-    const migrated: UserSettings = {
-      ...settings,
-      theme: remoteMeta.hasTheme ? settings.theme : localThemeRef.current,
-      locale: remoteMeta.hasLocale ? settings.locale : localLocaleRef.current,
-    };
-    void saveUserSettings(uid, migrated);
+    const patch: Partial<UserSettings> = {};
+    if (!remoteMeta.hasTheme) patch.theme = localThemeRef.current;
+    if (!remoteMeta.hasLocale) patch.locale = localLocaleRef.current;
+    if (Object.keys(patch).length === 0) return;
+    void patchUserSettings(uid, patch);
   }, [
     cacheReady,
     loading,
     remoteMeta.hasLocale,
     remoteMeta.hasTheme,
-    settings,
     uid,
   ]);
 
