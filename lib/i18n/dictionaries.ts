@@ -129,6 +129,7 @@ export type TranslationKey =
   | 'welcome.imEmployerSub'
   | 'welcome.noAccount'
   | 'welcome.register'
+  | 'welcome.language'
   | 'auth.loginTitle'
   | 'auth.registerTitle'
   | 'auth.forgotTitle'
@@ -333,6 +334,7 @@ const pl: Dict = {
   'welcome.imEmployerSub': 'Chcę dodawać ogłoszenia i kontaktować się',
   'welcome.noAccount': 'Nie masz jeszcze konta?',
   'welcome.register': 'Zarejestruj się',
+  'welcome.language': 'Język',
   'auth.loginTitle': 'Logowanie',
   'auth.registerTitle': 'Rejestracja',
   'auth.forgotTitle': 'Reset hasła',
@@ -537,6 +539,7 @@ const en: Dict = {
   'welcome.imEmployerSub': 'I want to post listings and get in touch',
   'welcome.noAccount': 'Don\'t have an account yet?',
   'welcome.register': 'Sign up',
+  'welcome.language': 'Language',
   'auth.loginTitle': 'Sign in',
   'auth.registerTitle': 'Sign up',
   'auth.forgotTitle': 'Reset password',
@@ -741,6 +744,7 @@ const de: Dict = {
   'welcome.imEmployerSub': 'Ich möchte Anzeigen schalten und kontaktieren',
   'welcome.noAccount': 'Noch kein Konto?',
   'welcome.register': 'Registrieren',
+  'welcome.language': 'Sprache',
   'auth.loginTitle': 'Anmelden',
   'auth.registerTitle': 'Registrieren',
   'auth.forgotTitle': 'Passwort zurücksetzen',
@@ -945,6 +949,7 @@ const da: Dict = {
   'welcome.imEmployerSub': 'Jeg vil oprette opslag og kontakte',
   'welcome.noAccount': 'Har du ikke en konto endnu?',
   'welcome.register': 'Opret konto',
+  'welcome.language': 'Sprog',
   'auth.loginTitle': 'Log ind',
   'auth.registerTitle': 'Opret konto',
   'auth.forgotTitle': 'Nulstil adgangskode',

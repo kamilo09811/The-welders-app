@@ -1,7 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { authColors as C } from '@/constants/auth-ui';
@@ -11,6 +12,12 @@ import { usePreferences } from '@/lib/preferences-context';
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t, locale, setLocale } = usePreferences();
+  const [langOpen, setLangOpen] = useState(false);
+
+  const currentLang = useMemo(
+    () => APP_LOCALES.find((l) => l.value === locale) ?? APP_LOCALES[0],
+    [locale]
+  );
 
   return (
     <>
@@ -21,19 +28,19 @@ export default function WelcomeScreen() {
         <View style={styles.circleSmall} />
 
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={() => setLangOpen(true)}
+              style={({ pressed }) => [styles.langBtn, pressed && { opacity: 0.85 }]}>
+              <MaterialIcons name="language" size={18} color="#E5EDFF" />
+              <Text style={styles.langBtnText}>
+                {currentLang.flag} {t('welcome.language')}
+              </Text>
+              <MaterialIcons name="expand-more" size={18} color="#94A3B8" />
+            </Pressable>
+          </View>
+
           <View style={styles.heroCard}>
-            <View style={styles.langRow}>
-              {APP_LOCALES.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => void setLocale(opt.value)}
-                  style={[styles.langPill, locale === opt.value && styles.langPillActive]}>
-                  <Text style={[styles.langPillText, locale === opt.value && styles.langPillTextActive]}>
-                    {opt.flag} {opt.nativeLabel}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
             <Text style={styles.brand}>TheWeldersWorld</Text>
             <Text style={styles.title}>{t('welcome.title')}</Text>
             <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
@@ -116,6 +123,40 @@ export default function WelcomeScreen() {
             </View>
           </View>
         </SafeAreaView>
+
+        <Modal
+          visible={langOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setLangOpen(false)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setLangOpen(false)}>
+            <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>{t('welcome.language')}</Text>
+              {APP_LOCALES.map((opt) => {
+                const active = locale === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => {
+                      void setLocale(opt.value);
+                      setLangOpen(false);
+                    }}
+                    style={[styles.langOption, active && styles.langOptionActive]}>
+                    <Text style={styles.langOptionFlag}>{opt.flag}</Text>
+                    <View style={styles.langOptionTextCol}>
+                      <Text style={[styles.langOptionLabel, active && styles.langOptionLabelActive]}>
+                        {opt.nativeLabel}
+                      </Text>
+                      <Text style={styles.langOptionSub}>{opt.label}</Text>
+                    </View>
+                    {active ? <MaterialIcons name="check" size={20} color="#0E4AA4" /> : null}
+                  </Pressable>
+                );
+              })}
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </>
   );
@@ -147,9 +188,29 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 12,
     paddingBottom: 28,
-    gap: 18,
+    gap: 14,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.28)',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+  },
+  langBtnText: {
+    color: '#E5EDFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   heroCard: {
@@ -157,18 +218,6 @@ const styles = StyleSheet.create({
     padding: 18,
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
   },
-  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  langPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(226,232,240,0.35)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  langPillActive: { backgroundColor: '#0E4AA4', borderColor: '#0E4AA4' },
-  langPillText: { color: '#CBD5E1', fontSize: 11, fontWeight: '700' },
-  langPillTextActive: { color: '#FFFFFF' },
 
   brand: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2, color: '#E5EDFF', marginTop: 2 },
   title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 4 },
@@ -236,4 +285,54 @@ const styles = StyleSheet.create({
   secondaryRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 4 },
   secondaryText: { fontSize: 14 },
   link: { fontSize: 14, fontWeight: '700' },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    paddingTop: 10,
+    gap: 6,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    color: '#0F172A',
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 6,
+    paddingHorizontal: 4,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  langOptionActive: {
+    borderColor: '#0E4AA4',
+    backgroundColor: '#EFF6FF',
+  },
+  langOptionFlag: { fontSize: 22 },
+  langOptionTextCol: { flex: 1 },
+  langOptionLabel: { color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  langOptionLabelActive: { color: '#0E4AA4' },
+  langOptionSub: { color: '#64748B', fontSize: 12, marginTop: 1 },
 });
