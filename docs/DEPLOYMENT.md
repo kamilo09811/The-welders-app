@@ -56,6 +56,7 @@ Po sukcesie:
 - Funkcje w `europe-west1`:
   - `onApplicationCreatedNotify` / `onApplicationStatusNotify` / `onChatMessageNotify` — tworzą powiadomienia in-app
   - `onInAppNotificationPush` — Expo Push po utworzeniu in-app notification
+  - `onUserReviewWrite` — przelicza `ratingAverage` / `ratingCount` na profilu po opinii
 - Klient nie może tworzyć dokumentów w `users/.../notifications` (tylko Cloud Functions).
 
 Jesli pojawi sie **401 / invalid authentication**: uruchom ponownie `firebase login` i sprobuj deploy jeszcze raz.
