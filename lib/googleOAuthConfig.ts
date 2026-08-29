@@ -4,16 +4,19 @@ import { Platform } from 'react-native';
  * OAuth 2 Client IDs z Google Cloud Console (APIs & Services → Credentials).
  * Muszą być w tym samym projekcie co Firebase / ten sam „Google” w Authentication.
  *
- * - **androidClientId** — typ „Android”, nazwa pakietu jak `applicationId` z buildu (np. po `expo prebuild`) + SHA-1 debug/release.
- * - **iosClientId** — typ „iOS”, Bundle ID jak w Xcode / app.json.
- * - **webClientId** — typ „Web application”; przydatny też przy weryfikacji tokenu w Firebase.
+ * - **androidClientId** — typ „Android”, package `com.theweldersworld.app` + SHA-1.
+ * - **iosClientId** — typ „iOS”, Bundle ID `com.theweldersworld.app`.
+ * - **webClientId** — typ „Web application”; wymagany przez Firebase / id_token.
  *
- * Możesz nadpisać przez `EXPO_PUBLIC_GOOGLE_*` w `.env`.
- * Jeśli ustawisz tylko WEB, Android/iOS użyją go jako zapas — czasem wystarczy na dev;
- * przy błędzie „invalid_client” utwórz osobne klienty natywne w Google Cloud.
+ * Ustaw przez `EXPO_PUBLIC_GOOGLE_*` w `.env` **oraz** EAS Secrets (inaczej
+ * produkcyjny IPA/APK nie ma Client ID i przycisk Google pokaże „brak Client ID”).
+ *
+ * Jeśli ustawisz tylko WEB, Android/iOS użyją go jako zapas — czasem wystarczy;
+ * przy `invalid_client` utwórz osobne klienty natywne.
  */
+/** Web OAuth Client ID (publiczny — trafia do binariów). Nadpisz przez EXPO_PUBLIC_GOOGLE_*. */
 const DEFAULT = {
-  webClientId: '',
+  webClientId: '893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com',
   iosClientId: '',
   androidClientId: '',
 } as const;
@@ -40,6 +43,17 @@ export function getGoogleOAuthConfig() {
   };
 }
 
+/**
+ * Odwrócony iOS Client ID → schemat URL (CFBundleURLSchemes), np.
+ * `123-abc.apps.googleusercontent.com` → `com.googleusercontent.apps.123-abc`
+ */
+export function getGoogleIosUrlScheme(): string | null {
+  const ios = getGoogleOAuthConfig().iosClientId;
+  if (!ios || !ios.endsWith('.apps.googleusercontent.com')) return null;
+  const prefix = ios.replace(/\.apps\.googleusercontent\.com$/, '');
+  return prefix ? `com.googleusercontent.apps.${prefix}` : null;
+}
+
 /** Czy jest skonfigurowany choć jeden Client ID (po uwzględnieniu fallbacku web → native). */
 export function isGoogleOAuthConfiguredForCurrentPlatform(): boolean {
   const c = getGoogleOAuthConfig();
@@ -50,4 +64,19 @@ export function isGoogleOAuthConfiguredForCurrentPlatform(): boolean {
     return Boolean(c.androidClientId);
   }
   return Boolean(c.webClientId);
+}
+
+/** Krótki status do UI (bez ujawniania pełnych Client ID). */
+export function getGoogleOAuthSetupHint(): {
+  configured: boolean;
+  hasWeb: boolean;
+  hasIos: boolean;
+  hasAndroid: boolean;
+} {
+  return {
+    configured: isGoogleOAuthConfiguredForCurrentPlatform(),
+    hasWeb: Boolean(pick('webClientId')),
+    hasIos: Boolean(pick('iosClientId')),
+    hasAndroid: Boolean(pick('androidClientId')),
+  };
 }

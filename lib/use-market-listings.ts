@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 
-import { subscribeListings, type MarketListing } from '@/lib/market-listings';
+import {
+  subscribeListing,
+  subscribeListings,
+  type MarketListing,
+} from '@/lib/market-listings';
 
 export function useMarketListings() {
   const [listings, setListings] = useState<MarketListing[]>([]);
@@ -22,4 +26,33 @@ export function useMarketListings() {
   }, []);
 
   return { listings, loading };
+}
+
+/** Subskrypcja jednego ogłoszenia po id (ekrany szczegółów i edycji). */
+export function useMarketListing(id: string | undefined) {
+  const [listing, setListing] = useState<MarketListing | null>(null);
+  const [loading, setLoading] = useState(Boolean(id));
+
+  useEffect(() => {
+    if (!id) {
+      setListing(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsub = subscribeListing(
+      id,
+      (item) => {
+        setListing(item);
+        setLoading(false);
+      },
+      () => {
+        setListing(null);
+        setLoading(false);
+      }
+    );
+    return unsub;
+  }, [id]);
+
+  return { listing, loading };
 }

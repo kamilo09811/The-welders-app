@@ -1,2 +1,3 @@
-// Zawartość przeniesiona do: firebase/firestore.rules
-// (conversations + messages; funkcja onlyChatConversationMetaFields na początku tego pliku).
+// Zawartość w: firebase/firestore.rules
+// conversations + messages; create tylko 2 distinct participants + istniejące listing;
+// update tylko metadanych czatu (onlyChatConversationMetaFields).

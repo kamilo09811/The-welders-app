@@ -6,10 +6,11 @@ import { needsEmailVerification } from '@/lib/auth-email';
 import { clearExpoPushToken, saveExpoPushToken } from '@/lib/expo-push';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
+import { normalizeUserSettings, wantsAnyPush } from '@/lib/user-settings';
 
 /**
- * Po zalogowaniu (i zweryfikowanym e-mailu) zapisuje token push, gdy w Firestore
- * `users/{uid}/meta/settings` ma `notifMessages: true`.
+ * Zapisuje token push, gdy użytkownik ma włączone jakiekolwiek powiadomienia
+ * (oferty / wiadomości / zgłoszenia).
  */
 export function PushRegistrationEffect() {
   const auth = getFirebaseAuth();
@@ -26,9 +27,10 @@ export function PushRegistrationEffect() {
       unsubFirestore.current = onSnapshot(
         settingsRef,
         (snap) => {
-          const data = snap.data() as { notifMessages?: boolean } | undefined;
-          const want = data?.notifMessages !== false;
-          if (want) {
+          const settings = snap.exists()
+            ? normalizeUserSettings(snap.data() as Record<string, unknown>)
+            : normalizeUserSettings({});
+          if (wantsAnyPush(settings)) {
             void saveExpoPushToken(user.uid);
           } else {
             void clearExpoPushToken(user.uid);
