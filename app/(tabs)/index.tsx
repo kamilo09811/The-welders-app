@@ -27,11 +27,6 @@ import type { AppColors } from '@/lib/theme';
 
 type Role = 'welder' | 'employer';
 
-const ROLE_LABELS: Record<Role, string> = {
-  welder: 'Konto spawacza',
-  employer: 'Konto pracodawcy',
-};
-
 const chipsType: ('Wszystkie' | ListingType)[] = [
   'Wszystkie',
   'Umowa o pracę',
@@ -39,6 +34,15 @@ const chipsType: ('Wszystkie' | ListingType)[] = [
   'Umowa zlecenie',
 ];
 const chipsIntent: ('Wszystkie' | ListingIntent)[] = ['Wszystkie', 'offer', 'seek'];
+
+function listingTypeLabel(
+  type: ListingType,
+  t: (key: 'market.typeEmployment' | 'market.typeB2B' | 'market.typeContract') => string
+): string {
+  if (type === 'Umowa o pracę') return t('market.typeEmployment');
+  if (type === 'B2B') return t('market.typeB2B');
+  return t('market.typeContract');
+}
 
 function Chip({
   active,
@@ -66,10 +70,13 @@ function Chip({
   );
 }
 
-function hoursAgoLabel(createdAt: Date | null) {
-  if (!createdAt) return 'przed chwilą';
+function hoursAgoLabel(
+  createdAt: Date | null,
+  t: (key: 'market.justNow' | 'market.hoursAgo', vars?: Record<string, string | number>) => string
+) {
+  if (!createdAt) return t('market.justNow');
   const hours = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60)));
-  return `${hours} h temu`;
+  return t('market.hoursAgo', { hours });
 }
 
 function ListingRow({
@@ -86,7 +93,23 @@ function ListingRow({
   showGrossRate: boolean;
   locale: AppLocale;
   colors: AppColors;
-  t: (key: 'market.quickJob' | 'market.applyCta' | 'market.detailsCta' | 'market.joinQuick' | 'market.awarded' | 'settings.intentOffer' | 'settings.intentSeek' | 'listing.publisher') => string;
+  t: (
+    key:
+      | 'market.quickJob'
+      | 'market.applyCta'
+      | 'market.detailsCta'
+      | 'market.joinQuick'
+      | 'market.awarded'
+      | 'settings.intentOffer'
+      | 'settings.intentSeek'
+      | 'listing.publisher'
+      | 'market.justNow'
+      | 'market.hoursAgo'
+      | 'market.typeEmployment'
+      | 'market.typeB2B'
+      | 'market.typeContract',
+    vars?: Record<string, string | number>
+  ) => string;
   onPress: () => void;
 }) {
   const quick = isQuickListing(item);
@@ -108,7 +131,7 @@ function ListingRow({
             </Text>
           ) : (
             <Text style={[styles.metaBadge, { color: colors.chipText, backgroundColor: colors.chip }]}>
-              {item.type}
+              {listingTypeLabel(item.type, t)}
             </Text>
           )}
           <Text style={[styles.metaBadge, { color: colors.warning, backgroundColor: colors.warningSoft }]}>
@@ -134,7 +157,7 @@ function ListingRow({
         <Text style={[styles.metaDot, { color: colors.textSoft }]}>·</Text>
         <Text style={[styles.metaText, { color: colors.textSoft }]}>{item.mode}</Text>
         <Text style={[styles.metaDot, { color: colors.textSoft }]}>·</Text>
-        <Text style={[styles.metaText, { color: colors.textSoft }]}>{hoursAgoLabel(item.createdAt)}</Text>
+        <Text style={[styles.metaText, { color: colors.textSoft }]}>{hoursAgoLabel(item.createdAt, t)}</Text>
       </View>
       {quick ? (
         <View style={styles.quickSlotsRow}>
@@ -327,7 +350,9 @@ export default function MarketplaceScreen() {
                   size={14}
                   color="#DCEBFF"
                 />
-                <Text style={styles.roleBadgeText}>{ROLE_LABELS[role]}</Text>
+                <Text style={styles.roleBadgeText}>
+                  {role === 'welder' ? t('market.roleWelder') : t('market.roleEmployer')}
+                </Text>
               </View>
             </View>
             <Text style={styles.title}>
@@ -450,7 +475,9 @@ export default function MarketplaceScreen() {
               {chipsType.map((c) => (
                 <Chip
                   key={c}
-                  label={c === 'Wszystkie' ? t('settings.intentAll') : c}
+                  label={
+                    c === 'Wszystkie' ? t('settings.intentAll') : listingTypeLabel(c, t)
+                  }
                   active={type === c}
                   onPress={() => setType(c)}
                   colors={colors}

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { isAppLocale, translate, type AppLocale, type TranslationKey } from '@/lib/i18n';
 import { getAppColors, type AppColors, type AppThemeMode } from '@/lib/theme';
@@ -50,10 +50,15 @@ async function cachePrefs(theme: AppThemeMode, locale: AppLocale) {
 }
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
-  const { uid, settings, loading } = useUserSettings();
+  const { uid, settings, loading, remoteMeta } = useUserSettings();
   const [localTheme, setLocalTheme] = useState<AppThemeMode>('light');
   const [localLocale, setLocalLocale] = useState<AppLocale>('pl');
   const [cacheReady, setCacheReady] = useState(false);
+  const migratedRef = useRef<string | null>(null);
+  const localThemeRef = useRef(localTheme);
+  const localLocaleRef = useRef(localLocale);
+  localThemeRef.current = localTheme;
+  localLocaleRef.current = localLocale;
 
   useEffect(() => {
     let cancelled = false;
@@ -69,11 +74,53 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
+    if (uid) return;
+    migratedRef.current = null;
+  }, [uid]);
+
+  // Sync z konta tylko gdy Firestore ma jawnie zapisane pola (nie domyślne PL z braku pola).
+  useEffect(() => {
     if (!cacheReady || loading) return;
-    setLocalTheme(settings.theme);
-    setLocalLocale(settings.locale);
-    void cachePrefs(settings.theme, settings.locale);
-  }, [cacheReady, loading, settings.locale, settings.theme]);
+
+    if (remoteMeta.hasTheme) {
+      setLocalTheme(settings.theme);
+    }
+    if (remoteMeta.hasLocale) {
+      setLocalLocale(settings.locale);
+    }
+
+    const nextTheme = remoteMeta.hasTheme ? settings.theme : localThemeRef.current;
+    const nextLocale = remoteMeta.hasLocale ? settings.locale : localLocaleRef.current;
+    void cachePrefs(nextTheme, nextLocale);
+  }, [
+    cacheReady,
+    loading,
+    remoteMeta.hasLocale,
+    remoteMeta.hasTheme,
+    settings.locale,
+    settings.theme,
+  ]);
+
+  // Migracja: po logowaniu przenieś lokalny motyw/język na konto, jeśli jeszcze ich nie ma.
+  useEffect(() => {
+    if (!cacheReady || loading || !uid) return;
+    if (remoteMeta.hasTheme && remoteMeta.hasLocale) return;
+    if (migratedRef.current === uid) return;
+    migratedRef.current = uid;
+    const migrated: UserSettings = {
+      ...settings,
+      theme: remoteMeta.hasTheme ? settings.theme : localThemeRef.current,
+      locale: remoteMeta.hasLocale ? settings.locale : localLocaleRef.current,
+    };
+    void saveUserSettings(uid, migrated);
+  }, [
+    cacheReady,
+    loading,
+    remoteMeta.hasLocale,
+    remoteMeta.hasTheme,
+    settings,
+    uid,
+  ]);
 
   const theme = localTheme;
   const locale = localLocale;
@@ -86,18 +133,19 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   const persistPatch = useCallback(
     async (patch: Partial<UserSettings>) => {
-      const next: UserSettings = { ...settings, ...patch };
+      const next: UserSettings = { ...settings, theme, locale, ...patch };
+      setLocalTheme(next.theme);
+      setLocalLocale(next.locale);
+      await cachePrefs(next.theme, next.locale);
       if (uid) {
         await saveUserSettings(uid, next);
       }
-      await cachePrefs(next.theme, next.locale);
     },
-    [settings, uid]
+    [locale, settings, theme, uid]
   );
 
   const setTheme = useCallback(
     async (nextTheme: AppThemeMode) => {
-      setLocalTheme(nextTheme);
       await persistPatch({ theme: nextTheme });
     },
     [persistPatch]
@@ -105,7 +153,6 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   const setLocale = useCallback(
     async (nextLocale: AppLocale) => {
-      setLocalLocale(nextLocale);
       await persistPatch({ locale: nextLocale });
     },
     [persistPatch]
@@ -115,10 +162,10 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     async (next: UserSettings) => {
       setLocalTheme(next.theme);
       setLocalLocale(next.locale);
+      await cachePrefs(next.theme, next.locale);
       if (uid) {
         await saveUserSettings(uid, next);
       }
-      await cachePrefs(next.theme, next.locale);
     },
     [uid]
   );

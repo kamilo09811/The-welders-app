@@ -154,10 +154,12 @@ export function useUserSettings() {
   const { uid } = useCurrentUserProfile();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const [remoteMeta, setRemoteMeta] = useState({ hasTheme: false, hasLocale: false });
 
   useEffect(() => {
     if (!uid) {
       setSettings(DEFAULT_SETTINGS);
+      setRemoteMeta({ hasTheme: false, hasLocale: false });
       setLoading(false);
       return;
     }
@@ -165,19 +167,26 @@ export function useUserSettings() {
       settingsDoc(uid),
       (snap) => {
         if (snap.exists()) {
-          setSettings(normalizeUserSettings(snap.data() as Record<string, unknown>));
+          const raw = snap.data() as Record<string, unknown>;
+          setSettings(normalizeUserSettings(raw));
+          setRemoteMeta({
+            hasTheme: raw.theme === 'light' || raw.theme === 'dark',
+            hasLocale: isAppLocale(raw.locale),
+          });
         } else {
           setSettings(DEFAULT_SETTINGS);
+          setRemoteMeta({ hasTheme: false, hasLocale: false });
         }
         setLoading(false);
       },
       () => {
         setSettings(DEFAULT_SETTINGS);
+        setRemoteMeta({ hasTheme: false, hasLocale: false });
         setLoading(false);
       }
     );
     return unsub;
   }, [uid]);
 
-  return { uid, settings, loading, setSettings };
+  return { uid, settings, loading, setSettings, remoteMeta };
 }

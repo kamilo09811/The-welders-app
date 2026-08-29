@@ -92,6 +92,28 @@ export type TranslationKey =
   | 'account.phone'
   | 'account.city'
   | 'account.bio'
+  | 'account.logout'
+  | 'account.myApplications'
+  | 'account.incomingApplications'
+  | 'account.seeAll'
+  | 'account.noSentApps'
+  | 'account.noIncomingApps'
+  | 'account.user'
+  | 'account.hintEmployer'
+  | 'account.hintWelder'
+  | 'account.roleWelder'
+  | 'account.roleEmployer'
+  | 'status.new'
+  | 'status.inProgress'
+  | 'status.accepted'
+  | 'status.rejected'
+  | 'market.roleWelder'
+  | 'market.roleEmployer'
+  | 'market.hoursAgo'
+  | 'market.justNow'
+  | 'market.typeEmployment'
+  | 'market.typeB2B'
+  | 'market.typeContract'
   | 'listing.newTitle'
   | 'listing.chooserLead'
   | 'listing.standardTitle'
@@ -192,6 +214,28 @@ const pl: Dict = {
   'account.phone': 'Telefon',
   'account.city': 'Miasto',
   'account.bio': 'Krótki opis',
+  'account.logout': 'Wyloguj',
+  'account.myApplications': 'Moje zgłoszenia',
+  'account.incomingApplications': 'Zgłoszenia do moich ogłoszeń',
+  'account.seeAll': 'Wszystkie',
+  'account.noSentApps': 'Nie wysłałeś jeszcze żadnego zgłoszenia.',
+  'account.noIncomingApps': 'Brak zgłoszeń do Twoich ogłoszeń.',
+  'account.user': 'Użytkownik',
+  'account.hintEmployer': 'Nazwa firmy trafia automatycznie na Twoje ogłoszenia. Możesz ją zmienić tutaj.',
+  'account.hintWelder': 'Imię i nazwisko trafia automatycznie na Twoje ogłoszenia.',
+  'account.roleWelder': 'Spawacz',
+  'account.roleEmployer': 'Pracodawca / zleceniodawca',
+  'status.new': 'Nowe',
+  'status.inProgress': 'W trakcie',
+  'status.accepted': 'Zaakceptowane',
+  'status.rejected': 'Odrzucone',
+  'market.roleWelder': 'Konto spawacza',
+  'market.roleEmployer': 'Konto pracodawcy',
+  'market.hoursAgo': '{hours} h temu',
+  'market.justNow': 'przed chwilą',
+  'market.typeEmployment': 'Umowa o pracę',
+  'market.typeB2B': 'B2B',
+  'market.typeContract': 'Umowa zlecenie',
   'listing.newTitle': 'Nowe ogłoszenie',
   'listing.chooserLead': 'Co chcesz opublikować?',
   'listing.standardTitle': 'Ogłoszenie',
@@ -292,6 +336,28 @@ const en: Dict = {
   'account.phone': 'Phone',
   'account.city': 'City',
   'account.bio': 'Short bio',
+  'account.logout': 'Log out',
+  'account.myApplications': 'My applications',
+  'account.incomingApplications': 'Applications to my listings',
+  'account.seeAll': 'See all',
+  'account.noSentApps': 'You have not sent any applications yet.',
+  'account.noIncomingApps': 'No applications to your listings yet.',
+  'account.user': 'User',
+  'account.hintEmployer': 'Your company name is used automatically on listings. You can change it here.',
+  'account.hintWelder': 'Your full name is used automatically on your listings.',
+  'account.roleWelder': 'Welder',
+  'account.roleEmployer': 'Employer / client',
+  'status.new': 'New',
+  'status.inProgress': 'In progress',
+  'status.accepted': 'Accepted',
+  'status.rejected': 'Rejected',
+  'market.roleWelder': 'Welder account',
+  'market.roleEmployer': 'Employer account',
+  'market.hoursAgo': '{hours} h ago',
+  'market.justNow': 'just now',
+  'market.typeEmployment': 'Employment contract',
+  'market.typeB2B': 'B2B',
+  'market.typeContract': 'Service contract',
   'listing.newTitle': 'New listing',
   'listing.chooserLead': 'What do you want to publish?',
   'listing.standardTitle': 'Listing',
@@ -392,6 +458,28 @@ const de: Dict = {
   'account.phone': 'Telefon',
   'account.city': 'Stadt',
   'account.bio': 'Kurzbeschreibung',
+  'account.logout': 'Abmelden',
+  'account.myApplications': 'Meine Bewerbungen',
+  'account.incomingApplications': 'Bewerbungen auf meine Anzeigen',
+  'account.seeAll': 'Alle',
+  'account.noSentApps': 'Du hast noch keine Bewerbung gesendet.',
+  'account.noIncomingApps': 'Keine Bewerbungen auf deine Anzeigen.',
+  'account.user': 'Benutzer',
+  'account.hintEmployer': 'Der Firmenname erscheint automatisch auf deinen Anzeigen. Hier kannst du ihn ändern.',
+  'account.hintWelder': 'Dein Name erscheint automatisch auf deinen Anzeigen.',
+  'account.roleWelder': 'Schweißer',
+  'account.roleEmployer': 'Arbeitgeber / Auftraggeber',
+  'status.new': 'Neu',
+  'status.inProgress': 'In Bearbeitung',
+  'status.accepted': 'Angenommen',
+  'status.rejected': 'Abgelehnt',
+  'market.roleWelder': 'Schweißer-Konto',
+  'market.roleEmployer': 'Arbeitgeber-Konto',
+  'market.hoursAgo': 'vor {hours} Std.',
+  'market.justNow': 'gerade eben',
+  'market.typeEmployment': 'Arbeitsvertrag',
+  'market.typeB2B': 'B2B',
+  'market.typeContract': 'Werkvertrag',
   'listing.newTitle': 'Neue Anzeige',
   'listing.chooserLead': 'Was möchten Sie veröffentlichen?',
   'listing.standardTitle': 'Anzeige',
@@ -492,6 +580,28 @@ const da: Dict = {
   'account.phone': 'Telefon',
   'account.city': 'By',
   'account.bio': 'Kort beskrivelse',
+  'account.logout': 'Log ud',
+  'account.myApplications': 'Mine ansøgninger',
+  'account.incomingApplications': 'Ansøgninger til mine opslag',
+  'account.seeAll': 'Alle',
+  'account.noSentApps': 'Du har ikke sendt nogen ansøgninger endnu.',
+  'account.noIncomingApps': 'Ingen ansøgninger til dine opslag.',
+  'account.user': 'Bruger',
+  'account.hintEmployer': 'Firmanavnet bruges automatisk på dine opslag. Du kan ændre det her.',
+  'account.hintWelder': 'Dit fulde navn bruges automatisk på dine opslag.',
+  'account.roleWelder': 'Svejser',
+  'account.roleEmployer': 'Arbejdsgiver / opdragsgiver',
+  'status.new': 'Ny',
+  'status.inProgress': 'I gang',
+  'status.accepted': 'Accepteret',
+  'status.rejected': 'Afvist',
+  'market.roleWelder': 'Svejserkonto',
+  'market.roleEmployer': 'Arbejdsgiverkonto',
+  'market.hoursAgo': 'for {hours} t. siden',
+  'market.justNow': 'lige nu',
+  'market.typeEmployment': 'Ansættelseskontrakt',
+  'market.typeB2B': 'B2B',
+  'market.typeContract': 'Servicekontrakt',
   'listing.newTitle': 'Nyt opslag',
   'listing.chooserLead': 'Hvad vil du offentliggøre?',
   'listing.standardTitle': 'Opslag',

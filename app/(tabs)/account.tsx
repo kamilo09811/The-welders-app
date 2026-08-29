@@ -18,18 +18,17 @@ import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
 import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
 import type { AppColors } from '@/lib/theme';
+import type { TranslationKey } from '@/lib/i18n';
 
-const ROLE_LABEL_PL: Record<'welder' | 'employer', string> = {
-  welder: 'Spawacz',
-  employer: 'Pracodawca / zleceniodawca',
-};
-
-const STATUS_LABEL: Record<ListingApplication['status'], string> = {
-  new: 'Nowe',
-  in_progress: 'W trakcie',
-  accepted: 'Zaakceptowane',
-  rejected: 'Odrzucone',
-};
+function statusLabel(
+  status: ListingApplication['status'],
+  t: (key: TranslationKey) => string
+): string {
+  if (status === 'new') return t('status.new');
+  if (status === 'in_progress') return t('status.inProgress');
+  if (status === 'accepted') return t('status.accepted');
+  return t('status.rejected');
+}
 
 function NavRow({
   icon,
@@ -187,7 +186,7 @@ export default function AccountScreen() {
               <Text style={styles.headerTitle}>{t('account.title')}</Text>
               <Text style={styles.headerSub}>{user?.email ?? '—'}</Text>
               <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>{ROLE_LABEL_PL[profile.role]}</Text>
+                <Text style={styles.roleBadgeText}>{profile.role === 'employer' ? t('account.roleEmployer') : t('account.roleWelder')}</Text>
               </View>
             </View>
             <Pressable style={styles.avatarWrap} onPress={onPickAvatar} disabled={avatarUploading}>
@@ -234,9 +233,7 @@ export default function AccountScreen() {
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.profile')}</Text>
           <Text style={[styles.hint, { color: colors.textSoft }]}>
-            {isEmployer
-              ? 'Nazwa firmy trafia automatycznie na Twoje ogłoszenia. Możesz ją zmienić tutaj.'
-              : 'Imię i nazwisko trafia automatycznie na Twoje ogłoszenia.'}
+            {isEmployer ? t('account.hintEmployer') : t('account.hintWelder')}
           </Text>
           <TextInput
             style={[styles.input, styles.bioInput, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
@@ -300,15 +297,15 @@ export default function AccountScreen() {
           <View style={styles.divider} />
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Moje zgłoszenia</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.myApplications')}</Text>
             <Pressable onPress={() => router.push('/applications/sent' as never)}>
-              <Text style={styles.seeAllLink}>Wszystkie</Text>
+              <Text style={[styles.seeAllLink, { color: colors.primary }]}>{t('account.seeAll')}</Text>
             </Pressable>
           </View>
           {loadingMyApplications ? (
-            <Text style={styles.hint}>Ładowanie…</Text>
+            <Text style={styles.hint}>{t('common.loading')}</Text>
           ) : myApplications.length === 0 ? (
-            <Text style={styles.hint}>Nie wysłałeś jeszcze żadnego zgłoszenia.</Text>
+            <Text style={styles.hint}>{t('account.noSentApps')}</Text>
           ) : (
             myApplications.slice(0, 5).map((app) => (
               <Pressable
@@ -319,7 +316,7 @@ export default function AccountScreen() {
                   <Text style={styles.applicationTitle} numberOfLines={1}>
                     {app.listingTitle}
                   </Text>
-                  <Text style={styles.applicationStatus}>{STATUS_LABEL[app.status]}</Text>
+                  <Text style={styles.applicationStatus}>{statusLabel(app.status, t)}</Text>
                 </View>
                 <Text style={styles.applicationMeta} numberOfLines={2}>
                   {app.message}
@@ -329,15 +326,15 @@ export default function AccountScreen() {
           )}
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Zgłoszenia do moich ogłoszeń</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.incomingApplications')}</Text>
             <Pressable onPress={() => router.push('/applications/incoming' as never)}>
-              <Text style={styles.seeAllLink}>Wszystkie</Text>
+              <Text style={[styles.seeAllLink, { color: colors.primary }]}>{t('account.seeAll')}</Text>
             </Pressable>
           </View>
           {loadingIncomingApplications ? (
-            <Text style={styles.hint}>Ładowanie…</Text>
+            <Text style={styles.hint}>{t('common.loading')}</Text>
           ) : incomingApplications.length === 0 ? (
-            <Text style={styles.hint}>Brak zgłoszeń do Twoich ogłoszeń.</Text>
+            <Text style={styles.hint}>{t('account.noIncomingApps')}</Text>
           ) : (
             incomingApplications.slice(0, 5).map((app) => (
               <Pressable
@@ -348,10 +345,10 @@ export default function AccountScreen() {
                   <Text style={styles.applicationTitle} numberOfLines={1}>
                     {app.listingTitle}
                   </Text>
-                  <Text style={styles.applicationStatus}>{STATUS_LABEL[app.status]}</Text>
+                  <Text style={styles.applicationStatus}>{statusLabel(app.status, t)}</Text>
                 </View>
                 <Text style={styles.applicationMeta} numberOfLines={2}>
-                  {app.applicantName || 'Użytkownik'} · {app.message}
+                  {app.applicantName || t('account.user')} · {app.message}
                 </Text>
               </Pressable>
             ))
@@ -359,7 +356,7 @@ export default function AccountScreen() {
 
           <Pressable style={styles.logoutBtn} onPress={onLogout}>
             <MaterialIcons name="logout" size={18} color="#B91C1C" />
-            <Text style={styles.logoutText}>Wyloguj</Text>
+            <Text style={styles.logoutText}>{t('account.logout')}</Text>
           </Pressable>
 
           {message ? <Text style={styles.message}>{message}</Text> : null}
