@@ -24,7 +24,14 @@ import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profi
 import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import type { AppLocale } from '@/lib/i18n';
+import {
+  listingIntentShort,
+  listingTypeLabel,
+  quickDurationLabel,
+  workModeLabel,
+} from '@/lib/i18n/labels';
 import type { AppColors } from '@/lib/theme';
+import type { TranslationKey } from '@/lib/i18n';
 
 type Role = 'welder' | 'employer';
 
@@ -35,15 +42,6 @@ const chipsType: ('Wszystkie' | ListingType)[] = [
   'Umowa zlecenie',
 ];
 const chipsIntent: ('Wszystkie' | ListingIntent)[] = ['Wszystkie', 'offer', 'seek'];
-
-function listingTypeLabel(
-  type: ListingType,
-  t: (key: 'market.typeEmployment' | 'market.typeB2B' | 'market.typeContract') => string
-): string {
-  if (type === 'Umowa o pracę') return t('market.typeEmployment');
-  if (type === 'B2B') return t('market.typeB2B');
-  return t('market.typeContract');
-}
 
 function Chip({
   active,
@@ -94,28 +92,11 @@ function ListingRow({
   showGrossRate: boolean;
   locale: AppLocale;
   colors: AppColors;
-  t: (
-    key:
-      | 'market.quickJob'
-      | 'market.applyCta'
-      | 'market.detailsCta'
-      | 'market.joinQuick'
-      | 'market.awarded'
-      | 'settings.intentOffer'
-      | 'settings.intentSeek'
-      | 'listing.publisher'
-      | 'market.justNow'
-      | 'market.hoursAgo'
-      | 'market.typeEmployment'
-      | 'market.typeB2B'
-      | 'market.typeContract',
-    vars?: Record<string, string | number>
-  ) => string;
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
   onPress: () => void;
 }) {
   const quick = isQuickListing(item);
-  const intentLabel =
-    item.intent === 'offer' ? t('settings.intentOffer') : t('settings.intentSeek');
+  const intentLabel = listingIntentShort(item.intent, t);
   return (
     <Pressable
       style={[
@@ -140,7 +121,7 @@ function ListingRow({
           </Text>
           {quick && item.durationHint ? (
             <Text style={[styles.metaBadge, { color: colors.success, backgroundColor: colors.successSoft }]}>
-              {item.durationHint}
+              {quickDurationLabel(item.durationHint, t)}
             </Text>
           ) : null}
         </View>
@@ -156,7 +137,7 @@ function ListingRow({
         <MaterialIcons name="place" size={15} color={colors.textSoft} />
         <Text style={[styles.metaText, { color: colors.textSoft }]}>{item.location}</Text>
         <Text style={[styles.metaDot, { color: colors.textSoft }]}>·</Text>
-        <Text style={[styles.metaText, { color: colors.textSoft }]}>{item.mode}</Text>
+        <Text style={[styles.metaText, { color: colors.textSoft }]}>{workModeLabel(item.mode, t)}</Text>
         <Text style={[styles.metaDot, { color: colors.textSoft }]}>·</Text>
         <Text style={[styles.metaText, { color: colors.textSoft }]}>{hoursAgoLabel(item.createdAt, t)}</Text>
       </View>
@@ -395,7 +376,7 @@ export default function MarketplaceScreen() {
                       ? settings.baseCity.trim()
                       : `${settings.baseCity.trim()} · ${settings.radius}`
                     : '',
-                  settings.minRate > 0 ? `min. ${settings.minRate} PLN/h` : '',
+                  settings.minRate > 0 ? t('market.minRateStrip', { n: settings.minRate }) : '',
                   settings.onlyVerified ? t('settings.onlyVerified') : '',
                 ]
                   .filter(Boolean)
@@ -456,7 +437,7 @@ export default function MarketplaceScreen() {
               {chipsLocation.map((c) => (
                 <Chip
                   key={c}
-                  label={c === 'Wszystkie' ? t('settings.intentAll') : c}
+                  label={c === 'Wszystkie' ? t('market.allFilter') : c}
                   active={location === c}
                   onPress={() => setLocation(c)}
                   colors={colors}
@@ -469,7 +450,7 @@ export default function MarketplaceScreen() {
                 <Chip
                   key={c}
                   label={
-                    c === 'Wszystkie' ? t('settings.intentAll') : listingTypeLabel(c, t)
+                    c === 'Wszystkie' ? t('market.allFilter') : listingTypeLabel(c, t)
                   }
                   active={type === c}
                   onPress={() => setType(c)}
@@ -484,7 +465,7 @@ export default function MarketplaceScreen() {
                   key={c}
                   label={
                     c === 'Wszystkie'
-                      ? t('settings.intentAll')
+                      ? t('market.allFilter')
                       : c === 'offer'
                         ? t('settings.intentOffer')
                         : t('settings.intentSeek')

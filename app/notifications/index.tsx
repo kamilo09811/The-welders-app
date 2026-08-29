@@ -4,15 +4,17 @@ import { useCallback } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { localeToBcp47 } from '@/lib/i18n';
 import type { InAppNotification } from '@/lib/in-app-notifications';
 import { markAllInAppNotificationsRead, markInAppNotificationRead } from '@/lib/in-app-notifications';
+import { usePreferences } from '@/lib/preferences-context';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
-function formatWhen(d: Date | null): string {
+function formatWhen(d: Date | null, localeTag: string): string {
   if (!d) return '';
   try {
-    return d.toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+    return d.toLocaleString(localeTag, { dateStyle: 'short', timeStyle: 'short' });
   } catch {
     return '';
   }
@@ -35,6 +37,8 @@ function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 
 
 export default function NotificationsCenterScreen() {
   const router = useRouter();
+  const { t, locale } = usePreferences();
+  const localeTag = localeToBcp47(locale);
   const { uid } = useCurrentUserProfile();
   const { items, loading, unreadCount } = useInAppNotifications(uid ?? undefined);
 
@@ -75,7 +79,7 @@ export default function NotificationsCenterScreen() {
             <Text style={[styles.title, !n.read && styles.titleUnread]} numberOfLines={1}>
               {n.title}
             </Text>
-            <Text style={styles.time}>{formatWhen(n.createdAt)}</Text>
+            <Text style={styles.time}>{formatWhen(n.createdAt, localeTag)}</Text>
           </View>
           <Text style={styles.body} numberOfLines={3}>
             {n.body}
@@ -83,7 +87,7 @@ export default function NotificationsCenterScreen() {
         </View>
       </Pressable>
     ),
-    [onOpen]
+    [localeTag, onOpen]
   );
 
   return (
@@ -94,10 +98,10 @@ export default function NotificationsCenterScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
           </Pressable>
-          <Text style={styles.headerTitle}>Powiadomienia</Text>
+          <Text style={styles.headerTitle}>{t('notif.title')}</Text>
           {unreadCount > 0 ? (
             <Pressable onPress={onMarkAll} style={styles.markAllBtn}>
-              <Text style={styles.markAllText}>Oznacz przeczytane</Text>
+              <Text style={styles.markAllText}>{t('notif.markRead')}</Text>
             </Pressable>
           ) : (
             <View style={styles.headerSpacer} />
@@ -106,11 +110,11 @@ export default function NotificationsCenterScreen() {
 
         {loading ? (
           <View style={styles.card}>
-            <Text style={styles.note}>Ładowanie…</Text>
+            <Text style={styles.note}>{t('common.loading')}</Text>
           </View>
         ) : items.length === 0 ? (
           <View style={styles.card}>
-            <Text style={styles.note}>Brak powiadomień. Pojawią się przy zgłoszeniach, zmianie statusu i nowych wiadomościach.</Text>
+            <Text style={styles.note}>{t('notif.empty')}</Text>
           </View>
         ) : (
           <FlatList

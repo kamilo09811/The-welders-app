@@ -5,6 +5,13 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  listingIntentForRole,
+  listingTypeLabel,
+  quickDurationLabel,
+  QUICK_DURATION_VALUES,
+  workModeLabel,
+} from '@/lib/i18n/labels';
+import {
   createListing,
   type ListingIntent,
   type ListingKind,
@@ -16,22 +23,7 @@ import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profi
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
-const LISTING_INTENTS: { value: ListingIntent; label: string }[] = [
-  { value: 'offer', label: 'Oferuję' },
-  { value: 'seek', label: 'Poszukuję' },
-];
-const QUICK_DURATIONS = ['Kilka godzin', '1 dzień', 'Kilka dni', 'Tydzień', 'Do uzgodnienia'];
-
-function getIntentLabel(
-  role: 'welder' | 'employer',
-  intent: ListingIntent,
-  t: (key: 'listing.intentOfferJob' | 'listing.intentSeekWelder' | 'listing.intentOfferService' | 'listing.intentSeekJob') => string
-) {
-  if (role === 'employer') {
-    return intent === 'offer' ? t('listing.intentOfferJob') : t('listing.intentSeekWelder');
-  }
-  return intent === 'offer' ? t('listing.intentOfferService') : t('listing.intentSeekJob');
-}
+const LISTING_INTENTS: ListingIntent[] = ['offer', 'seek'];
 
 function SelectChip({
   active,
@@ -119,7 +111,7 @@ export default function NewListingScreen() {
 
   const onSubmit = async () => {
     if (!uid || !kind) {
-      setMessage('Zaloguj się, aby dodać ogłoszenie.');
+      setMessage(t('listing.loginToAdd'));
       return;
     }
     if (!publisherReady) {
@@ -268,15 +260,7 @@ export default function NewListingScreen() {
                   style={styles.input}
                   value={title}
                   onChangeText={setTitle}
-                  placeholder={
-                    isQuick
-                      ? isEmployer
-                        ? 'np. Spawanie bramy — pilne, dziś/jutro'
-                        : 'np. Dostępny na szybkie spawanie — mobilnie'
-                      : isEmployer
-                        ? 'np. Poszukujemy spawacza TIG 141'
-                        : 'np. Spawacz TIG — dostępny od zaraz'
-                  }
+                  placeholder={t('listing.phQuickTitle')}
                   placeholderTextColor="#94A3B8"
                 />
 
@@ -286,11 +270,7 @@ export default function NewListingScreen() {
                   value={description}
                   onChangeText={setDescription}
                   multiline
-                  placeholder={
-                    isQuick
-                      ? 'Co trzeba zrobić, gdzie, kiedy start, jaki sprzęt…'
-                      : 'Zakres prac, wymagania, termin, lokalizacja szczegółowa…'
-                  }
+                  placeholder={t('listing.phDesc')}
                   placeholderTextColor="#94A3B8"
                 />
 
@@ -299,7 +279,7 @@ export default function NewListingScreen() {
                   style={styles.input}
                   value={location}
                   onChangeText={setLocation}
-                  placeholder="np. Katowice / Śląsk"
+                  placeholder={t('listing.phLocation')}
                   placeholderTextColor="#94A3B8"
                 />
 
@@ -307,10 +287,10 @@ export default function NewListingScreen() {
                   <>
                     <Text style={styles.label}>{t('listing.duration')}</Text>
                     <View style={styles.chipsWrap}>
-                      {QUICK_DURATIONS.map((v) => (
+                      {QUICK_DURATION_VALUES.map((v) => (
                         <SelectChip
                           key={v}
-                          label={v}
+                          label={quickDurationLabel(v, t)}
                           active={durationHint === v}
                           onPress={() => setDurationHint(v)}
                         />
@@ -322,7 +302,7 @@ export default function NewListingScreen() {
                       value={rateMin}
                       onChangeText={setRateMin}
                       keyboardType="numeric"
-                      placeholder="np. 400 — możesz pominąć"
+                      placeholder={t('listing.phBudget')}
                       placeholderTextColor="#94A3B8"
                     />
                   </>
@@ -332,24 +312,34 @@ export default function NewListingScreen() {
                     <Text style={styles.label}>{t('listing.workMode')}</Text>
                     <View style={styles.chipsWrap}>
                       {WORK_MODES.map((v) => (
-                        <SelectChip key={v} label={v} active={mode === v} onPress={() => setMode(v)} />
+                        <SelectChip
+                          key={v}
+                          label={workModeLabel(v, t)}
+                          active={mode === v}
+                          onPress={() => setMode(v)}
+                        />
                       ))}
                     </View>
                     <Text style={styles.label}>{t('listing.intentType')}</Text>
                     <View style={styles.chipsWrap}>
                       {LISTING_INTENTS.map((v) => (
                         <SelectChip
-                          key={v.value}
-                          label={getIntentLabel(profile.role, v.value, t)}
-                          active={intent === v.value}
-                          onPress={() => setIntent(v.value)}
+                          key={v}
+                          label={listingIntentForRole(profile.role, v, t)}
+                          active={intent === v}
+                          onPress={() => setIntent(v)}
                         />
                       ))}
                     </View>
                     <Text style={styles.label}>{t('listing.collabType')}</Text>
                     <View style={styles.chipsWrap}>
                       {LISTING_TYPES.map((v) => (
-                        <SelectChip key={v} label={v} active={type === v} onPress={() => setType(v)} />
+                        <SelectChip
+                          key={v}
+                          label={listingTypeLabel(v, t)}
+                          active={type === v}
+                          onPress={() => setType(v)}
+                        />
                       ))}
                     </View>
                     <View style={styles.rateRow}>
@@ -386,7 +376,7 @@ export default function NewListingScreen() {
                       style={styles.input}
                       value={tags}
                       onChangeText={setTags}
-                      placeholder="TIG 141, Inox, Start od zaraz"
+                      placeholder={t('listing.phTags')}
                       placeholderTextColor="#94A3B8"
                     />
                   </>
@@ -395,7 +385,12 @@ export default function NewListingScreen() {
                     <Text style={styles.label}>{t('listing.mode')}</Text>
                     <View style={styles.chipsWrap}>
                       {WORK_MODES.map((v) => (
-                        <SelectChip key={v} label={v} active={mode === v} onPress={() => setMode(v)} />
+                        <SelectChip
+                          key={v}
+                          label={workModeLabel(v, t)}
+                          active={mode === v}
+                          onPress={() => setMode(v)}
+                        />
                       ))}
                     </View>
                   </>

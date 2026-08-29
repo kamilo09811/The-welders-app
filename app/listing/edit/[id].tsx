@@ -4,23 +4,19 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  listingIntentForRole,
+  listingTypeLabel,
+  workModeLabel,
+} from '@/lib/i18n/labels';
 import { type ListingIntent, type ListingType, type WorkMode, updateListing } from '@/lib/market-listings';
+import { usePreferences } from '@/lib/preferences-context';
 import { useMarketListing } from '@/lib/use-market-listings';
 import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profile';
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
-const LISTING_INTENTS: { value: ListingIntent; label: string }[] = [
-  { value: 'offer', label: 'Oferuję' },
-  { value: 'seek', label: 'Poszukuję' },
-];
-
-function getIntentLabel(role: 'welder' | 'employer', intent: ListingIntent) {
-  if (role === 'employer') {
-    return intent === 'offer' ? 'Oferuję zlecenie' : 'Poszukuję spawacza';
-  }
-  return intent === 'offer' ? 'Oferuję usługi' : 'Poszukuję pracy';
-}
+const LISTING_INTENTS: ListingIntent[] = ['offer', 'seek'];
 
 function SelectChip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return (
@@ -35,6 +31,7 @@ export default function EditListingScreen() {
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
+  const { t } = usePreferences();
   const { listing, loading: loadingListing } = useMarketListing(id);
 
   const [title, setTitle] = useState('');
@@ -88,19 +85,15 @@ export default function EditListingScreen() {
 
   const onSubmit = async () => {
     if (!uid || !listing || listing.authorId !== uid) {
-      setMessage('Brak uprawnień do edycji tego ogłoszenia.');
+      setMessage(t('listing.noEditPerm'));
       return;
     }
     if (!publisherReady) {
-      setMessage(
-        isEmployer
-          ? 'Uzupełnij nazwę firmy w Koncie.'
-          : 'Uzupełnij imię i nazwisko w Koncie.'
-      );
+      setMessage(isEmployer ? t('listing.needCompanyShort') : t('listing.needNameShort'));
       return;
     }
     if (!canSave) {
-      setMessage('Uzupełnij poprawnie wszystkie wymagane pola.');
+      setMessage(t('listing.fillRequired'));
       return;
     }
     setBusy(true);
@@ -132,7 +125,7 @@ export default function EditListingScreen() {
       });
       router.replace({ pathname: '/listing/[id]', params: { id: listing.id } });
     } catch {
-      setMessage('Nie udało się zapisać zmian.');
+      setMessage(t('listing.saveEditFailed'));
     } finally {
       setBusy(false);
     }
@@ -147,7 +140,7 @@ export default function EditListingScreen() {
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
               <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
             </Pressable>
-            <Text style={styles.headerTitle}>Edytuj ogłoszenie</Text>
+            <Text style={styles.headerTitle}>{t('listing.editTitle')}</Text>
           </View>
 
           {loadingListing ? (
@@ -156,13 +149,13 @@ export default function EditListingScreen() {
             </View>
           ) : !listing ? (
             <View style={styles.statusCard}>
-              <Text style={styles.statusTitle}>Nie znaleziono ogłoszenia</Text>
-              <Text style={styles.statusSub}>To ogłoszenie mogło zostać usunięte.</Text>
+              <Text style={styles.statusTitle}>{t('listing.notFound')}</Text>
+              <Text style={styles.statusSub}>{t('listing.notFoundSub')}</Text>
             </View>
           ) : listing.authorId !== uid ? (
             <View style={styles.statusCard}>
-              <Text style={styles.statusTitle}>Brak uprawnień</Text>
-              <Text style={styles.statusSub}>Możesz edytować tylko własne ogłoszenia.</Text>
+              <Text style={styles.statusTitle}>{t('listing.noEditPerm')}</Text>
+              <Text style={styles.statusSub}>{t('listing.editOnlyOwn')}</Text>
             </View>
           ) : (
             <View style={styles.card}>
@@ -170,17 +163,17 @@ export default function EditListingScreen() {
                 <MaterialIcons name={isEmployer ? 'business' : 'person'} size={18} color="#0E4AA4" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.publisherLabel}>
-                    {isEmployer ? 'Firma na ogłoszeniu' : 'Autor ogłoszenia'}
+                    {isEmployer ? t('listing.companyOnListing') : t('listing.publisher')}
                   </Text>
                   <Text style={styles.publisherValue}>{publisherName}</Text>
                 </View>
                 <Pressable onPress={() => router.push('/(tabs)/account' as never)}>
-                  <Text style={styles.publisherEdit}>Edytuj w Koncie</Text>
+                  <Text style={styles.publisherEdit}>{t('listing.editInAccount')}</Text>
                 </Pressable>
               </View>
-              <Text style={styles.label}>Tytuł</Text>
+              <Text style={styles.label}>{t('listing.titleField')}</Text>
               <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor="#94A3B8" />
-              <Text style={styles.label}>Opis</Text>
+              <Text style={styles.label}>{t('listing.descriptionField')}</Text>
               <TextInput
                 style={[styles.input, styles.textarea]}
                 value={description}
@@ -188,34 +181,44 @@ export default function EditListingScreen() {
                 multiline
                 placeholderTextColor="#94A3B8"
               />
-              <Text style={styles.label}>Lokalizacja</Text>
+              <Text style={styles.label}>{t('listing.locationField')}</Text>
               <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholderTextColor="#94A3B8" />
-              <Text style={styles.label}>Tryb pracy</Text>
+              <Text style={styles.label}>{t('listing.workMode')}</Text>
               <View style={styles.chipsWrap}>
                 {WORK_MODES.map((v) => (
-                  <SelectChip key={v} label={v} active={mode === v} onPress={() => setMode(v)} />
-                ))}
-              </View>
-              <Text style={styles.label}>Typ ogłoszenia</Text>
-              <View style={styles.chipsWrap}>
-                {LISTING_INTENTS.map((v) => (
                   <SelectChip
-                    key={v.value}
-                    label={getIntentLabel(profile.role, v.value)}
-                    active={intent === v.value}
-                    onPress={() => setIntent(v.value)}
+                    key={v}
+                    label={workModeLabel(v, t)}
+                    active={mode === v}
+                    onPress={() => setMode(v)}
                   />
                 ))}
               </View>
-              <Text style={styles.label}>Typ współpracy</Text>
+              <Text style={styles.label}>{t('listing.intentType')}</Text>
+              <View style={styles.chipsWrap}>
+                {LISTING_INTENTS.map((v) => (
+                  <SelectChip
+                    key={v}
+                    label={listingIntentForRole(profile.role, v, t)}
+                    active={intent === v}
+                    onPress={() => setIntent(v)}
+                  />
+                ))}
+              </View>
+              <Text style={styles.label}>{t('listing.collabType')}</Text>
               <View style={styles.chipsWrap}>
                 {LISTING_TYPES.map((v) => (
-                  <SelectChip key={v} label={v} active={type === v} onPress={() => setType(v)} />
+                  <SelectChip
+                    key={v}
+                    label={listingTypeLabel(v, t)}
+                    active={type === v}
+                    onPress={() => setType(v)}
+                  />
                 ))}
               </View>
               <View style={styles.rateRow}>
                 <View style={styles.rateCol}>
-                  <Text style={styles.label}>Stawka od (opcjonalnie)</Text>
+                  <Text style={styles.label}>{t('listing.rateFrom')}</Text>
                   <TextInput
                     style={styles.input}
                     value={rateMin}
@@ -225,7 +228,7 @@ export default function EditListingScreen() {
                   />
                 </View>
                 <View style={styles.rateCol}>
-                  <Text style={styles.label}>Stawka do</Text>
+                  <Text style={styles.label}>{t('listing.rateTo')}</Text>
                   <TextInput
                     style={styles.input}
                     value={rateMax}
@@ -235,14 +238,16 @@ export default function EditListingScreen() {
                   />
                 </View>
               </View>
-              <Text style={styles.label}>Tagi (oddziel przecinkiem)</Text>
+              <Text style={styles.label}>{t('listing.tagsComma')}</Text>
               <TextInput style={styles.input} value={tags} onChangeText={setTags} placeholderTextColor="#94A3B8" />
               {message ? <Text style={styles.message}>{message}</Text> : null}
               <Pressable
                 style={[styles.saveBtn, (!canSave || busy) && styles.saveBtnDisabled]}
                 onPress={onSubmit}
                 disabled={!canSave || busy}>
-                <Text style={styles.saveBtnText}>{busy ? 'Zapisywanie...' : 'Zapisz zmiany'}</Text>
+                <Text style={styles.saveBtnText}>
+                  {busy ? t('listing.saving') : t('listing.saveChanges')}
+                </Text>
               </Pressable>
             </View>
           )}

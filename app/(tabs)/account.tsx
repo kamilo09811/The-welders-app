@@ -98,15 +98,15 @@ export default function AccountScreen() {
 
   const onSave = async () => {
     if (!uid) {
-      setMessage('Brak aktywnej sesji.');
+      setMessage(t('account.noSession'));
       return;
     }
     if (isEmployer && !companyName.trim()) {
-      setMessage('Nazwa firmy jest wymagana — pojawia się na Twoich ogłoszeniach.');
+      setMessage(t('account.needCompanyMsg'));
       return;
     }
     if (!isEmployer && !fullName.trim()) {
-      setMessage('Imię i nazwisko jest wymagane — pojawia się na Twoich ogłoszeniach.');
+      setMessage(t('account.needNameMsg'));
       return;
     }
     await updateUserPersonalFields(uid, {
@@ -118,17 +118,17 @@ export default function AccountScreen() {
       publicBio,
     });
     setIsEditing(false);
-    setMessage('Profil zapisany.');
+    setMessage(t('account.saved'));
   };
 
   const onPickAvatar = useCallback(async () => {
     if (!uid) {
-      setMessage('Zaloguj się, aby zmienić zdjęcie.');
+      setMessage(t('account.loginForPhoto'));
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setMessage('Brak uprawnień do galerii.');
+      setMessage(t('account.noGallery'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -153,13 +153,13 @@ export default function AccountScreen() {
         avatarUrl: downloadUrl,
         publicBio,
       });
-      setMessage('Zdjęcie profilowe zapisane.');
+      setMessage(t('account.photoSaved'));
     } catch {
-      setMessage('Nie udało się wgrać zdjęcia.');
+      setMessage(t('account.photoFailed'));
     } finally {
       setAvatarUploading(false);
     }
-  }, [city, companyName, fullName, isEmployer, phone, publicBio, uid]);
+  }, [city, companyName, fullName, isEmployer, phone, publicBio, t, uid]);
 
   const onLogout = async () => {
     if (uid) {

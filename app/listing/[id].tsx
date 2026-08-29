@@ -7,6 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
 import { createOrGetConversation } from '@/lib/chat';
+import { localeToBcp47 } from '@/lib/i18n';
+import {
+  applicationStatusLabel,
+  listingIntentShort,
+  listingTypeLabel,
+  quickDurationLabel,
+  roleLabel,
+  workModeLabel,
+} from '@/lib/i18n/labels';
 import {
   createApplication,
   repairOwnQuickSlot,
@@ -24,19 +33,13 @@ import { formatRateLabel } from '@/lib/user-settings';
 import { usePreferences } from '@/lib/preferences-context';
 import { useMarketListing } from '@/lib/use-market-listings';
 
-const STATUS_LABEL: Record<ListingApplication['status'], string> = {
-  new: 'Nowe',
-  in_progress: 'W trakcie',
-  accepted: 'Zaakceptowane',
-  rejected: 'Odrzucone',
-};
-
 export default function ListingDetailsScreen() {
   const router = useRouter();
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
-  const { settings, locale } = usePreferences();
+  const { settings, locale, t } = usePreferences();
+  const localeTag = localeToBcp47(locale);
   const { listing, loading: loadingListing } = useMarketListing(id);
 
   const isAuthor = Boolean(uid && listing && listing.authorId === uid);
@@ -74,13 +77,21 @@ export default function ListingDetailsScreen() {
       ...fromListing,
       {
         uid,
-        name: myApplication.applicantName || profile.fullName || 'Ty',
+        name: myApplication.applicantName || profile.fullName || t('listing.you'),
         avatarUrl: myApplication.applicantAvatarUrl || profile.avatarUrl || '',
         applicationId: myApplication.id,
         joinedAt: myApplication.createdAt,
       },
     ].slice(0, 5);
-  }, [listing?.quickSlots?.applicants, uid, quick, myApplication, profile.avatarUrl, profile.fullName]);
+  }, [
+    listing?.quickSlots?.applicants,
+    uid,
+    quick,
+    myApplication,
+    profile.avatarUrl,
+    profile.fullName,
+    t,
+  ]);
 
   const slotsLeft = Math.max(0, 5 - displaySlotApplicants.length);
   const canJoinQuick =
@@ -98,7 +109,7 @@ export default function ListingDetailsScreen() {
     void repairOwnQuickSlot({
       listingId: listing.id,
       applicantId: uid,
-      applicantName: myApplication.applicantName || profile.fullName || 'Użytkownik',
+      applicantName: myApplication.applicantName || profile.fullName || t('common.userFallback'),
       applicantAvatarUrl: myApplication.applicantAvatarUrl || profile.avatarUrl || '',
       applicationId: myApplication.id,
     }).catch(() => {
@@ -112,6 +123,7 @@ export default function ListingDetailsScreen() {
     myApplication,
     profile.avatarUrl,
     profile.fullName,
+    t,
   ]);
 
   const onDelete = async () => {
@@ -135,14 +147,10 @@ export default function ListingDetailsScreen() {
         message: applyMessage.trim() || '',
       });
       setApplyMessage('');
-      setFeedback(
-        quick
-          ? 'Dołączyłeś do szybkiego zlecenia. Czekaj na wybór zleceniodawcy.'
-          : 'Zgłoszenie zostało wysłane.'
-      );
+      setFeedback(quick ? t('listing.joinedQuick') : t('listing.appliedOk'));
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
-      setFeedback(msg || 'Nie udało się wysłać zgłoszenia.');
+      setFeedback(msg || t('listing.applyFailed'));
     } finally {
       setBusyApply(false);
     }
@@ -158,19 +166,17 @@ export default function ListingDetailsScreen() {
     setFeedback(null);
     try {
       await selectQuickJobWinner(listing, applicationId);
-      setFeedback('Wybrano wykonawcę — pozostałe zgłoszenia odrzucone.');
+      setFeedback(t('listing.winnerPicked'));
     } catch (e) {
-      setFeedback(e instanceof Error ? e.message : 'Nie udało się wybrać wykonawcy.');
+      setFeedback(e instanceof Error ? e.message : t('listing.pickFailed'));
     } finally {
       setBusySelect(null);
     }
   };
 
-  const userLabel = (role: 'welder' | 'employer') => (role === 'employer' ? 'Pracodawca' : 'Spawacz');
-
   const openChat = async (otherId: string, otherName: string) => {
     if (!listing || !uid || !otherId) {
-      setFeedback('Nie można otworzyć czatu dla tego ogłoszenia.');
+      setFeedback(t('listing.chatUnavailable'));
       return;
     }
     try {
@@ -179,16 +185,16 @@ export default function ListingDetailsScreen() {
         listingId: listing.id,
         listingTitle: listing.title,
         meId: uid,
-        meName: profile.fullName || userLabel(profile.role),
+        meName: profile.fullName || roleLabel(profile.role, t),
         meAvatarUrl: profile.avatarUrl || '',
         otherId,
-        otherName: otherUser.fullName || otherName || 'Użytkownik',
+        otherName: otherUser.fullName || otherName || t('common.userFallback'),
         otherAvatarUrl: otherUser.avatarUrl || '',
       });
       router.push({ pathname: '/messages/[id]', params: { id: conversationId } });
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
-      setFeedback(msg || 'Nie udało się otworzyć rozmowy.');
+      setFeedback(msg || t('listing.chatFailed'));
     }
   };
 
@@ -202,7 +208,7 @@ export default function ListingDetailsScreen() {
               <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
             </Pressable>
             <Text style={styles.headerTitle}>
-              {quick ? 'Szybkie zlecenie' : 'Szczegóły ogłoszenia'}
+              {quick ? t('listing.quickDetailTitle') : t('listing.detailTitle')}
             </Text>
           </View>
 
@@ -212,8 +218,8 @@ export default function ListingDetailsScreen() {
                 <ActivityIndicator color="#0E4AA4" />
               ) : (
                 <>
-                  <Text style={styles.emptyTitle}>Nie znaleziono ogłoszenia</Text>
-                  <Text style={styles.emptySub}>To ogłoszenie mogło zostać usunięte.</Text>
+                  <Text style={styles.emptyTitle}>{t('listing.notFound')}</Text>
+                  <Text style={styles.emptySub}>{t('listing.notFoundSub')}</Text>
                 </>
               )}
             </View>
@@ -222,29 +228,31 @@ export default function ListingDetailsScreen() {
               <View style={[styles.card, quick && styles.cardQuick]}>
                 <View style={styles.typeRow}>
                   {quick ? (
-                    <Text style={[styles.type, styles.quickType]}>Szybkie zlecenie</Text>
+                    <Text style={[styles.type, styles.quickType]}>{t('listing.quickDetailTitle')}</Text>
                   ) : (
-                    <Text style={styles.type}>{listing.type}</Text>
+                    <Text style={styles.type}>{listingTypeLabel(listing.type, t)}</Text>
                   )}
                   <Text style={[styles.type, styles.intentType]}>
-                    {listing.intent === 'offer' ? 'Oferuję' : 'Poszukuję'}
+                    {listingIntentShort(listing.intent, t)}
                   </Text>
                   {quick && listing.durationHint ? (
-                    <Text style={[styles.type, styles.durationType]}>{listing.durationHint}</Text>
+                    <Text style={[styles.type, styles.durationType]}>
+                      {quickDurationLabel(listing.durationHint, t)}
+                    </Text>
                   ) : null}
                 </View>
                 <Text style={styles.title}>{listing.title}</Text>
-                <Text style={styles.company}>{listing.company || 'Ogłoszenie prywatne'}</Text>
+                <Text style={styles.company}>{listing.company || t('listing.privateListing')}</Text>
 
                 <View style={styles.metaRow}>
                   <MaterialIcons name="place" size={16} color="#64748B" />
                   <Text style={styles.metaText}>{listing.location}</Text>
                   <Text style={styles.dot}>•</Text>
-                  <Text style={styles.metaText}>{listing.mode}</Text>
+                  <Text style={styles.metaText}>{workModeLabel(listing.mode, t)}</Text>
                 </View>
 
                 <Text style={styles.rateLabel}>
-                  {quick ? 'Budżet / stawka: ' : 'Stawka: '}
+                  {quick ? t('listing.budgetLabel') : t('listing.rateLabel')}
                   {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate, locale)}
                 </Text>
 
@@ -261,31 +269,37 @@ export default function ListingDetailsScreen() {
 
               {quick ? (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Miejsca w mikrolicytacji</Text>
+                  <Text style={styles.sectionTitle}>{t('listing.slotsTitle')}</Text>
                   <Text style={styles.description}>
                     {listing.quickStatus === 'awarded'
-                      ? 'Zleceniodawca wybrał wykonawcę.'
+                      ? t('listing.slotsAwarded')
                       : listing.quickStatus === 'full'
-                        ? 'Komplet 5 najszybszych — czekamy na wybór.'
-                        : `Wolne miejsca: ${slotsLeft}. Pierwsze 5 osób wchodzi do gry.`}
+                        ? t('listing.slotsFull')
+                        : t('listing.slotsFree', { n: slotsLeft })}
                   </Text>
                   <QuickSlotsAvatars applicants={displaySlotApplicants} />
                 </View>
               ) : null}
 
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Opis</Text>
+                <Text style={styles.sectionTitle}>{t('listing.description')}</Text>
                 <Text style={styles.description}>{listing.description}</Text>
               </View>
 
               {!isAuthor ? (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>{quick ? 'Dołącz do zlecenia' : 'Aplikacja'}</Text>
+                  <Text style={styles.sectionTitle}>
+                    {quick ? t('listing.joinSection') : t('listing.applySection')}
+                  </Text>
                   {myApplication ? (
                     <Text style={styles.successText}>
                       {quick
-                        ? `Jesteś w gronie zgłoszonych. Status: ${STATUS_LABEL[myApplication.status]}.`
-                        : `Masz już wysłane zgłoszenie. Status: ${STATUS_LABEL[myApplication.status]}.`}
+                        ? t('listing.alreadyJoined', {
+                            status: applicationStatusLabel(myApplication.status, t),
+                          })
+                        : t('listing.alreadyApplied', {
+                            status: applicationStatusLabel(myApplication.status, t),
+                          })}
                     </Text>
                   ) : canJoinQuick || !quick ? (
                     <>
@@ -295,9 +309,7 @@ export default function ListingDetailsScreen() {
                         onChangeText={setApplyMessage}
                         multiline
                         placeholder={
-                          quick
-                            ? 'Krótko: dostępność, dojazd, sprzęt…'
-                            : 'Napisz krótką wiadomość do autora ogłoszenia...'
+                          quick ? t('listing.joinPlaceholder') : t('listing.applyPlaceholder')
                         }
                         placeholderTextColor="#94A3B8"
                       />
@@ -307,25 +319,23 @@ export default function ListingDetailsScreen() {
                         disabled={busyApply}>
                         <Text style={styles.ctaText}>
                           {busyApply
-                            ? 'Wysyłanie...'
+                            ? t('listing.sending')
                             : quick
-                              ? 'Dołącz (zajmij miejsce)'
-                              : 'Wyślij zgłoszenie'}
+                              ? t('listing.joinSeat')
+                              : t('listing.sendApply')}
                         </Text>
                       </Pressable>
                     </>
                   ) : (
-                    <Text style={styles.description}>
-                      Brak wolnych miejsc albo zlecenie jest już rozstrzygnięte.
-                    </Text>
+                    <Text style={styles.description}>{t('listing.noSlots')}</Text>
                   )}
                   {feedback ? <Text style={styles.successText}>{feedback}</Text> : null}
                   <Pressable
                     style={styles.secondaryBtn}
                     onPress={() => {
-                      void openChat(listing.authorId, listing.company || 'Autor ogłoszenia');
+                      void openChat(listing.authorId, listing.company || t('listing.publisher'));
                     }}>
-                    <Text style={styles.secondaryBtnText}>Napisz do zleceniodawcy</Text>
+                    <Text style={styles.secondaryBtnText}>{t('listing.messageAuthor')}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -339,12 +349,12 @@ export default function ListingDetailsScreen() {
                         router.push({ pathname: '/listing/edit/[id]', params: { id: listing.id } })
                       }>
                       <MaterialIcons name="edit" size={16} color="#0E4AA4" />
-                      <Text style={styles.editBtnText}>Edytuj ogłoszenie</Text>
+                      <Text style={styles.editBtnText}>{t('listing.editListing')}</Text>
                     </Pressable>
                   ) : null}
                   <Pressable style={styles.deleteBtn} onPress={() => void onDelete()}>
                     <MaterialIcons name="delete-outline" size={16} color="#B91C1C" />
-                    <Text style={styles.deleteBtnText}>Usuń ogłoszenie</Text>
+                    <Text style={styles.deleteBtnText}>{t('listing.deleteListing')}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -353,20 +363,17 @@ export default function ListingDetailsScreen() {
                 <View style={styles.card}>
                   <Text style={styles.sectionTitle}>
                     {quick
-                      ? `Kandydaci (${sortedApps.length}/5)`
-                      : `Zgłoszenia (${applications.length})`}
+                      ? t('listing.candidates', { count: sortedApps.length })
+                      : t('listing.applicationsCount', { count: applications.length })}
                   </Text>
                   {quick ? (
-                    <Text style={styles.description}>
-                      Wybierz jedną osobę — pozostałe zgłoszenia zostaną odrzucone. Możesz też
-                      otworzyć czat przed decyzją.
-                    </Text>
+                    <Text style={styles.description}>{t('listing.pickWinnerHint')}</Text>
                   ) : null}
                   {loadingApplications ? (
-                    <Text style={styles.description}>Ładowanie zgłoszeń...</Text>
+                    <Text style={styles.description}>{t('listing.loadingApps')}</Text>
                   ) : sortedApps.length === 0 ? (
                     <Text style={styles.description}>
-                      {quick ? 'Nikt jeszcze nie zajął miejsca.' : 'Brak zgłoszeń do tego ogłoszenia.'}
+                      {quick ? t('listing.noSeatsYet') : t('listing.noApps')}
                     </Text>
                   ) : (
                     sortedApps.map((app, index) => (
@@ -380,13 +387,15 @@ export default function ListingDetailsScreen() {
                           <View style={styles.appHeadText}>
                             <Text style={styles.applicationTitle}>
                               {quick ? `#${index + 1} · ` : ''}
-                              {app.applicantName || 'Użytkownik'}
+                              {app.applicantName || t('common.userFallback')}
                             </Text>
                             <Text style={styles.applicationMeta}>
-                              {app.applicantRole === 'employer' ? 'Pracodawca' : 'Spawacz'}
-                              {app.applicantPhone ? ` • tel: ${app.applicantPhone}` : ''}
+                              {roleLabel(app.applicantRole, t)}
+                              {app.applicantPhone
+                                ? ` • ${t('listing.phone', { phone: app.applicantPhone })}`
+                                : ''}
                               {app.createdAt
-                                ? ` • ${app.createdAt.toLocaleTimeString('pl-PL', {
+                                ? ` • ${app.createdAt.toLocaleTimeString(localeTag, {
                                     hour: '2-digit',
                                     minute: '2-digit',
                                   })}`
@@ -410,21 +419,28 @@ export default function ListingDetailsScreen() {
                                     styles.statusChipText,
                                     app.status === status && styles.statusChipTextActive,
                                   ]}>
-                                  {STATUS_LABEL[status]}
+                                  {applicationStatusLabel(status, t)}
                                 </Text>
                               </Pressable>
                             ))}
                           </View>
                         ) : (
-                          <Text style={styles.applicationMeta}>Status: {STATUS_LABEL[app.status]}</Text>
+                          <Text style={styles.applicationMeta}>
+                            {t('listing.statusPrefix', {
+                              status: applicationStatusLabel(app.status, t),
+                            })}
+                          </Text>
                         )}
                         <View style={styles.appActions}>
                           <Pressable
                             style={styles.secondaryBtn}
                             onPress={() => {
-                              void openChat(app.applicantId, app.applicantName || 'Użytkownik');
+                              void openChat(
+                                app.applicantId,
+                                app.applicantName || t('common.userFallback')
+                              );
                             }}>
-                            <Text style={styles.secondaryBtnText}>Otwórz czat</Text>
+                            <Text style={styles.secondaryBtnText}>{t('listing.openChat')}</Text>
                           </Pressable>
                           {quick &&
                           listing.quickStatus !== 'awarded' &&
@@ -435,7 +451,7 @@ export default function ListingDetailsScreen() {
                               onPress={() => void onSelectWinner(app.id)}>
                               <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
                               <Text style={styles.pickBtnText}>
-                                {busySelect === app.id ? 'Wybieranie…' : 'Wybierz tego'}
+                                {busySelect === app.id ? t('listing.picking') : t('listing.pickThis')}
                               </Text>
                             </Pressable>
                           ) : null}

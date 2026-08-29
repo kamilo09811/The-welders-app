@@ -223,7 +223,7 @@ export function MessagesInbox({ showBack = false }: Props) {
                 {muted ? <MaterialIcons name="notifications-off" size={15} color="#94A3B8" /> : null}
                 {unread ? (
                   <View style={styles.unreadPill}>
-                    <Text style={styles.unreadPillText}>Nowe</Text>
+                    <Text style={styles.unreadPillText}>{t('chats.newBadge')}</Text>
                   </View>
                 ) : null}
               </View>
@@ -314,7 +314,7 @@ export function MessagesInbox({ showBack = false }: Props) {
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.empty')}</Text>
           <Text style={[styles.emptySub, { color: colors.textSoft }]}>{t('chats.emptySub')}</Text>
           <Pressable style={styles.emptyCta} onPress={() => router.push('/(tabs)' as never)}>
-            <Text style={styles.emptyCtaText}>Przejdź do Rynku</Text>
+            <Text style={styles.emptyCtaText}>{t('chats.goToMarket')}</Text>
             <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
           </Pressable>
         </>

@@ -22,10 +22,12 @@ import { sendAccountVerificationEmail } from '@/lib/auth-verification';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { mapAuthError } from '@/lib/mapAuthError';
 import { firebaseConfig } from '@/lib/firebaseConfig';
+import { usePreferences } from '@/lib/preferences-context';
 import { syncEmailVerified } from '@/lib/user-profile';
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const { sendError } = useLocalSearchParams<{ sendError?: string }>();
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
@@ -34,7 +36,7 @@ export default function VerifyEmailScreen() {
     typeof sendError === 'string' && sendError ? sendError : null
   );
   const [info, setInfo] = useState<string | null>(
-    typeof sendError === 'string' && sendError ? null : 'Po rejestracji wysłaliśmy link — sprawdź skrzynkę (także Spam).'
+    typeof sendError === 'string' && sendError ? null : t('verify.infoInitial')
   );
   const senderHint = `noreply@${firebaseConfig.projectId}.firebaseapp.com`;
 
@@ -58,31 +60,31 @@ export default function VerifyEmailScreen() {
         router.replace('/(tabs)');
         return;
       }
-      setInfo('Link jeszcze nie został użyty. Otwórz mail, kliknij link, wróć tutaj i naciśnij ponownie „Sprawdziłem”.');
+      setInfo(t('verify.notYet'));
     } catch (e) {
-      setError(mapAuthError(e));
+      setError(mapAuthError(e, locale));
     } finally {
       setBusy(false);
     }
-  }, [auth, router]);
+  }, [auth, locale, router, t]);
 
   const onResend = useCallback(async () => {
     setError(null);
     setInfo(null);
     const u = auth.currentUser;
     if (!u?.email) {
-      setError('Brak adresu e-mail na koncie.');
+      setError(t('verify.noEmail'));
       return;
     }
     setBusy(true);
-    const r = await sendAccountVerificationEmail(u);
+    const r = await sendAccountVerificationEmail(u, locale);
     setBusy(false);
     if (r.ok) {
-      setInfo(`Wysłano ponownie na ${u.email}. Poczekaj 1–2 minuty i sprawdź Spam / Oferty.`);
+      setInfo(t('verify.resent', { email: u.email }));
     } else {
       setError(r.message);
     }
-  }, [auth]);
+  }, [auth, locale, t]);
 
   const onOpenMail = useCallback(() => {
     void Linking.openURL('mailto:');
@@ -100,20 +102,21 @@ export default function VerifyEmailScreen() {
       <View style={[styles.root, { backgroundColor: C.bg }]}>
         <SafeAreaView style={styles.flex} edges={['top', 'left', 'right']}>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Potwierdź e-mail</Text>
-            <Text style={styles.lead}>
-              Link aktywacyjny wysyła <Text style={styles.bold}>Firebase</Text> na adres:
-            </Text>
+            <Text style={styles.title}>{t('verify.title')}</Text>
+            <Text style={styles.lead}>{t('verify.lead')}</Text>
             <Text style={styles.emailBig}>{user?.email ?? '—'}</Text>
 
             <View style={[styles.tipsCard, { backgroundColor: C.card, borderColor: C.border }]}>
-              <Text style={styles.tipsTitle}>Nie widzisz maila?</Text>
-              <Text style={styles.tip}>• Sprawdź <Text style={styles.bold}>Spam</Text>, <Text style={styles.bold}>Oferty</Text> i <Text style={styles.bold}>Wszystkie wiadomości</Text> (Gmail).</Text>
-              <Text style={styles.tip}>• Szukaj nadawcy podobnego do:{'\n'}  <Text style={styles.mono}>{senderHint}</Text></Text>
-              <Text style={styles.tip}>• Upewnij się, że przy rejestracji nie pomyliłeś liter w adresie.</Text>
-              <Text style={styles.tip}>• Odczekaj 2–5 minut — czasem mail przychodzi z opóźnieniem.</Text>
-              <Text style={styles.tip}>• Naciśnij „Wyślij e-mail ponownie” (nie częściej niż co kilka minut).</Text>
-              <Text style={styles.tip}>• Konto przez <Text style={styles.bold}>Google</Text> zwykle nie wymaga tego kroku — wyloguj się i zaloguj przez Google.</Text>
+              <Text style={styles.tipsTitle}>{t('verify.tipsTitle')}</Text>
+              <Text style={styles.tip}>{t('verify.tip1')}</Text>
+              <Text style={styles.tip}>
+                {t('verify.tip2')}
+                {'\n'}  <Text style={styles.mono}>{senderHint}</Text>
+              </Text>
+              <Text style={styles.tip}>{t('verify.tip3')}</Text>
+              <Text style={styles.tip}>{t('verify.tip4')}</Text>
+              <Text style={styles.tip}>{t('verify.tip5')}</Text>
+              <Text style={styles.tip}>{t('verify.tip6')}</Text>
             </View>
 
             <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
@@ -122,7 +125,7 @@ export default function VerifyEmailScreen() {
                 onPress={onOpenMail}
                 disabled={busy}>
                 <MaterialIcons name="mail-outline" size={22} color={C.primary} />
-                <Text style={[styles.rowBtnText, { color: C.text }]}>Otwórz aplikację e-mail</Text>
+                <Text style={[styles.rowBtnText, { color: C.text }]}>{t('verify.openMail')}</Text>
               </Pressable>
 
               <Pressable
@@ -132,12 +135,12 @@ export default function VerifyEmailScreen() {
                 {busy ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>Sprawdziłem — przejdź dalej</Text>
+                  <Text style={styles.primaryBtnText}>{t('verify.checked')}</Text>
                 )}
               </Pressable>
 
               <Pressable style={styles.linkBtn} onPress={onResend} disabled={busy}>
-                <Text style={[styles.linkText, { color: C.primary }]}>Wyślij e-mail ponownie</Text>
+                <Text style={[styles.linkText, { color: C.primary }]}>{t('verify.resend')}</Text>
               </Pressable>
 
               {error ? <Text style={[styles.msg, { color: C.error }]}>{error}</Text> : null}
@@ -145,7 +148,7 @@ export default function VerifyEmailScreen() {
             </View>
 
             <Pressable onPress={onLogout} style={styles.logoutWrap}>
-              <Text style={[styles.logout, { color: C.muted }]}>Wyloguj i użyj innego konta</Text>
+              <Text style={[styles.logout, { color: C.muted }]}>{t('verify.logoutOther')}</Text>
             </Pressable>
           </ScrollView>
         </SafeAreaView>

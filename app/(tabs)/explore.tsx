@@ -10,6 +10,7 @@ import {
   type PushPermissionStatus,
 } from '@/lib/expo-push';
 import { APP_LOCALES } from '@/lib/i18n';
+import { workModeLabel } from '@/lib/i18n/labels';
 import type { WorkMode } from '@/lib/market-listings';
 import { PL_CITIES } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
@@ -336,7 +337,7 @@ export default function SettingsScreen() {
               <Pill
                 key={m}
                 active={draft.preferredModes.includes(m)}
-                label={m}
+                label={workModeLabel(m, t)}
                 colors={colors}
                 onPress={() => toggleMode(m)}
               />

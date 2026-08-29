@@ -261,6 +261,129 @@ export type TranslationKey =
   | 'chats.youPrefix'
   | 'auth.login'
   | 'auth.register'
+  | 'mode.hall'
+  | 'mode.hybrid'
+  | 'mode.mobile'
+  | 'intent.offer'
+  | 'intent.seek'
+  | 'market.allFilter'
+  | 'market.minRateStrip'
+  | 'listing.detailTitle'
+  | 'listing.quickDetailTitle'
+  | 'listing.notFound'
+  | 'listing.notFoundSub'
+  | 'listing.privateListing'
+  | 'listing.rateLabel'
+  | 'listing.budgetLabel'
+  | 'listing.description'
+  | 'listing.applySection'
+  | 'listing.joinSection'
+  | 'listing.alreadyApplied'
+  | 'listing.alreadyJoined'
+  | 'listing.applyPlaceholder'
+  | 'listing.joinPlaceholder'
+  | 'listing.sending'
+  | 'listing.sendApply'
+  | 'listing.joinSeat'
+  | 'listing.noSlots'
+  | 'listing.messageAuthor'
+  | 'listing.editListing'
+  | 'listing.deleteListing'
+  | 'listing.candidates'
+  | 'listing.applicationsCount'
+  | 'listing.pickWinnerHint'
+  | 'listing.loadingApps'
+  | 'listing.noApps'
+  | 'listing.noSeatsYet'
+  | 'listing.openChat'
+  | 'listing.pickThis'
+  | 'listing.picking'
+  | 'listing.you'
+  | 'listing.joinedQuick'
+  | 'listing.appliedOk'
+  | 'listing.applyFailed'
+  | 'listing.winnerPicked'
+  | 'listing.pickFailed'
+  | 'listing.chatUnavailable'
+  | 'listing.chatFailed'
+  | 'listing.phone'
+  | 'listing.statusPrefix'
+  | 'listing.slotsTitle'
+  | 'listing.slotsAwarded'
+  | 'listing.slotsFull'
+  | 'listing.slotsFree'
+  | 'listing.editTitle'
+  | 'listing.editOnlyOwn'
+  | 'listing.saving'
+  | 'listing.saveChanges'
+  | 'listing.saveEditFailed'
+  | 'listing.noEditPerm'
+  | 'listing.needCompanyShort'
+  | 'listing.needNameShort'
+  | 'listing.loginToAdd'
+  | 'listing.phLocation'
+  | 'listing.phDesc'
+  | 'listing.phBudget'
+  | 'listing.phTags'
+  | 'listing.phQuickTitle'
+  | 'listing.tagsComma'
+  | 'duration.hours'
+  | 'duration.day'
+  | 'duration.days'
+  | 'duration.week'
+  | 'duration.tbd'
+  | 'notif.title'
+  | 'notif.markRead'
+  | 'notif.empty'
+  | 'apps.sentTitle'
+  | 'apps.sentEmpty'
+  | 'apps.incomingTitle'
+  | 'apps.incomingEmpty'
+  | 'verify.title'
+  | 'verify.lead'
+  | 'verify.tipsTitle'
+  | 'verify.tip1'
+  | 'verify.tip2'
+  | 'verify.tip3'
+  | 'verify.tip4'
+  | 'verify.tip5'
+  | 'verify.tip6'
+  | 'verify.openMail'
+  | 'verify.checked'
+  | 'verify.resend'
+  | 'verify.logoutOther'
+  | 'verify.infoInitial'
+  | 'verify.notYet'
+  | 'verify.noEmail'
+  | 'verify.resent'
+  | 'profile.title'
+  | 'profile.notFound'
+  | 'profile.about'
+  | 'profile.noBio'
+  | 'profile.rateUser'
+  | 'profile.reviewPlaceholder'
+  | 'profile.saveReview'
+  | 'profile.reviews'
+  | 'profile.noReviews'
+  | 'profile.editInAccount'
+  | 'profile.completedApplicant'
+  | 'profile.completedAuthor'
+  | 'profile.reviewSaved'
+  | 'profile.reviewFailed'
+  | 'profile.reviewOne'
+  | 'profile.reviewFew'
+  | 'profile.reviewMany'
+  | 'account.noSession'
+  | 'account.needCompanyMsg'
+  | 'account.needNameMsg'
+  | 'account.saved'
+  | 'account.loginForPhoto'
+  | 'account.noGallery'
+  | 'account.photoSaved'
+  | 'account.photoFailed'
+  | 'chats.goToMarket'
+  | 'chats.newBadge'
+  | 'common.userFallback'
   | 'auth.logout';
 
 type Dict = Record<TranslationKey, string>;
@@ -521,6 +644,129 @@ const pl: Dict = {
   'chats.youPrefix': 'Ty:',
   'auth.login': 'Zaloguj się',
   'auth.register': 'Zarejestruj się',
+  'mode.hall': "Na hali",
+  'mode.hybrid': "Hybryda",
+  'mode.mobile': "Mobilnie",
+  'intent.offer': "Oferuję",
+  'intent.seek': "Poszukuję",
+  'market.allFilter': "Wszystkie",
+  'market.minRateStrip': "min. {n} PLN/h",
+  'listing.detailTitle': "Szczegóły ogłoszenia",
+  'listing.quickDetailTitle': "Szybkie zlecenie",
+  'listing.notFound': "Nie znaleziono ogłoszenia",
+  'listing.notFoundSub': "To ogłoszenie mogło zostać usunięte.",
+  'listing.privateListing': "Ogłoszenie prywatne",
+  'listing.rateLabel': "Stawka: ",
+  'listing.budgetLabel': "Budżet / stawka: ",
+  'listing.description': "Opis",
+  'listing.applySection': "Aplikacja",
+  'listing.joinSection': "Dołącz do zlecenia",
+  'listing.alreadyApplied': "Masz już wysłane zgłoszenie. Status: {status}.",
+  'listing.alreadyJoined': "Jesteś w gronie zgłoszonych. Status: {status}.",
+  'listing.applyPlaceholder': "Napisz krótką wiadomość do autora ogłoszenia...",
+  'listing.joinPlaceholder': "Krótko: dostępność, dojazd, sprzęt…",
+  'listing.sending': "Wysyłanie...",
+  'listing.sendApply': "Wyślij zgłoszenie",
+  'listing.joinSeat': "Dołącz (zajmij miejsce)",
+  'listing.noSlots': "Brak wolnych miejsc albo zlecenie jest już rozstrzygnięte.",
+  'listing.messageAuthor': "Napisz do zleceniodawcy",
+  'listing.editListing': "Edytuj ogłoszenie",
+  'listing.deleteListing': "Usuń ogłoszenie",
+  'listing.candidates': "Kandydaci ({count}/5)",
+  'listing.applicationsCount': "Zgłoszenia ({count})",
+  'listing.pickWinnerHint': "Wybierz jedną osobę — pozostałe zgłoszenia zostaną odrzucone. Możesz też otworzyć czat przed decyzją.",
+  'listing.loadingApps': "Ładowanie zgłoszeń...",
+  'listing.noApps': "Brak zgłoszeń do tego ogłoszenia.",
+  'listing.noSeatsYet': "Nikt jeszcze nie zajął miejsca.",
+  'listing.openChat': "Otwórz czat",
+  'listing.pickThis': "Wybierz tego",
+  'listing.picking': "Wybieranie…",
+  'listing.you': "Ty",
+  'listing.joinedQuick': "Dołączyłeś do szybkiego zlecenia. Czekaj na wybór zleceniodawcy.",
+  'listing.appliedOk': "Zgłoszenie zostało wysłane.",
+  'listing.applyFailed': "Nie udało się wysłać zgłoszenia.",
+  'listing.winnerPicked': "Wybrano wykonawcę — pozostałe zgłoszenia odrzucone.",
+  'listing.pickFailed': "Nie udało się wybrać wykonawcy.",
+  'listing.chatUnavailable': "Nie można otworzyć czatu dla tego ogłoszenia.",
+  'listing.chatFailed': "Nie udało się otworzyć rozmowy.",
+  'listing.phone': "tel: {phone}",
+  'listing.statusPrefix': "Status: {status}",
+  'listing.slotsTitle': "Miejsca w mikrolicytacji",
+  'listing.slotsAwarded': "Zleceniodawca wybrał wykonawcę.",
+  'listing.slotsFull': "Komplet 5 najszybszych — czekamy na wybór.",
+  'listing.slotsFree': "Wolne miejsca: {n}. Pierwsze 5 osób wchodzi do gry.",
+  'listing.editTitle': "Edytuj ogłoszenie",
+  'listing.editOnlyOwn': "Możesz edytować tylko własne ogłoszenia.",
+  'listing.saving': "Zapisywanie...",
+  'listing.saveChanges': "Zapisz zmiany",
+  'listing.saveEditFailed': "Nie udało się zapisać zmian.",
+  'listing.noEditPerm': "Brak uprawnień do edycji tego ogłoszenia.",
+  'listing.needCompanyShort': "Uzupełnij nazwę firmy w Koncie.",
+  'listing.needNameShort': "Uzupełnij imię i nazwisko w Koncie.",
+  'listing.loginToAdd': "Zaloguj się, aby dodać ogłoszenie.",
+  'listing.phLocation': "np. Katowice / Śląsk",
+  'listing.phDesc': "Zakres prac, wymagania, termin, lokalizacja szczegółowa…",
+  'listing.phBudget': "np. 400 — możesz pominąć",
+  'listing.phTags': "TIG 141, Inox, Start od zaraz",
+  'listing.phQuickTitle': "np. Spawanie bramy — dziś wieczór",
+  'listing.tagsComma': "Tagi (oddziel przecinkiem)",
+  'duration.hours': "Kilka godzin",
+  'duration.day': "1 dzień",
+  'duration.days': "Kilka dni",
+  'duration.week': "Tydzień",
+  'duration.tbd': "Do uzgodnienia",
+  'notif.title': "Powiadomienia",
+  'notif.markRead': "Oznacz przeczytane",
+  'notif.empty': "Brak powiadomień. Pojawią się przy zgłoszeniach, zmianie statusu i nowych wiadomościach.",
+  'apps.sentTitle': "Wszystkie moje zgłoszenia",
+  'apps.sentEmpty': "Nie wysłałeś jeszcze żadnego zgłoszenia.",
+  'apps.incomingTitle': "Wszystkie przychodzące zgłoszenia",
+  'apps.incomingEmpty': "Brak zgłoszeń do Twoich ogłoszeń.",
+  'verify.title': "Potwierdź e-mail",
+  'verify.lead': "Link aktywacyjny wysyła Firebase na adres:",
+  'verify.tipsTitle': "Nie widzisz maila?",
+  'verify.tip1': "• Sprawdź Spam, Oferty i Wszystkie wiadomości (Gmail).",
+  'verify.tip2': "• Szukaj nadawcy podobnego do:",
+  'verify.tip3': "• Upewnij się, że przy rejestracji nie pomyliłeś liter w adresie.",
+  'verify.tip4': "• Odczekaj 2–5 minut — czasem mail przychodzi z opóźnieniem.",
+  'verify.tip5': "• Naciśnij „Wyślij e-mail ponownie” (nie częściej niż co kilka minut).",
+  'verify.tip6': "• Konto przez Google zwykle nie wymaga tego kroku — wyloguj się i zaloguj przez Google.",
+  'verify.openMail': "Otwórz aplikację e-mail",
+  'verify.checked': "Sprawdziłem — przejdź dalej",
+  'verify.resend': "Wyślij e-mail ponownie",
+  'verify.logoutOther': "Wyloguj i użyj innego konta",
+  'verify.infoInitial': "Po rejestracji wysłaliśmy link — sprawdź skrzynkę (także Spam).",
+  'verify.notYet': "Link jeszcze nie został użyty. Otwórz mail, kliknij link, wróć tutaj i naciśnij ponownie „Sprawdziłem”.",
+  'verify.noEmail': "Brak adresu e-mail na koncie.",
+  'verify.resent': "Wysłano ponownie na {email}. Poczekaj 1–2 minuty i sprawdź Spam / Oferty.",
+  'profile.title': "Profil",
+  'profile.notFound': "Nie znaleziono profilu użytkownika.",
+  'profile.about': "O mnie",
+  'profile.noBio': "Brak opisu publicznego.",
+  'profile.rateUser': "Oceń użytkownika",
+  'profile.reviewPlaceholder': "Krótka opinia (opcjonalnie)",
+  'profile.saveReview': "Zapisz opinię",
+  'profile.reviews': "Opinie",
+  'profile.noReviews': "Brak opinii.",
+  'profile.editInAccount': "Edytuj profil w Koncie",
+  'profile.completedApplicant': "Zakończone jako wykonawca",
+  'profile.completedAuthor': "Zrealizowane jako zleceniodawca",
+  'profile.reviewSaved': "Opinia zapisana. Dziękujemy!",
+  'profile.reviewFailed': "Nie udało się zapisać opinii.",
+  'profile.reviewOne': "opinia",
+  'profile.reviewFew': "opinie",
+  'profile.reviewMany': "opinii",
+  'account.noSession': "Brak aktywnej sesji.",
+  'account.needCompanyMsg': "Nazwa firmy jest wymagana — pojawia się na Twoich ogłoszeniach.",
+  'account.needNameMsg': "Imię i nazwisko jest wymagane — pojawia się na Twoich ogłoszeniach.",
+  'account.saved': "Profil zapisany.",
+  'account.loginForPhoto': "Zaloguj się, aby zmienić zdjęcie.",
+  'account.noGallery': "Brak uprawnień do galerii.",
+  'account.photoSaved': "Zdjęcie profilowe zapisane.",
+  'account.photoFailed': "Nie udało się wgrać zdjęcia.",
+  'chats.goToMarket': "Przejdź do Rynku",
+  'chats.newBadge': "Nowe",
+  'common.userFallback': "Użytkownik",
   'auth.logout': 'Wyloguj',
 };
 
@@ -781,6 +1027,129 @@ const en: Dict = {
   'chats.youPrefix': 'You:',
   'auth.login': 'Sign in',
   'auth.register': 'Sign up',
+  'mode.hall': "On site",
+  'mode.hybrid': "Hybrid",
+  'mode.mobile': "Mobile",
+  'intent.offer': "Offering",
+  'intent.seek': "Looking for",
+  'market.allFilter': "All",
+  'market.minRateStrip': "min. {n} PLN/h",
+  'listing.detailTitle': "Listing details",
+  'listing.quickDetailTitle': "Quick job",
+  'listing.notFound': "Listing not found",
+  'listing.notFoundSub': "This listing may have been deleted.",
+  'listing.privateListing': "Private listing",
+  'listing.rateLabel': "Rate: ",
+  'listing.budgetLabel': "Budget / rate: ",
+  'listing.description': "Description",
+  'listing.applySection': "Application",
+  'listing.joinSection': "Join the job",
+  'listing.alreadyApplied': "You already applied. Status: {status}.",
+  'listing.alreadyJoined': "You are among the applicants. Status: {status}.",
+  'listing.applyPlaceholder': "Write a short message to the listing author...",
+  'listing.joinPlaceholder': "Briefly: availability, travel, gear…",
+  'listing.sending': "Sending...",
+  'listing.sendApply': "Send application",
+  'listing.joinSeat': "Join (take a seat)",
+  'listing.noSlots': "No seats left or the job is already decided.",
+  'listing.messageAuthor': "Message the client",
+  'listing.editListing': "Edit listing",
+  'listing.deleteListing': "Delete listing",
+  'listing.candidates': "Candidates ({count}/5)",
+  'listing.applicationsCount': "Applications ({count})",
+  'listing.pickWinnerHint': "Pick one person — other applications will be rejected. You can open chat before deciding.",
+  'listing.loadingApps': "Loading applications...",
+  'listing.noApps': "No applications for this listing.",
+  'listing.noSeatsYet': "Nobody has taken a seat yet.",
+  'listing.openChat': "Open chat",
+  'listing.pickThis': "Pick this one",
+  'listing.picking': "Selecting…",
+  'listing.you': "You",
+  'listing.joinedQuick': "You joined the quick job. Wait for the client’s choice.",
+  'listing.appliedOk': "Application sent.",
+  'listing.applyFailed': "Could not send the application.",
+  'listing.winnerPicked': "Worker selected — other applications rejected.",
+  'listing.pickFailed': "Could not select the worker.",
+  'listing.chatUnavailable': "Cannot open chat for this listing.",
+  'listing.chatFailed': "Could not open the conversation.",
+  'listing.phone': "tel: {phone}",
+  'listing.statusPrefix': "Status: {status}",
+  'listing.slotsTitle': "Micro-auction seats",
+  'listing.slotsAwarded': "The client picked a worker.",
+  'listing.slotsFull': "5 fastest are in — waiting for the choice.",
+  'listing.slotsFree': "Seats left: {n}. First 5 people enter.",
+  'listing.editTitle': "Edit listing",
+  'listing.editOnlyOwn': "You can only edit your own listings.",
+  'listing.saving': "Saving...",
+  'listing.saveChanges': "Save changes",
+  'listing.saveEditFailed': "Could not save changes.",
+  'listing.noEditPerm': "No permission to edit this listing.",
+  'listing.needCompanyShort': "Add a company name in Account.",
+  'listing.needNameShort': "Add your full name in Account.",
+  'listing.loginToAdd': "Sign in to add a listing.",
+  'listing.phLocation': "e.g. Katowice / Silesia",
+  'listing.phDesc': "Scope, requirements, timing, detailed location…",
+  'listing.phBudget': "e.g. 400 — optional",
+  'listing.phTags': "TIG 141, Inox, Start ASAP",
+  'listing.phQuickTitle': "e.g. Gate welding — tonight",
+  'listing.tagsComma': "Tags (comma-separated)",
+  'duration.hours': "A few hours",
+  'duration.day': "1 day",
+  'duration.days': "A few days",
+  'duration.week': "A week",
+  'duration.tbd': "To be agreed",
+  'notif.title': "Notifications",
+  'notif.markRead': "Mark as read",
+  'notif.empty': "No notifications yet. They appear for applications, status changes and new messages.",
+  'apps.sentTitle': "All my applications",
+  'apps.sentEmpty': "You have not sent any applications yet.",
+  'apps.incomingTitle': "All incoming applications",
+  'apps.incomingEmpty': "No applications to your listings.",
+  'verify.title': "Confirm email",
+  'verify.lead': "Firebase sends the activation link to:",
+  'verify.tipsTitle': "Don’t see the email?",
+  'verify.tip1': "• Check Spam, Promotions and All mail (Gmail).",
+  'verify.tip2': "• Look for a sender similar to:",
+  'verify.tip3': "• Make sure you typed the address correctly at sign-up.",
+  'verify.tip4': "• Wait 2–5 minutes — delivery can be delayed.",
+  'verify.tip5': "• Tap “Resend email” (not more than every few minutes).",
+  'verify.tip6': "• Google accounts usually skip this — sign out and sign in with Google.",
+  'verify.openMail': "Open email app",
+  'verify.checked': "I checked — continue",
+  'verify.resend': "Resend email",
+  'verify.logoutOther': "Sign out and use another account",
+  'verify.infoInitial': "We sent a link after registration — check your inbox (and Spam).",
+  'verify.notYet': "The link has not been used yet. Open the email, tap the link, return here and press again.",
+  'verify.noEmail': "No email address on this account.",
+  'verify.resent': "Resent to {email}. Wait 1–2 minutes and check Spam / Promotions.",
+  'profile.title': "Profile",
+  'profile.notFound': "User profile not found.",
+  'profile.about': "About",
+  'profile.noBio': "No public bio.",
+  'profile.rateUser': "Rate this user",
+  'profile.reviewPlaceholder': "Short review (optional)",
+  'profile.saveReview': "Save review",
+  'profile.reviews': "Reviews",
+  'profile.noReviews': "No reviews.",
+  'profile.editInAccount': "Edit profile in Account",
+  'profile.completedApplicant': "Completed as worker",
+  'profile.completedAuthor': "Completed as client",
+  'profile.reviewSaved': "Review saved. Thank you!",
+  'profile.reviewFailed': "Could not save the review.",
+  'profile.reviewOne': "review",
+  'profile.reviewFew': "reviews",
+  'profile.reviewMany': "reviews",
+  'account.noSession': "No active session.",
+  'account.needCompanyMsg': "Company name is required — it appears on your listings.",
+  'account.needNameMsg': "Full name is required — it appears on your listings.",
+  'account.saved': "Profile saved.",
+  'account.loginForPhoto': "Sign in to change your photo.",
+  'account.noGallery': "No gallery permission.",
+  'account.photoSaved': "Profile photo saved.",
+  'account.photoFailed': "Could not upload the photo.",
+  'chats.goToMarket': "Go to Market",
+  'chats.newBadge': "New",
+  'common.userFallback': "User",
   'auth.logout': 'Sign out',
 };
 
@@ -1041,6 +1410,129 @@ const de: Dict = {
   'chats.youPrefix': 'Du:',
   'auth.login': 'Anmelden',
   'auth.register': 'Registrieren',
+  'mode.hall': "Vor Ort",
+  'mode.hybrid': "Hybrid",
+  'mode.mobile': "Mobil",
+  'intent.offer': "Biete",
+  'intent.seek': "Suche",
+  'market.allFilter': "Alle",
+  'market.minRateStrip': "min. {n} PLN/h",
+  'listing.detailTitle': "Anzeigendetails",
+  'listing.quickDetailTitle': "Schnellauftrag",
+  'listing.notFound': "Anzeige nicht gefunden",
+  'listing.notFoundSub': "Diese Anzeige wurde möglicherweise gelöscht.",
+  'listing.privateListing': "Private Anzeige",
+  'listing.rateLabel': "Satz: ",
+  'listing.budgetLabel': "Budget / Satz: ",
+  'listing.description': "Beschreibung",
+  'listing.applySection': "Bewerbung",
+  'listing.joinSection': "Auftrag beitreten",
+  'listing.alreadyApplied': "Du hast bereits beworben. Status: {status}.",
+  'listing.alreadyJoined': "Du bist unter den Bewerbern. Status: {status}.",
+  'listing.applyPlaceholder': "Kurze Nachricht an den Autor...",
+  'listing.joinPlaceholder': "Kurz: Verfügbarkeit, Anfahrt, Ausrüstung…",
+  'listing.sending': "Senden...",
+  'listing.sendApply': "Bewerbung senden",
+  'listing.joinSeat': "Beitreten (Platz nehmen)",
+  'listing.noSlots': "Keine Plätze oder Auftrag bereits vergeben.",
+  'listing.messageAuthor': "Auftraggeber schreiben",
+  'listing.editListing': "Anzeige bearbeiten",
+  'listing.deleteListing': "Anzeige löschen",
+  'listing.candidates': "Kandidaten ({count}/5)",
+  'listing.applicationsCount': "Bewerbungen ({count})",
+  'listing.pickWinnerHint': "Wähle eine Person — andere Bewerbungen werden abgelehnt. Chat vor der Entscheidung möglich.",
+  'listing.loadingApps': "Bewerbungen werden geladen...",
+  'listing.noApps': "Keine Bewerbungen für diese Anzeige.",
+  'listing.noSeatsYet': "Noch niemand hat einen Platz.",
+  'listing.openChat': "Chat öffnen",
+  'listing.pickThis': "Diesen wählen",
+  'listing.picking': "Auswählen…",
+  'listing.you': "Du",
+  'listing.joinedQuick': "Du bist dem Schnellauftrag beigetreten. Warte auf die Wahl.",
+  'listing.appliedOk': "Bewerbung gesendet.",
+  'listing.applyFailed': "Bewerbung konnte nicht gesendet werden.",
+  'listing.winnerPicked': "Ausführender gewählt — andere abgelehnt.",
+  'listing.pickFailed': "Auswahl fehlgeschlagen.",
+  'listing.chatUnavailable': "Chat für diese Anzeige nicht möglich.",
+  'listing.chatFailed': "Unterhaltung konnte nicht geöffnet werden.",
+  'listing.phone': "Tel.: {phone}",
+  'listing.statusPrefix': "Status: {status}",
+  'listing.slotsTitle': "Plätze in der Mikroauktion",
+  'listing.slotsAwarded': "Auftraggeber hat gewählt.",
+  'listing.slotsFull': "5 Schnellste drin — warte auf Auswahl.",
+  'listing.slotsFree': "Freie Plätze: {n}. Die ersten 5 kommen rein.",
+  'listing.editTitle': "Anzeige bearbeiten",
+  'listing.editOnlyOwn': "Nur eigene Anzeigen bearbeiten.",
+  'listing.saving': "Speichern...",
+  'listing.saveChanges': "Änderungen speichern",
+  'listing.saveEditFailed': "Speichern fehlgeschlagen.",
+  'listing.noEditPerm': "Keine Berechtigung.",
+  'listing.needCompanyShort': "Firmenname im Konto ergänzen.",
+  'listing.needNameShort': "Namen im Konto ergänzen.",
+  'listing.loginToAdd': "Melde dich an, um eine Anzeige zu erstellen.",
+  'listing.phLocation': "z. B. Katowice / Schlesien",
+  'listing.phDesc': "Umfang, Anforderungen, Termin, Ort…",
+  'listing.phBudget': "z. B. 400 — optional",
+  'listing.phTags': "TIG 141, Inox, Sofortstart",
+  'listing.phQuickTitle': "z. B. Tor schweißen — heute Abend",
+  'listing.tagsComma': "Tags (kommagetrennt)",
+  'duration.hours': "Einige Stunden",
+  'duration.day': "1 Tag",
+  'duration.days': "Einige Tage",
+  'duration.week': "Eine Woche",
+  'duration.tbd': "Nach Absprache",
+  'notif.title': "Benachrichtigungen",
+  'notif.markRead': "Als gelesen markieren",
+  'notif.empty': "Keine Benachrichtigungen. Sie erscheinen bei Bewerbungen, Status und Nachrichten.",
+  'apps.sentTitle': "Alle meine Bewerbungen",
+  'apps.sentEmpty': "Noch keine Bewerbungen gesendet.",
+  'apps.incomingTitle': "Alle eingehenden Bewerbungen",
+  'apps.incomingEmpty': "Keine Bewerbungen auf deine Anzeigen.",
+  'verify.title': "E-Mail bestätigen",
+  'verify.lead': "Firebase sendet den Aktivierungslink an:",
+  'verify.tipsTitle': "Keine E-Mail?",
+  'verify.tip1': "• Prüfe Spam, Angebote und Alle Nachrichten (Gmail).",
+  'verify.tip2': "• Suche Absender ähnlich:",
+  'verify.tip3': "• Tippfehler bei der Registrierung prüfen.",
+  'verify.tip4': "• 2–5 Minuten warten — Zustellung kann verzögert sein.",
+  'verify.tip5': "• „E-Mail erneut senden“ (nicht öfter als alle paar Minuten).",
+  'verify.tip6': "• Google-Konto braucht das meist nicht — abmelden und mit Google anmelden.",
+  'verify.openMail': "E-Mail-App öffnen",
+  'verify.checked': "Geprüft — weiter",
+  'verify.resend': "E-Mail erneut senden",
+  'verify.logoutOther': "Abmelden und anderes Konto",
+  'verify.infoInitial': "Nach der Registrierung haben wir einen Link gesendet — Posteingang (und Spam) prüfen.",
+  'verify.notYet': "Link noch nicht genutzt. Mail öffnen, Link tippen, hier erneut prüfen.",
+  'verify.noEmail': "Keine E-Mail-Adresse am Konto.",
+  'verify.resent': "Erneut an {email} gesendet. 1–2 Min. warten und Spam prüfen.",
+  'profile.title': "Profil",
+  'profile.notFound': "Profil nicht gefunden.",
+  'profile.about': "Über mich",
+  'profile.noBio': "Keine öffentliche Beschreibung.",
+  'profile.rateUser': "Nutzer bewerten",
+  'profile.reviewPlaceholder': "Kurze Meinung (optional)",
+  'profile.saveReview': "Bewertung speichern",
+  'profile.reviews': "Bewertungen",
+  'profile.noReviews': "Keine Bewertungen.",
+  'profile.editInAccount': "Profil im Konto bearbeiten",
+  'profile.completedApplicant': "Abgeschlossen als Ausführender",
+  'profile.completedAuthor': "Abgeschlossen als Auftraggeber",
+  'profile.reviewSaved': "Bewertung gespeichert. Danke!",
+  'profile.reviewFailed': "Bewertung konnte nicht gespeichert werden.",
+  'profile.reviewOne': "Bewertung",
+  'profile.reviewFew': "Bewertungen",
+  'profile.reviewMany': "Bewertungen",
+  'account.noSession': "Keine aktive Sitzung.",
+  'account.needCompanyMsg': "Firmenname ist erforderlich — erscheint auf Anzeigen.",
+  'account.needNameMsg': "Name ist erforderlich — erscheint auf Anzeigen.",
+  'account.saved': "Profil gespeichert.",
+  'account.loginForPhoto': "Anmelden, um Foto zu ändern.",
+  'account.noGallery': "Keine Galerieberechtigung.",
+  'account.photoSaved': "Profilfoto gespeichert.",
+  'account.photoFailed': "Foto-Upload fehlgeschlagen.",
+  'chats.goToMarket': "Zum Markt",
+  'chats.newBadge': "Neu",
+  'common.userFallback': "Benutzer",
   'auth.logout': 'Abmelden',
 };
 
@@ -1301,6 +1793,129 @@ const da: Dict = {
   'chats.youPrefix': 'Dig:',
   'auth.login': 'Log ind',
   'auth.register': 'Opret konto',
+  'mode.hall': "På stedet",
+  'mode.hybrid': "Hybrid",
+  'mode.mobile': "Mobil",
+  'intent.offer': "Tilbyder",
+  'intent.seek': "Søger",
+  'market.allFilter': "Alle",
+  'market.minRateStrip': "min. {n} PLN/t",
+  'listing.detailTitle': "Opslagsdetaljer",
+  'listing.quickDetailTitle': "Hurtig opgave",
+  'listing.notFound': "Opslag ikke fundet",
+  'listing.notFoundSub': "Opslaget kan være slettet.",
+  'listing.privateListing': "Privat opslag",
+  'listing.rateLabel': "Sats: ",
+  'listing.budgetLabel': "Budget / sats: ",
+  'listing.description': "Beskrivelse",
+  'listing.applySection': "Ansøgning",
+  'listing.joinSection': "Deltag i opgaven",
+  'listing.alreadyApplied': "Du har allerede ansøgt. Status: {status}.",
+  'listing.alreadyJoined': "Du er blandt ansøgerne. Status: {status}.",
+  'listing.applyPlaceholder': "Skriv en kort besked til forfatteren...",
+  'listing.joinPlaceholder': "Kort: tilgængelighed, kørsel, udstyr…",
+  'listing.sending': "Sender...",
+  'listing.sendApply': "Send ansøgning",
+  'listing.joinSeat': "Deltag (tag plads)",
+  'listing.noSlots': "Ingen pladser eller opgaven er afgjort.",
+  'listing.messageAuthor': "Skriv til opdragsgiver",
+  'listing.editListing': "Rediger opslag",
+  'listing.deleteListing': "Slet opslag",
+  'listing.candidates': "Kandidater ({count}/5)",
+  'listing.applicationsCount': "Ansøgninger ({count})",
+  'listing.pickWinnerHint': "Vælg én person — øvrige afvises. Du kan åbne chat før beslutning.",
+  'listing.loadingApps': "Indlæser ansøgninger...",
+  'listing.noApps': "Ingen ansøgninger til dette opslag.",
+  'listing.noSeatsYet': "Ingen har taget plads endnu.",
+  'listing.openChat': "Åbn chat",
+  'listing.pickThis': "Vælg denne",
+  'listing.picking': "Vælger…",
+  'listing.you': "Dig",
+  'listing.joinedQuick': "Du er med i den hurtige opgave. Vent på valg.",
+  'listing.appliedOk': "Ansøgning sendt.",
+  'listing.applyFailed': "Kunne ikke sende ansøgningen.",
+  'listing.winnerPicked': "Udfører valgt — øvrige afvist.",
+  'listing.pickFailed': "Kunne ikke vælge udfører.",
+  'listing.chatUnavailable': "Kan ikke åbne chat for dette opslag.",
+  'listing.chatFailed': "Kunne ikke åbne samtalen.",
+  'listing.phone': "tlf: {phone}",
+  'listing.statusPrefix': "Status: {status}",
+  'listing.slotsTitle': "Pladser i mikroauktion",
+  'listing.slotsAwarded': "Opdragsgiver har valgt.",
+  'listing.slotsFull': "5 hurtigste er inde — venter på valg.",
+  'listing.slotsFree': "Ledige pladser: {n}. De første 5 kommer ind.",
+  'listing.editTitle': "Rediger opslag",
+  'listing.editOnlyOwn': "Du kan kun redigere egne opslag.",
+  'listing.saving': "Gemmer...",
+  'listing.saveChanges': "Gem ændringer",
+  'listing.saveEditFailed': "Kunne ikke gemme.",
+  'listing.noEditPerm': "Ingen rettighed til at redigere.",
+  'listing.needCompanyShort': "Tilføj firmanavn under Konto.",
+  'listing.needNameShort': "Tilføj navn under Konto.",
+  'listing.loginToAdd': "Log ind for at oprette opslag.",
+  'listing.phLocation': "fx Katowice / Schlesien",
+  'listing.phDesc': "Omfang, krav, tid, detaljeret sted…",
+  'listing.phBudget': "fx 400 — valgfrit",
+  'listing.phTags': "TIG 141, Inox, Start snart",
+  'listing.phQuickTitle': "fx Svejsning af port — i aften",
+  'listing.tagsComma': "Tags (kommasepareret)",
+  'duration.hours': "Et par timer",
+  'duration.day': "1 dag",
+  'duration.days': "Et par dage",
+  'duration.week': "En uge",
+  'duration.tbd': "Efter aftale",
+  'notif.title': "Notifikationer",
+  'notif.markRead': "Markér som læst",
+  'notif.empty': "Ingen notifikationer. De kommer ved ansøgninger, status og beskeder.",
+  'apps.sentTitle': "Alle mine ansøgninger",
+  'apps.sentEmpty': "Du har ikke sendt nogen ansøgninger endnu.",
+  'apps.incomingTitle': "Alle indkommende ansøgninger",
+  'apps.incomingEmpty': "Ingen ansøgninger til dine opslag.",
+  'verify.title': "Bekræft e-mail",
+  'verify.lead': "Firebase sender aktiveringslinket til:",
+  'verify.tipsTitle': "Ser du ikke mailen?",
+  'verify.tip1': "• Tjek Spam, Tilbud og Alle mails (Gmail).",
+  'verify.tip2': "• Søg afsender lignende:",
+  'verify.tip3': "• Tjek stavefejl ved tilmelding.",
+  'verify.tip4': "• Vent 2–5 minutter — levering kan forsinkes.",
+  'verify.tip5': "• Tryk “Send e-mail igen” (højst hvert par minutter).",
+  'verify.tip6': "• Google-konto springer ofte dette over — log ud og ind med Google.",
+  'verify.openMail': "Åbn e-mail-app",
+  'verify.checked': "Jeg har tjekket — fortsæt",
+  'verify.resend': "Send e-mail igen",
+  'verify.logoutOther': "Log ud og brug en anden konto",
+  'verify.infoInitial': "Efter tilmelding sendte vi et link — tjek indbakke (og Spam).",
+  'verify.notYet': "Linket er ikke brugt endnu. Åbn mail, tryk link, vend tilbage og tryk igen.",
+  'verify.noEmail': "Ingen e-mail på kontoen.",
+  'verify.resent': "Sendt igen til {email}. Vent 1–2 min. og tjek Spam.",
+  'profile.title': "Profil",
+  'profile.notFound': "Brugerprofil ikke fundet.",
+  'profile.about': "Om mig",
+  'profile.noBio': "Ingen offentlig beskrivelse.",
+  'profile.rateUser': "Bedøm bruger",
+  'profile.reviewPlaceholder': "Kort anmeldelse (valgfrit)",
+  'profile.saveReview': "Gem anmeldelse",
+  'profile.reviews': "Anmeldelser",
+  'profile.noReviews': "Ingen anmeldelser.",
+  'profile.editInAccount': "Rediger profil under Konto",
+  'profile.completedApplicant': "Afsluttet som udfører",
+  'profile.completedAuthor': "Afsluttet som opdragsgiver",
+  'profile.reviewSaved': "Anmeldelse gemt. Tak!",
+  'profile.reviewFailed': "Kunne ikke gemme anmeldelsen.",
+  'profile.reviewOne': "anmeldelse",
+  'profile.reviewFew': "anmeldelser",
+  'profile.reviewMany': "anmeldelser",
+  'account.noSession': "Ingen aktiv session.",
+  'account.needCompanyMsg': "Firmanavn er påkrævet — vises på dine opslag.",
+  'account.needNameMsg': "Fulde navn er påkrævet — vises på dine opslag.",
+  'account.saved': "Profil gemt.",
+  'account.loginForPhoto': "Log ind for at skifte foto.",
+  'account.noGallery': "Ingen galleritilladelse.",
+  'account.photoSaved': "Profilfoto gemt.",
+  'account.photoFailed': "Kunne ikke uploade foto.",
+  'chats.goToMarket': "Gå til Marked",
+  'chats.newBadge': "Ny",
+  'common.userFallback': "Bruger",
   'auth.logout': 'Log ud',
 };
 
