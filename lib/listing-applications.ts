@@ -14,8 +14,14 @@ import {
 } from 'firebase/firestore';
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
-import { getListing } from '@/lib/market-listings';
-import type { AccountRole, UserProfile } from '@/lib/user-profile';
+import {
+  getListing,
+  isQuickListing,
+  markQuickListingAwarded,
+  quickSlotsRemaining,
+  type MarketListing,
+} from '@/lib/market-listings';
+import { getListingPublisherName, type AccountRole, type UserProfile } from '@/lib/user-profile';
 
 export type ListingApplication = {
   id: string;
@@ -25,6 +31,7 @@ export type ListingApplication = {
   applicantId: string;
   applicantRole: AccountRole;
   applicantName: string;
+  applicantAvatarUrl: string;
   applicantPhone: string;
   message: string;
   status: 'new' | 'in_progress' | 'accepted' | 'rejected';
@@ -33,6 +40,7 @@ export type ListingApplication = {
 
 type FirestoreApplication = Omit<ListingApplication, 'id' | 'createdAt'> & {
   createdAt?: Timestamp;
+  applicantAvatarUrl?: string;
 };
 
 export type CreateApplicationInput = {
@@ -65,6 +73,7 @@ function normalizeApplication(id: string, data: FirestoreApplication): ListingAp
     applicantId: data.applicantId || '',
     applicantRole: data.applicantRole === 'employer' ? 'employer' : 'welder',
     applicantName: data.applicantName || '',
+    applicantAvatarUrl: typeof data.applicantAvatarUrl === 'string' ? data.applicantAvatarUrl : '',
     applicantPhone: data.applicantPhone || '',
     message: data.message || '',
     status,
@@ -86,7 +95,6 @@ export async function createApplication(input: CreateApplicationInput) {
     throw new Error('Brak identyfikatorów zgłoszenia.');
   }
 
-  // authorId z serwera — reguły wymagają zgodności z listings/{id}.authorId
   const listing = await getListing(input.listingId);
   if (!listing) {
     throw new Error('Ogłoszenie nie istnieje lub zostało usunięte.');
@@ -98,9 +106,15 @@ export async function createApplication(input: CreateApplicationInput) {
     throw new Error('Nie możesz aplikować na własne ogłoszenie.');
   }
 
-  // Duplikaty: tylko query (listingId + applicantId). Nie używamy getDoc na
-  // deterministycznym ID — odczyt nieistniejącego dokumentu pada na regułach
-  // (brak resource.data), stąd fałszywe "missing permission".
+  if (isQuickListing(listing)) {
+    if (listing.quickStatus === 'awarded' || listing.quickStatus === 'closed') {
+      throw new Error('To szybkie zlecenie jest już rozstrzygnięte.');
+    }
+    if (quickSlotsRemaining(listing) <= 0 || listing.quickStatus === 'full') {
+      throw new Error('Limit 5 najszybszych zgłoszeń został wyczerpany.');
+    }
+  }
+
   const id = applicationDocId(input.listingId, input.applicantId);
   const ref = doc(getFirebaseFirestore(), APPLICATIONS_COLLECTION, id);
   try {
@@ -119,8 +133,12 @@ export async function createApplication(input: CreateApplicationInput) {
     if (error instanceof Error && error.message.startsWith('Już aplikowałeś')) {
       throw error;
     }
-    // Brak indeksu / chwilowy błąd list — i tak chroni deterministyczne ID + reguły update.
   }
+
+  const applicantName =
+    getListingPublisherName(input.applicantProfile) ||
+    input.applicantProfile.fullName ||
+    'Użytkownik';
 
   try {
     await setDoc(ref, {
@@ -129,9 +147,14 @@ export async function createApplication(input: CreateApplicationInput) {
       authorId: listing.authorId,
       applicantId: input.applicantId,
       applicantRole: input.applicantRole,
-      applicantName: input.applicantProfile.fullName || 'Użytkownik',
+      applicantName,
+      applicantAvatarUrl: input.applicantProfile.avatarUrl || '',
       applicantPhone: input.applicantProfile.phone || '',
-      message: input.message.trim() || 'Jestem zainteresowany/a tym ogłoszeniem.',
+      message:
+        input.message.trim() ||
+        (isQuickListing(listing)
+          ? 'Chcę dołączyć do szybkiego zlecenia — jestem gotowy/a od razu.'
+          : 'Jestem zainteresowany/a tym ogłoszeniem.'),
       status: 'new',
       createdAt: serverTimestamp(),
     });
@@ -143,7 +166,7 @@ export async function createApplication(input: CreateApplicationInput) {
     }
     throw error;
   }
-  // Powiadomienie in-app + push: Cloud Function onApplicationCreatedNotify
+  // Powiadomienie + sloty quick: Cloud Function onApplicationCreatedNotify
 }
 
 export async function updateApplicationStatus(
@@ -157,6 +180,37 @@ export async function updateApplicationStatus(
   if (prev.status === status) return;
   await setDoc(ref, { status, updatedAt: serverTimestamp() }, { merge: true });
   // Powiadomienie in-app + push: Cloud Function onApplicationStatusNotify
+}
+
+/** Wybór zwycięzcy mikrolicytacji — akceptacja jednego, odrzucenie pozostałych. */
+export async function selectQuickJobWinner(listing: MarketListing, winnerApplicationId: string) {
+  if (!isQuickListing(listing)) {
+    throw new Error('To nie jest szybkie zlecenie.');
+  }
+  const appsSnap = await getDocs(
+    query(
+      collection(getFirebaseFirestore(), APPLICATIONS_COLLECTION),
+      where('listingId', '==', listing.id),
+      where('authorId', '==', listing.authorId)
+    )
+  );
+  const apps = appsSnap.docs.map((d) => normalizeApplication(d.id, d.data() as FirestoreApplication));
+  const winner = apps.find((a) => a.id === winnerApplicationId);
+  if (!winner) {
+    throw new Error('Nie znaleziono wybranego zgłoszenia.');
+  }
+  await Promise.all(
+    apps.map((app) => {
+      const next = app.id === winnerApplicationId ? 'accepted' : 'rejected';
+      if (app.status === next) return Promise.resolve();
+      return setDoc(
+        doc(getFirebaseFirestore(), APPLICATIONS_COLLECTION, app.id),
+        { status: next, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+    })
+  );
+  await markQuickListingAwarded(listing.id, winner.applicantId);
 }
 
 export function subscribeApplicationsForListing(

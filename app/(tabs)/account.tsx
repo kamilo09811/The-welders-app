@@ -276,7 +276,6 @@ export default function AccountScreen() {
             placeholder="Miasto"
             placeholderTextColor="#94A3B8"
           />
-          {message ? <Text style={styles.hint}>{message}</Text> : null}
           <Pressable style={styles.saveBtn} onPress={onSave}>
             <MaterialIcons name="save" size={18} color="#FFFFFF" />
             <Text style={styles.saveBtnText}>Zapisz profil</Text>

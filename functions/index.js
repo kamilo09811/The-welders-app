@@ -135,7 +135,7 @@ async function createInAppNotification(recipientUid, input) {
   await db.collection('users').doc(recipientUid).collection('notifications').add(payload);
 }
 
-/** Nowe zgłoszenie → powiadomienie dla autora ogłoszenia. */
+/** Nowe zgłoszenie → powiadomienie dla autora + sloty szybkiego zlecenia (max 5). */
 exports.onApplicationCreatedNotify = onDocumentCreated(
   {
     document: 'applications/{applicationId}',
@@ -147,6 +147,61 @@ exports.onApplicationCreatedNotify = onDocumentCreated(
     const data = snap.data();
     const authorId = data.authorId;
     const applicantId = data.applicantId;
+    const listingId = typeof data.listingId === 'string' ? data.listingId : '';
+    const applicationId = event.params.applicationId;
+
+    if (listingId && applicantId) {
+      const listingRef = db.collection('listings').doc(listingId);
+      await db.runTransaction(async (tx) => {
+        const listingSnap = await tx.get(listingRef);
+        if (!listingSnap.exists) return;
+        const listing = listingSnap.data() || {};
+        if (listing.kind !== 'quick') return;
+
+        const appRef = db.collection('applications').doc(applicationId);
+        const rawSlots = listing.quickSlots && typeof listing.quickSlots === 'object' ? listing.quickSlots : {};
+        const max =
+          typeof rawSlots.max === 'number' && rawSlots.max > 0 ? rawSlots.max : 5;
+        const applicants = Array.isArray(rawSlots.applicants) ? [...rawSlots.applicants] : [];
+        const already = applicants.some((a) => a && a.uid === applicantId);
+        const status = listing.quickStatus;
+
+        if (status === 'awarded' || status === 'closed' || (!already && applicants.length >= max)) {
+          tx.set(
+            appRef,
+            {
+              status: 'rejected',
+              rejectReason: 'quick_slots_full',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+          return;
+        }
+
+        if (!already) {
+          applicants.push({
+            uid: applicantId,
+            name: (data.applicantName && String(data.applicantName).trim()) || 'Użytkownik',
+            avatarUrl: typeof data.applicantAvatarUrl === 'string' ? data.applicantAvatarUrl : '',
+            applicationId,
+            joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
+        const filled = Math.min(applicants.length, max);
+        tx.set(
+          listingRef,
+          {
+            quickSlots: { max, filled, applicants: applicants.slice(0, max) },
+            quickStatus: filled >= max ? 'full' : 'open',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+    }
+
     if (!authorId || !applicantId || authorId === applicantId) return;
     const who = (data.applicantName && String(data.applicantName).trim()) || 'Użytkownik';
     const listingTitle = (data.listingTitle && String(data.listingTitle).trim()) || 'Ogłoszenie';
@@ -155,9 +210,9 @@ exports.onApplicationCreatedNotify = onDocumentCreated(
       kind: 'application_new',
       title: 'Nowe zgłoszenie',
       body: `${who} — ${listingTitle}`,
-      listingId: typeof data.listingId === 'string' ? data.listingId : undefined,
+      listingId: listingId || undefined,
       listingTitle,
-      applicationId: event.params.applicationId,
+      applicationId,
     });
   }
 );

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-listings';
+import { isQuickListing } from '@/lib/market-listings';
 import { matchesLocationPreference } from '@/lib/pl-cities';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
@@ -23,6 +24,7 @@ import {
   useUserSettings,
   type SettingsSort,
 } from '@/lib/user-settings';
+import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 
 type Role = 'welder' | 'employer';
 
@@ -77,12 +79,20 @@ function ListingRow({
   showGrossRate: boolean;
   onPress: () => void;
 }) {
+  const quick = isQuickListing(item);
   return (
-    <Pressable style={styles.listingRow} onPress={onPress}>
+    <Pressable style={[styles.listingRow, quick && styles.listingRowQuick]} onPress={onPress}>
       <View style={styles.listingTop}>
         <View style={styles.listingBadges}>
-          <Text style={styles.metaBadge}>{item.type}</Text>
+          {quick ? (
+            <Text style={[styles.metaBadge, styles.quickBadge]}>Szybkie zlecenie</Text>
+          ) : (
+            <Text style={styles.metaBadge}>{item.type}</Text>
+          )}
           <Text style={[styles.metaBadge, styles.intentBadge]}>{INTENT_LABEL[item.intent]}</Text>
+          {quick && item.durationHint ? (
+            <Text style={[styles.metaBadge, styles.durationBadge]}>{item.durationHint}</Text>
+          ) : null}
         </View>
         <Text style={styles.listingRate}>{formatRateLabel(item.rateMin, item.rateMax, showGrossRate)}</Text>
       </View>
@@ -96,7 +106,11 @@ function ListingRow({
         <Text style={styles.metaDot}>·</Text>
         <Text style={styles.metaText}>{hoursAgoLabel(item.createdAt)}</Text>
       </View>
-      {item.tags.length > 0 ? (
+      {quick ? (
+        <View style={styles.quickSlotsRow}>
+          <QuickSlotsAvatars applicants={item.quickSlots?.applicants || []} size={32} />
+        </View>
+      ) : item.tags.length > 0 ? (
         <View style={styles.tagsWrap}>
           {item.tags.slice(0, 4).map((tag) => (
             <Text key={tag} style={styles.tagText}>
@@ -105,7 +119,15 @@ function ListingRow({
           ))}
         </View>
       ) : null}
-      <Text style={styles.listingCta}>{role === 'welder' ? 'Zobacz i aplikuj →' : 'Zobacz szczegóły →'}</Text>
+      <Text style={styles.listingCta}>
+        {quick
+          ? item.quickStatus === 'awarded'
+            ? 'Rozstrzygnięte — zobacz →'
+            : 'Dołącz do mikrolicytacji →'
+          : role === 'welder'
+            ? 'Zobacz i aplikuj →'
+            : 'Zobacz szczegóły →'}
+      </Text>
     </Pressable>
   );
 }
@@ -516,6 +538,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   intentBadge: { color: '#C2410C', backgroundColor: 'rgba(255,247,237,0.95)' },
+  listingRowQuick: {
+    backgroundColor: 'rgba(255,247,237,0.55)',
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderBottomWidth: 0,
+  },
+  quickBadge: { color: '#C2410C', backgroundColor: '#FFEDD5' },
+  durationBadge: { color: '#047857', backgroundColor: '#ECFDF5' },
+  quickSlotsRow: { marginTop: 4, marginBottom: 2 },
   listingRate: { color: '#0E4AA4', fontWeight: '800', fontSize: 13 },
   listingTitle: { color: '#0F172A', fontSize: 17, fontWeight: '700' },
   listingCompany: { color: '#475569', fontSize: 13 },
