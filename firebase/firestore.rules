@@ -107,6 +107,7 @@ function listingCreateHasNoBoost() {
     && !('boostProductId' in request.resource.data);
 }
 
+function isQuickSlotSelfJoin() {
   // Kandydat może tylko dopisać siebie do quickSlots (1 miejsce).
   let before = resource.data;
   let after = request.resource.data;
