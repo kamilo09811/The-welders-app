@@ -215,7 +215,7 @@ export default function EditListingScreen() {
               </View>
               <View style={styles.rateRow}>
                 <View style={styles.rateCol}>
-                  <Text style={styles.label}>Stawka od</Text>
+                  <Text style={styles.label}>Stawka od (opcjonalnie)</Text>
                   <TextInput
                     style={styles.input}
                     value={rateMin}
