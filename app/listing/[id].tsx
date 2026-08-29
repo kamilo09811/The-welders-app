@@ -103,8 +103,9 @@ export default function ListingDetailsScreen() {
         otherAvatarUrl: otherUser.avatarUrl || '',
       });
       router.push({ pathname: '/messages/[id]', params: { id: conversationId } });
-    } catch {
-      setFeedback('Nie udało się otworzyć rozmowy. Spróbuj ponownie.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      setFeedback(msg || 'Nie udało się otworzyć rozmowy. Zdeployuj reguły Firestore i spróbuj ponownie.');
     }
   };
 

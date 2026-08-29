@@ -9,6 +9,17 @@ import { isConversationMutedForUser, isConversationUnreadForUser, setConversatio
 import { useUserConversations } from '@/lib/use-chat';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
 
+function formatListTime(d: Date | null): string {
+  if (!d) return '';
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+}
+
 export default function MessagesScreen() {
   const router = useRouter();
   const { uid } = useCurrentUserProfile();
@@ -190,12 +201,17 @@ export default function MessagesScreen() {
                       {otherName}
                     </Text>
                     <View style={styles.rowIcons}>
-                      {muted ? <MaterialIcons name="notifications-off" size={18} color="#94A3B8" /> : null}
-                      <MaterialIcons name="chevron-right" size={20} color="#64748B" />
+                      <Text style={[styles.rowTime, unread && styles.rowTimeUnread]}>
+                        {formatListTime(c.lastMessageAt)}
+                      </Text>
+                      {muted ? <MaterialIcons name="notifications-off" size={16} color="#94A3B8" /> : null}
                     </View>
                   </View>
+                  <Text style={styles.rowListing} numberOfLines={1}>
+                    {c.listingTitle || 'Ogłoszenie'}
+                  </Text>
                   <Text style={[styles.rowSub, unread && styles.rowSubUnread]} numberOfLines={1}>
-                    {(c.lastMessageText || 'Brak wiadomości') + ` · ${c.listingTitle || 'Ogłoszenie'}`}
+                    {c.lastMessageText || 'Brak wiadomości — napisz pierwszą'}
                   </Text>
                 </View>
                     </>
@@ -295,9 +311,12 @@ const styles = StyleSheet.create({
   avatarImage: { width: '100%', height: '100%' },
   textCol: { flex: 1, gap: 2 },
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 },
-  rowIcons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  rowIcons: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowTitle: { color: '#0F172A', fontWeight: '700', flex: 1, marginRight: 8 },
   rowTitleUnread: { color: '#0E4AA4' },
+  rowTime: { color: '#94A3B8', fontSize: 11 },
+  rowTimeUnread: { color: '#0E4AA4', fontWeight: '700' },
+  rowListing: { color: '#64748B', fontSize: 11 },
   rowSub: { color: '#64748B', fontSize: 12, flex: 1 },
   rowSubUnread: { color: '#334155', fontWeight: '600' },
 });

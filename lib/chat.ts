@@ -162,53 +162,145 @@ export async function createOrGetConversation(input: {
   otherAvatarUrl?: string;
 }) {
   if (!input.meId || !input.otherId || !input.listingId) {
-    throw new Error('Missing conversation identifiers');
+    throw new Error('Brak danych do utworzenia rozmowy.');
   }
+  if (input.meId === input.otherId) {
+    throw new Error('Nie możesz rozpocząć rozmowy z samym sobą.');
+  }
+
   const pairKey = createPairKey(input.meId, input.otherId);
   const conversationId = `${input.listingId}__${pairKey}`;
   const ref = doc(getFirebaseFirestore(), 'conversations', conversationId);
-  const existing = await getDoc(ref);
 
-  await setDoc(ref, {
-    listingId: input.listingId,
-    listingTitle: input.listingTitle,
-    pairKey,
-    participantIds: [input.meId, input.otherId],
-    participantNames: {
-      [input.meId]: input.meName || 'Użytkownik',
-      [input.otherId]: input.otherName || 'Użytkownik',
-    },
-    participantAvatars: {
-      [input.meId]: input.meAvatarUrl || '',
-      [input.otherId]: input.otherAvatarUrl || '',
-    },
-    ...(existing.exists()
-      ? { updatedAt: serverTimestamp() }
-      : { lastMessageText: '', lastMessageAt: serverTimestamp(), createdAt: serverTimestamp() }),
-  }, { merge: true });
+  // Stabilna kolejność UID — przy ponownym otwarciu nie zmieniaj participantIds
+  // (reguły update pozwalają tylko na pola meta).
+  const participantIds = [input.meId, input.otherId].sort();
+  const participantNames = {
+    [input.meId]: input.meName || 'Użytkownik',
+    [input.otherId]: input.otherName || 'Użytkownik',
+  };
+  const participantAvatars = {
+    [input.meId]: input.meAvatarUrl || '',
+    [input.otherId]: input.otherAvatarUrl || '',
+  };
+
+  let existsAlready = false;
+  try {
+    const existing = await getDoc(ref);
+    existsAlready = existing.exists();
+  } catch {
+    // get na nieistniejącym dokumencie mógł padać na starszych regułach
+    existsAlready = false;
+  }
+
+  if (existsAlready) {
+    await setDoc(
+      ref,
+      {
+        listingTitle: input.listingTitle,
+        participantNames,
+        participantAvatars,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } else {
+    try {
+      await setDoc(ref, {
+        listingId: input.listingId,
+        listingTitle: input.listingTitle,
+        pairKey,
+        participantIds,
+        participantNames,
+        participantAvatars,
+        lastMessageText: '',
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: '',
+        readAt: {},
+        mutedBy: {},
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      // Wyścig: drugi klient zdążył utworzyć — dołóż tylko meta.
+      const code =
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as { code?: string }).code)
+          : '';
+      if (code !== 'permission-denied' && code !== 'already-exists') {
+        throw error instanceof Error ? error : new Error('Nie udało się utworzyć rozmowy.');
+      }
+      await setDoc(
+        ref,
+        {
+          listingTitle: input.listingTitle,
+          participantNames,
+          participantAvatars,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+  }
 
   return conversationId;
+}
+
+export async function getConversation(conversationId: string): Promise<ChatConversation | null> {
+  if (!conversationId) return null;
+  const snap = await getDoc(doc(getFirebaseFirestore(), 'conversations', conversationId));
+  if (!snap.exists()) return null;
+  return normalizeConversation(snap.id, snap.data() as FirestoreConversation);
+}
+
+export function subscribeConversation(
+  conversationId: string,
+  cb: (item: ChatConversation | null) => void,
+  onError?: (error: unknown) => void
+) {
+  if (!conversationId) {
+    cb(null);
+    return () => {};
+  }
+  return onSnapshot(
+    doc(getFirebaseFirestore(), 'conversations', conversationId),
+    (snap) => {
+      cb(snap.exists() ? normalizeConversation(snap.id, snap.data() as FirestoreConversation) : null);
+    },
+    (error) => onError?.(error)
+  );
 }
 
 export async function sendConversationMessage(conversationId: string, senderId: string, text: string) {
   const trimmed = text.trim();
   if (!trimmed) return;
-  await addDoc(messagesCol(conversationId), {
-    senderId,
-    kind: 'text' as const,
-    text: trimmed,
-    createdAt: serverTimestamp(),
-  });
-  await setDoc(
-    doc(getFirebaseFirestore(), 'conversations', conversationId),
-    {
-      lastMessageText: trimmed,
-      lastMessageAt: serverTimestamp(),
-      lastMessageSenderId: senderId,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  try {
+    await addDoc(messagesCol(conversationId), {
+      senderId,
+      kind: 'text' as const,
+      text: trimmed,
+      createdAt: serverTimestamp(),
+    });
+    await setDoc(
+      doc(getFirebaseFirestore(), 'conversations', conversationId),
+      {
+        lastMessageText: trimmed,
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: senderId,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    const code =
+      typeof error === 'object' && error && 'code' in error
+        ? String((error as { code?: string }).code)
+        : '';
+    if (code === 'permission-denied') {
+      throw new Error('Brak uprawnień do wysłania wiadomości. Zdeployuj reguły Firestore i spróbuj ponownie.');
+    }
+    throw error instanceof Error ? error : new Error('Nie udało się wysłać wiadomości.');
+  }
   // Powiadomienie in-app + push: Cloud Function onChatMessageNotify
 }
 
@@ -220,25 +312,36 @@ export async function sendConversationImageMessage(
   imageThumbUrl: string
 ) {
   const cap = caption.trim();
-  await addDoc(messagesCol(conversationId), {
-    senderId,
-    kind: 'image' as const,
-    text: cap,
-    imageUrl,
-    imageThumbUrl,
-    createdAt: serverTimestamp(),
-  });
-  const preview = cap || 'Zdjęcie';
-  await setDoc(
-    doc(getFirebaseFirestore(), 'conversations', conversationId),
-    {
-      lastMessageText: preview,
-      lastMessageAt: serverTimestamp(),
-      lastMessageSenderId: senderId,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  try {
+    await addDoc(messagesCol(conversationId), {
+      senderId,
+      kind: 'image' as const,
+      text: cap,
+      imageUrl,
+      imageThumbUrl,
+      createdAt: serverTimestamp(),
+    });
+    const preview = cap || '📷 Zdjęcie';
+    await setDoc(
+      doc(getFirebaseFirestore(), 'conversations', conversationId),
+      {
+        lastMessageText: preview,
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: senderId,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    const code =
+      typeof error === 'object' && error && 'code' in error
+        ? String((error as { code?: string }).code)
+        : '';
+    if (code === 'permission-denied') {
+      throw new Error('Brak uprawnień do wysłania zdjęcia. Sprawdź reguły Storage/Firestore.');
+    }
+    throw error instanceof Error ? error : new Error('Nie udało się wysłać zdjęcia.');
+  }
   // Powiadomienie in-app + push: Cloud Function onChatMessageNotify
 }
 
