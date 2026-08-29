@@ -35,7 +35,11 @@ export default function ListingDetailsScreen() {
   const [applyMessage, setApplyMessage] = useState('');
   const [busyApply, setBusyApply] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const { applications, loading: loadingApplications } = useListingApplications(listing?.id, isAuthor);
+  const { applications, loading: loadingApplications } = useListingApplications(
+    listing?.id,
+    listing?.authorId,
+    isAuthor
+  );
   const { application: myApplication } = useMyListingApplication(
     listing?.id,
     uid ?? undefined,

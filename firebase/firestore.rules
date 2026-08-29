@@ -141,7 +141,15 @@ service cloud.firestore {
     }
 
     match /applications/{applicationId} {
-      allow read: if isSignedIn()
+      // get na nieistniejącym dokumencie: resource.data jest niedostępne —
+      // pozwól zalogowanym sprawdzić istnienie (np. ID deterministyczne).
+      allow get: if isSignedIn()
+        && (
+          !exists(/databases/$(database)/documents/applications/$(applicationId))
+          || request.auth.uid == resource.data.applicantId
+          || request.auth.uid == resource.data.authorId
+        );
+      allow list: if isSignedIn()
         && (request.auth.uid == resource.data.applicantId
             || request.auth.uid == resource.data.authorId);
       allow create: if isSignedIn() && validApplicationCreate();

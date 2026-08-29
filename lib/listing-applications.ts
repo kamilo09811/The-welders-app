@@ -71,6 +71,15 @@ function normalizeApplication(id: string, data: FirestoreApplication): ListingAp
   };
 }
 
+function isPermissionDenied(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === 'permission-denied'
+  );
+}
+
 export async function createApplication(input: CreateApplicationInput) {
   if (!input.listingId || !input.applicantId) {
     throw new Error('Brak identyfikatorów zgłoszenia.');
@@ -79,36 +88,44 @@ export async function createApplication(input: CreateApplicationInput) {
     throw new Error('Nie możesz aplikować na własne ogłoszenie.');
   }
 
-  // Blokada duplikatów: ID deterministyczne + ewentualne stare dokumenty (auto-id).
+  // Duplikaty: tylko query (listingId + applicantId). Nie używamy getDoc na
+  // deterministycznym ID — odczyt nieistniejącego dokumentu pada na regułach
+  // (brak resource.data), stąd fałszywe "missing permission".
   const id = applicationDocId(input.listingId, input.applicantId);
   const ref = doc(getFirebaseFirestore(), APPLICATIONS_COLLECTION, id);
-  const [existingDeterministic, legacySnap] = await Promise.all([
-    getDoc(ref),
-    getDocs(
-      query(
-        collection(getFirebaseFirestore(), APPLICATIONS_COLLECTION),
-        where('listingId', '==', input.listingId),
-        where('applicantId', '==', input.applicantId),
-        limit(1)
-      )
-    ),
-  ]);
-  if (existingDeterministic.exists() || !legacySnap.empty) {
+  const legacySnap = await getDocs(
+    query(
+      collection(getFirebaseFirestore(), APPLICATIONS_COLLECTION),
+      where('listingId', '==', input.listingId),
+      where('applicantId', '==', input.applicantId),
+      limit(1)
+    )
+  );
+  if (!legacySnap.empty) {
     throw new Error('Już aplikowałeś na to ogłoszenie.');
   }
 
-  await setDoc(ref, {
-    listingId: input.listingId,
-    listingTitle: input.listingTitle,
-    authorId: input.authorId,
-    applicantId: input.applicantId,
-    applicantRole: input.applicantRole,
-    applicantName: input.applicantProfile.fullName || 'Użytkownik',
-    applicantPhone: input.applicantProfile.phone || '',
-    message: input.message.trim(),
-    status: 'new',
-    createdAt: serverTimestamp(),
-  });
+  try {
+    await setDoc(ref, {
+      listingId: input.listingId,
+      listingTitle: input.listingTitle,
+      authorId: input.authorId,
+      applicantId: input.applicantId,
+      applicantRole: input.applicantRole,
+      applicantName: input.applicantProfile.fullName || 'Użytkownik',
+      applicantPhone: input.applicantProfile.phone || '',
+      message: input.message.trim(),
+      status: 'new',
+      createdAt: serverTimestamp(),
+    });
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      throw new Error(
+        'Brak uprawnień do wysłania zgłoszenia. Upewnij się, że jesteś zalogowany i nie aplikujesz na własne ogłoszenie.'
+      );
+    }
+    throw error;
+  }
   // Powiadomienie in-app + push: Cloud Function onApplicationCreatedNotify
 }
 
@@ -127,12 +144,15 @@ export async function updateApplicationStatus(
 
 export function subscribeApplicationsForListing(
   listingId: string,
+  authorId: string,
   cb: (items: ListingApplication[]) => void,
   onError?: (error: unknown) => void
 ) {
+  // authorId w query jest wymagany przez reguły (list bez dowodu ownership pada).
   const q = query(
     collection(getFirebaseFirestore(), APPLICATIONS_COLLECTION),
     where('listingId', '==', listingId),
+    where('authorId', '==', authorId),
     orderBy('createdAt', 'desc')
   );
   return onSnapshot(
