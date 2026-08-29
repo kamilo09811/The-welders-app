@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { authColors as C } from '@/constants/auth-ui';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
@@ -130,11 +130,11 @@ export function GoogleFirebaseSignInButton({ disabled, onFirebaseError, oauthRol
   const configured = isGoogleOAuthConfiguredForCurrentPlatform();
 
   const showExpoGoHint = useCallback(() => {
-    Alert.alert('Expo Go', t('auth.googleNeedsBuild'));
+    Alert.alert(t('auth.googleNeedsBuildTitle'), t('auth.googleNeedsBuildBody'));
   }, [t]);
 
   const showConfigHint = useCallback(() => {
-    Alert.alert('Google OAuth', t('auth.googleMissingClient'));
+    Alert.alert(t('auth.googleMissingTitle'), t('auth.googleMissingBody'));
   }, [t]);
 
   if (isExpoGo) {

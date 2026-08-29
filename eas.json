@@ -6,13 +6,22 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "c690c7ac-79b4-4060-83f3-ca9800f7a7cd"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "c690c7ac-79b4-4060-83f3-ca9800f7a7cd"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "c690c7ac-79b4-4060-83f3-ca9800f7a7cd"
+      }
     }
   },
   "submit": {

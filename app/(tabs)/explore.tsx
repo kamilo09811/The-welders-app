@@ -1,9 +1,14 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  getPushPermissionStatus,
+  saveExpoPushToken,
+  type PushPermissionStatus,
+} from '@/lib/expo-push';
 import { APP_LOCALES } from '@/lib/i18n';
 import type { WorkMode } from '@/lib/market-listings';
 import { PL_CITIES } from '@/lib/pl-cities';
@@ -93,11 +98,38 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showCityHints, setShowCityHints] = useState(false);
+  const [pushStatus, setPushStatus] = useState<PushPermissionStatus>('undetermined');
+  const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
     setDraft(settings);
   }, [isEditing, settings]);
+
+  useEffect(() => {
+    void getPushPermissionStatus().then(setPushStatus);
+  }, []);
+
+  const pushStatusLabel = useMemo(() => {
+    if (pushStatus === 'granted') return t('settings.notifDeviceGranted');
+    if (pushStatus === 'denied') return t('settings.notifDeviceDenied');
+    if (pushStatus === 'unavailable') return t('settings.notifDeviceUnavailable');
+    return t('settings.notifDeviceSub');
+  }, [pushStatus, t]);
+
+  const onEnablePush = useCallback(async () => {
+    if (!uid || pushBusy) return;
+    setPushBusy(true);
+    setMessage(null);
+    try {
+      const ok = await saveExpoPushToken(uid);
+      const status = await getPushPermissionStatus();
+      setPushStatus(status);
+      setMessage(ok ? t('settings.notifEnableOk') : t('settings.notifEnableFail'));
+    } finally {
+      setPushBusy(false);
+    }
+  }, [uid, pushBusy, t]);
 
   const patch = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     setIsEditing(true);
@@ -379,6 +411,32 @@ export default function SettingsScreen() {
             onChange={(v) => patch('notifMessages', v)}
             colors={colors}
           />
+          <View style={styles.settingRow}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.primaryMuted }]}>
+              <MaterialIcons name="phonelink-ring" size={18} color={colors.primary} />
+            </View>
+            <View style={styles.settingTextWrap}>
+              <Text style={[styles.settingTitle, { color: colors.text }]}>
+                {t('settings.notifDevice')}
+              </Text>
+              <Text style={[styles.settingSub, { color: colors.textSoft }]}>{pushStatusLabel}</Text>
+            </View>
+          </View>
+          {uid && pushStatus !== 'unavailable' ? (
+            <Pressable
+              style={[
+                styles.saveBtn,
+                { backgroundColor: colors.primary, marginTop: 4 },
+                pushBusy && styles.saveBtnDisabled,
+              ]}
+              disabled={pushBusy}
+              onPress={onEnablePush}>
+              <MaterialIcons name="notifications-active" size={18} color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>
+                {pushBusy ? t('settings.notifEnableBusy') : t('settings.notifEnable')}
+              </Text>
+            </Pressable>
+          ) : null}
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 

@@ -7,10 +7,11 @@ Push (Expo) + weryfikacja e-mail — co zrobić poza kodem
    - Zalecane: w konsoli Auth ustaw minimalną długość hasła ≥ 8 (aplikacja wymaga 8 znaków po stronie klienta).
 
 2) Expo Push (token w Firestore: users/{uid}/meta/push, pole expoPushToken)
-   - Zaloguj się: npx expo login
-   - W katalogu aplikacji: npx eas init   (powstanie projectId)
-   - Skopiuj projectId do pliku .env jako EXPO_PUBLIC_EAS_PROJECT_ID=...  (app.config.js go wczytuje do extra.eas.projectId)
-   - Zbuduj aplikację (development lub production): npx expo run:android / run:ios albo EAS Build — powiadomienia nie działają w Expo Go.
+   - Project ID jest w app.json / eas.json: c690c7ac-79b4-4060-83f3-ca9800f7a7cd
+   - Opcjonalnie: EXPO_PUBLIC_EAS_PROJECT_ID w .env
+   - Zbuduj aplikację EAS (production/preview) — powiadomienia NIE działają w Expo Go.
+   - Na telefonie: Ustawienia → „Włącz powiadomienia na tym urządzeniu” (prosi o permission + zapisuje token).
+   - Cold start: tap w push otwiera czat / ogłoszenie (PushNotificationBootstrap).
 
 3) Cloud Functions (powiadomienia in-app + push)
    Funkcje w europe-west1:

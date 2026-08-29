@@ -213,7 +213,20 @@ export type TranslationKey =
   | 'auth.namePlaceholder'
   | 'auth.continueGoogle'
   | 'auth.googleNeedsBuild'
+  | 'auth.googleNeedsBuildTitle'
+  | 'auth.googleNeedsBuildBody'
   | 'auth.googleMissingClient'
+  | 'auth.googleMissingTitle'
+  | 'auth.googleMissingBody'
+  | 'settings.notifDevice'
+  | 'settings.notifDeviceSub'
+  | 'settings.notifDeviceGranted'
+  | 'settings.notifDeviceDenied'
+  | 'settings.notifDeviceUnavailable'
+  | 'settings.notifEnable'
+  | 'settings.notifEnableBusy'
+  | 'settings.notifEnableOk'
+  | 'settings.notifEnableFail'
   | 'auth.err.generic'
   | 'auth.err.invalidEmail'
   | 'auth.err.userDisabled'
@@ -294,6 +307,15 @@ const pl: Dict = {
   'settings.notifAppsSub': 'Nowe aplikacje i zmiany statusu',
   'settings.notifMsgs': 'Wiadomości czatu',
   'settings.notifMsgsSub': 'Powiadomienia o nowych wiadomościach',
+  'settings.notifDevice': 'Powiadomienia systemowe',
+  'settings.notifDeviceSub': 'Uprawnienie iOS/Android + token Expo Push',
+  'settings.notifDeviceGranted': 'Włączone — token zapisany przy zalogowaniu',
+  'settings.notifDeviceDenied': 'Odrzucone — włącz w ustawieniach telefonu',
+  'settings.notifDeviceUnavailable': 'Niedostępne (symulator / web)',
+  'settings.notifEnable': 'Włącz powiadomienia na tym urządzeniu',
+  'settings.notifEnableBusy': 'Rejestracja…',
+  'settings.notifEnableOk': 'Gotowe — push aktywny na tym urządzeniu.',
+  'settings.notifEnableFail': 'Nie udało się. Sprawdź uprawnienia w ustawieniach systemu.',
   'settings.theme': 'Motyw',
   'settings.themeLight': 'Jasny',
   'settings.themeDark': 'Ciemny',
@@ -458,7 +480,13 @@ const pl: Dict = {
   'auth.namePlaceholder': 'np. Jan Kowalski',
   'auth.continueGoogle': 'Kontynuuj z Google',
   'auth.googleNeedsBuild': 'wymaga buildu, nie Expo Go',
+  'auth.googleNeedsBuildTitle': 'Wymagany build',
+  'auth.googleNeedsBuildBody':
+    'Logowanie Google nie działa w Expo Go. Zainstaluj build EAS (IPA/APK) na telefonie.',
   'auth.googleMissingClient': 'brak Client ID — dotknij po instrukcję',
+  'auth.googleMissingTitle': 'Brak Google Client ID',
+  'auth.googleMissingBody':
+    'Ustaw EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (oraz iOS/Android) w .env i w EAS Secrets, potem zbuduj aplikację ponownie. Bundle ID: com.theweldersworld.app',
   'auth.err.generic': 'Coś poszło nie tak. Spróbuj ponownie.',
   'auth.err.invalidEmail': 'Nieprawidłowy adres e-mail.',
   'auth.err.userDisabled': 'To konto zostało wyłączone.',
@@ -539,6 +567,15 @@ const en: Dict = {
   'settings.notifAppsSub': 'New applications and status changes',
   'settings.notifMsgs': 'Chat messages',
   'settings.notifMsgsSub': 'Notifications for new chat messages',
+  'settings.notifDevice': 'System notifications',
+  'settings.notifDeviceSub': 'iOS/Android permission + Expo Push token',
+  'settings.notifDeviceGranted': 'Enabled — token saved when signed in',
+  'settings.notifDeviceDenied': 'Denied — enable in phone settings',
+  'settings.notifDeviceUnavailable': 'Unavailable (simulator / web)',
+  'settings.notifEnable': 'Enable notifications on this device',
+  'settings.notifEnableBusy': 'Registering…',
+  'settings.notifEnableOk': 'Done — push is active on this device.',
+  'settings.notifEnableFail': 'Failed. Check system notification permissions.',
   'settings.theme': 'Theme',
   'settings.themeLight': 'Light',
   'settings.themeDark': 'Dark',
@@ -703,7 +740,13 @@ const en: Dict = {
   'auth.namePlaceholder': 'e.g. John Smith',
   'auth.continueGoogle': 'Continue with Google',
   'auth.googleNeedsBuild': 'requires a build, not Expo Go',
+  'auth.googleNeedsBuildTitle': 'Build required',
+  'auth.googleNeedsBuildBody':
+    'Google Sign-In does not work in Expo Go. Install an EAS build (IPA/APK) on your phone.',
   'auth.googleMissingClient': 'missing Client ID — tap for instructions',
+  'auth.googleMissingTitle': 'Missing Google Client ID',
+  'auth.googleMissingBody':
+    'Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (and iOS/Android) in .env and EAS Secrets, then rebuild. Bundle ID: com.theweldersworld.app',
   'auth.err.generic': 'Something went wrong. Please try again.',
   'auth.err.invalidEmail': 'Invalid email address.',
   'auth.err.userDisabled': 'This account has been disabled.',
@@ -784,6 +827,15 @@ const de: Dict = {
   'settings.notifAppsSub': 'Neue Bewerbungen und Statusänderungen',
   'settings.notifMsgs': 'Chat-Nachrichten',
   'settings.notifMsgsSub': 'Benachrichtigungen über neue Nachrichten',
+  'settings.notifDevice': 'Systembenachrichtigungen',
+  'settings.notifDeviceSub': 'iOS/Android-Berechtigung + Expo-Push-Token',
+  'settings.notifDeviceGranted': 'Aktiv — Token beim Login gespeichert',
+  'settings.notifDeviceDenied': 'Abgelehnt — in den Telefoneinstellungen aktivieren',
+  'settings.notifDeviceUnavailable': 'Nicht verfügbar (Simulator / Web)',
+  'settings.notifEnable': 'Benachrichtigungen auf diesem Gerät aktivieren',
+  'settings.notifEnableBusy': 'Registrierung…',
+  'settings.notifEnableOk': 'Fertig — Push ist auf diesem Gerät aktiv.',
+  'settings.notifEnableFail': 'Fehlgeschlagen. Prüfe die Systemberechtigungen.',
   'settings.theme': 'Design',
   'settings.themeLight': 'Hell',
   'settings.themeDark': 'Dunkel',
@@ -948,7 +1000,13 @@ const de: Dict = {
   'auth.namePlaceholder': 'z. B. Max Mustermann',
   'auth.continueGoogle': 'Mit Google fortfahren',
   'auth.googleNeedsBuild': 'benötigt Build, nicht Expo Go',
+  'auth.googleNeedsBuildTitle': 'Build erforderlich',
+  'auth.googleNeedsBuildBody':
+    'Google-Anmeldung funktioniert nicht in Expo Go. Installiere einen EAS-Build (IPA/APK).',
   'auth.googleMissingClient': 'Client ID fehlt — tippen für Anleitung',
+  'auth.googleMissingTitle': 'Google Client ID fehlt',
+  'auth.googleMissingBody':
+    'Setze EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (und iOS/Android) in .env und EAS Secrets, dann neu bauen. Bundle-ID: com.theweldersworld.app',
   'auth.err.generic': 'Etwas ist schiefgelaufen. Bitte erneut versuchen.',
   'auth.err.invalidEmail': 'Ungültige E-Mail-Adresse.',
   'auth.err.userDisabled': 'Dieses Konto wurde deaktiviert.',
@@ -1029,6 +1087,15 @@ const da: Dict = {
   'settings.notifAppsSub': 'Nye ansøgninger og statusændringer',
   'settings.notifMsgs': 'Chatbeskeder',
   'settings.notifMsgsSub': 'Notifikationer om nye beskeder',
+  'settings.notifDevice': 'Systemnotifikationer',
+  'settings.notifDeviceSub': 'iOS/Android-tilladelse + Expo Push-token',
+  'settings.notifDeviceGranted': 'Aktiveret — token gemt ved login',
+  'settings.notifDeviceDenied': 'Afvist — slå til i telefonindstillinger',
+  'settings.notifDeviceUnavailable': 'Ikke tilgængelig (simulator / web)',
+  'settings.notifEnable': 'Aktiver notifikationer på denne enhed',
+  'settings.notifEnableBusy': 'Registrerer…',
+  'settings.notifEnableOk': 'Færdig — push er aktiv på denne enhed.',
+  'settings.notifEnableFail': 'Mislykkedes. Tjek systemtilladelser.',
   'settings.theme': 'Tema',
   'settings.themeLight': 'Lyst',
   'settings.themeDark': 'Mørkt',
@@ -1193,7 +1260,13 @@ const da: Dict = {
   'auth.namePlaceholder': 'f.eks. Jens Hansen',
   'auth.continueGoogle': 'Fortsæt med Google',
   'auth.googleNeedsBuild': 'kræver build, ikke Expo Go',
+  'auth.googleNeedsBuildTitle': 'Build påkrævet',
+  'auth.googleNeedsBuildBody':
+    'Google-login virker ikke i Expo Go. Installer et EAS-build (IPA/APK) på telefonen.',
   'auth.googleMissingClient': 'mangler Client ID — tryk for vejledning',
+  'auth.googleMissingTitle': 'Mangler Google Client ID',
+  'auth.googleMissingBody':
+    'Sæt EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (og iOS/Android) i .env og EAS Secrets, og byg igen. Bundle-ID: com.theweldersworld.app',
   'auth.err.generic': 'Noget gik galt. Prøv igen.',
   'auth.err.invalidEmail': 'Ugyldig e-mailadresse.',
   'auth.err.userDisabled': 'Denne konto er deaktiveret.',
