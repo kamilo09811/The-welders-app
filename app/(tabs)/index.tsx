@@ -180,6 +180,14 @@ export default function MarketplaceScreen() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const data = listings.filter((i) => {
+      // Zakończone szybkie zlecenia znikają z tablicy (zostają w „tylko moje”).
+      if (
+        i.kind === 'quick' &&
+        (i.quickStatus === 'awarded' || i.quickStatus === 'closed') &&
+        !onlyMine
+      ) {
+        return false;
+      }
       if (!uid) return i.targetRole === role;
       if (onlyMine) return i.authorId === uid;
       if (settings.hideOwnInFeed && i.authorId === uid) return false;
@@ -200,7 +208,14 @@ export default function MarketplaceScreen() {
         ? afterIntent
         : afterIntent.filter((i) => settings.preferredModes.includes(i.mode));
     const afterMinRate =
-      settings.minRate > 0 ? afterModes.filter((i) => i.rateMax >= settings.minRate) : afterModes;
+      settings.minRate > 0
+        ? afterModes.filter((i) => {
+            const top = Math.max(i.rateMin || 0, i.rateMax || 0);
+            // Ogłoszenia bez stawki nie wypadają z feedu przy filtrze minRate.
+            if (top <= 0) return true;
+            return top >= settings.minRate;
+          })
+        : afterModes;
     const afterQuery = !q
       ? afterMinRate
       : afterMinRate.filter(

@@ -60,8 +60,8 @@ export default function EditListingScreen() {
     setTitle(listing.title);
     setDescription(listing.description);
     setLocation(listing.location);
-    setRateMin(String(listing.rateMin));
-    setRateMax(String(listing.rateMax));
+    setRateMin(listing.rateMin > 0 ? String(listing.rateMin) : '');
+    setRateMax(listing.rateMax > 0 ? String(listing.rateMax) : '');
     setTags(listing.tags.join(', '));
     setType(listing.type);
     setMode(listing.mode);
@@ -74,12 +74,16 @@ export default function EditListingScreen() {
   }, [id]);
 
   const canSave = Boolean(
-    publisherReady &&
-      title.trim() &&
-      description.trim() &&
-      location.trim() &&
-      Number(rateMin) > 0 &&
-      Number(rateMax) >= Number(rateMin)
+    publisherReady && title.trim() && description.trim() && location.trim() && (() => {
+      const minRaw = rateMin.trim();
+      const maxRaw = rateMax.trim();
+      if (!minRaw && !maxRaw) return true;
+      const min = Number(minRaw.replace(',', '.'));
+      const max = Number(maxRaw.replace(',', '.'));
+      if (minRaw && maxRaw) return Number.isFinite(min) && Number.isFinite(max) && min > 0 && max >= min;
+      if (minRaw) return Number.isFinite(min) && min > 0;
+      return Number.isFinite(max) && max > 0;
+    })()
   );
 
   const onSubmit = async () => {
@@ -102,6 +106,14 @@ export default function EditListingScreen() {
     setBusy(true);
     setMessage(null);
     try {
+      const parseRate = (v: string) => {
+        const n = Number(v.trim().replace(',', '.'));
+        return Number.isFinite(n) && n > 0 ? n : 0;
+      };
+      let min = parseRate(rateMin);
+      let max = parseRate(rateMax);
+      if (min > 0 && max <= 0) max = min;
+      if (max > 0 && min <= 0) min = max;
       await updateListing(listing.id, {
         title: title.trim(),
         description: description.trim(),
@@ -110,8 +122,8 @@ export default function EditListingScreen() {
         mode,
         type,
         intent,
-        rateMin: Number(rateMin),
-        rateMax: Number(rateMax),
+        rateMin: min,
+        rateMax: max,
         tags: tags
           .split(',')
           .map((v) => v.trim())

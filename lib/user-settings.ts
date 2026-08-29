@@ -122,7 +122,12 @@ export function wantsAnyPush(settings: UserSettings): boolean {
 
 export function formatRateLabel(rateMin: number, rateMax: number, showGrossRate: boolean): string {
   const suffix = showGrossRate ? 'PLN/h brutto' : 'PLN/h netto';
-  return `${rateMin}-${rateMax} ${suffix}`;
+  const min = Number.isFinite(rateMin) ? rateMin : 0;
+  const max = Number.isFinite(rateMax) ? rateMax : 0;
+  if (min <= 0 && max <= 0) return 'Stawka do uzgodnienia';
+  if (min > 0 && max > 0 && min !== max) return `${min}-${max} ${suffix}`;
+  const single = min > 0 ? min : max;
+  return `${single} ${suffix}`;
 }
 
 export function useUserSettings() {

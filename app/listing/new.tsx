@@ -84,9 +84,23 @@ export default function NewListingScreen() {
   }, [profile.city, locationSeeded]);
 
   const canSave = useMemo(() => {
-    const rateOk = isQuick
-      ? Number(rateMin) > 0
-      : Number(rateMin) > 0 && Number(rateMax) >= Number(rateMin);
+    const minRaw = rateMin.trim();
+    const maxRaw = rateMax.trim();
+    const min = Number(minRaw.replace(',', '.'));
+    const max = Number(maxRaw.replace(',', '.'));
+    // Stawki opcjonalne; jeśli podane — muszą być sensowne.
+    let rateOk = true;
+    if (isQuick) {
+      if (minRaw) rateOk = Number.isFinite(min) && min > 0;
+    } else if (minRaw || maxRaw) {
+      if (minRaw && maxRaw) {
+        rateOk = Number.isFinite(min) && Number.isFinite(max) && min > 0 && max >= min;
+      } else if (minRaw) {
+        rateOk = Number.isFinite(min) && min > 0;
+      } else {
+        rateOk = Number.isFinite(max) && max > 0;
+      }
+    }
     return Boolean(
       kind &&
         publisherReady &&
@@ -118,8 +132,16 @@ export default function NewListingScreen() {
     setBusy(true);
     setMessage(null);
     try {
-      const min = Number(rateMin);
-      const max = isQuick ? min : Number(rateMax);
+      const parseRate = (v: string) => {
+        const n = Number(v.trim().replace(',', '.'));
+        return Number.isFinite(n) && n > 0 ? n : 0;
+      };
+      let min = parseRate(rateMin);
+      let max = isQuick ? min : parseRate(rateMax);
+      if (!isQuick) {
+        if (min > 0 && max <= 0) max = min;
+        if (max > 0 && min <= 0) min = max;
+      }
       const listingId = await createListing({
         title: title.trim(),
         description: description.trim(),
@@ -298,13 +320,13 @@ export default function NewListingScreen() {
                         />
                       ))}
                     </View>
-                    <Text style={styles.label}>Budżet / stawka (PLN) *</Text>
+                    <Text style={styles.label}>Budżet / stawka (PLN, opcjonalnie)</Text>
                     <TextInput
                       style={styles.input}
                       value={rateMin}
                       onChangeText={setRateMin}
                       keyboardType="numeric"
-                      placeholder="np. 400 (za całość) lub 60 (za godzinę)"
+                      placeholder="np. 400 — możesz pominąć"
                       placeholderTextColor="#94A3B8"
                     />
                   </>
@@ -336,7 +358,7 @@ export default function NewListingScreen() {
                     </View>
                     <View style={styles.rateRow}>
                       <View style={styles.rateCol}>
-                        <Text style={styles.label}>Stawka od (PLN/h) *</Text>
+                        <Text style={styles.label}>Stawka od (opcjonalnie)</Text>
                         <TextInput
                           style={styles.input}
                           value={rateMin}
@@ -347,7 +369,7 @@ export default function NewListingScreen() {
                         />
                       </View>
                       <View style={styles.rateCol}>
-                        <Text style={styles.label}>Stawka do (PLN/h) *</Text>
+                        <Text style={styles.label}>Stawka do (opcjonalnie)</Text>
                         <TextInput
                           style={styles.input}
                           value={rateMax}
