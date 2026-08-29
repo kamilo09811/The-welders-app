@@ -6,6 +6,7 @@ import {
   countUnreadConversations,
   docToChatMessage,
   fetchOlderConversationMessageDocs,
+  subscribeConversation,
   subscribeConversationMessages,
   subscribeConversationRecentWindow,
   subscribeUserConversations,
@@ -46,7 +47,36 @@ export function useUserConversations(uid?: string) {
   return { conversations, loading, unreadCount };
 }
 
-/** Łączy nasłuch na ostatnie N wiadomości z jednorazowym dociąganiem starszych (bez gubienia środka listy). */
+/** Pojedyncza rozmowa po ID — działa od razu po create (bez czekania na listę). */
+export function useConversation(conversationId?: string) {
+  const [conversation, setConversation] = useState<ChatConversation | null>(null);
+  const [loading, setLoading] = useState(Boolean(conversationId));
+
+  useEffect(() => {
+    if (!conversationId) {
+      setConversation(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsub = subscribeConversation(
+      conversationId,
+      (item) => {
+        setConversation(item);
+        setLoading(false);
+      },
+      () => {
+        setConversation(null);
+        setLoading(false);
+      }
+    );
+    return unsub;
+  }, [conversationId]);
+
+  return { conversation, loading };
+}
+
+/** Łączy nasłuch na ostatnie N wiadomości z jednorazowym dociąganiem starszych. */
 export function useConversationMessagesPaged(conversationId?: string, pageSize = CHAT_MESSAGE_PAGE_SIZE) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(Boolean(conversationId));
@@ -128,7 +158,6 @@ export function useConversationMessagesPaged(conversationId?: string, pageSize =
   return { messages, loading, loadingOlder, hasMoreOlder, loadOlder };
 }
 
-/** Prosty nasłuch całej kolekcji wiadomości (asc) — dla małych wątków lub kompatybilności. */
 export function useConversationMessages(conversationId?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(Boolean(conversationId));

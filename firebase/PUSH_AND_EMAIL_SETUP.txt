@@ -4,6 +4,7 @@ Push (Expo) + weryfikacja e-mail — co zrobić poza kodem
 1) Firebase Authentication
    - Włącz metodę „E-mail / hasło”.
    - Szablony → „Weryfikacja adresu e-mail” — ustaw język polski i sprawdź link (domena autoryzowana w Auth → Settings → Authorized domains).
+   - Zalecane: w konsoli Auth ustaw minimalną długość hasła ≥ 8 (aplikacja wymaga 8 znaków po stronie klienta).
 
 2) Expo Push (token w Firestore: users/{uid}/meta/push, pole expoPushToken)
    - Zaloguj się: npx expo login
@@ -11,16 +12,30 @@ Push (Expo) + weryfikacja e-mail — co zrobić poza kodem
    - Skopiuj projectId do pliku .env jako EXPO_PUBLIC_EAS_PROJECT_ID=...  (app.config.js go wczytuje do extra.eas.projectId)
    - Zbuduj aplikację (development lub production): npx expo run:android / run:ios albo EAS Build — powiadomienia nie działają w Expo Go.
 
-3) Cloud Functions (wysyłka push po utworzeniu in-app notification)
-   - npm install w katalogu functions (już zrobione w repo przy pierwszym setupie)
+3) Cloud Functions (powiadomienia in-app + push)
+   Funkcje w europe-west1:
+   - onApplicationCreatedNotify — nowe zgłoszenie → in-app dla autora
+   - onApplicationStatusNotify — zmiana statusu → in-app dla kandydata
+   - onChatMessageNotify — nowa wiadomość → in-app dla uczestników (z mutedBy)
+   - onInAppNotificationPush — po utworzeniu in-app → Expo Push
+   Klient NIE tworzy dokumentów notifications (reguły: allow create: if false).
+   - npm install w katalogu functions
    - Zainstaluj Firebase CLI: npm i -g firebase-tools
    - firebase login && firebase use <twój_project_id>
-   - firebase deploy --only functions
+   - firebase deploy --only functions,firestore:rules,storage
    - Wymaga planu Blaze (wyjście do internetu — api.expo.dev).
 
-4) Ustawienia użytkownika
-   - Przełącznik „Wiadomości i odpowiedzi” (Firestore users/.../meta/settings, notifMessages) musi być włączony, aby aplikacja zapisała token push.
+4) Ustawienia użytkownika (Firestore users/.../meta/settings)
+   - notifMessages — wiadomości czatu
+   - notifApplications — zgłoszenia / statusy
+   - notifNewJobs — nowe oferty (Cloud Function onListingCreatedNotify)
+   Token push jest zapisywany, gdy którakolwiek z tych opcji jest włączona.
+   Po zmianach: firebase deploy --only functions,firestore:rules,storage
 
 5) Ekran „Potwierdź e-mail”
    - Po rejestracji e-mail/hasło użytkownik trafia na /verify-email do czasu kliknięcia linku w mailu.
    - Google Sign-In zwykle ma już zweryfikowany e-mail — omija ten krok.
+
+6) Dane wrażliwe
+   - Telefon: users/{uid}/meta/private (tylko właściciel)
+   - Dokument users/{uid} jest czytelny dla zalogowanych (profil marketplace), bez telefonu
