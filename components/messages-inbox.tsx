@@ -153,7 +153,7 @@ export function MessagesInbox({ showBack = false }: Props) {
       const otherId = getOtherParticipantId(c.participantIds);
       const otherAvatar = c.participantAvatars?.[otherId] || resolvedAvatars[otherId] || '';
       const otherName = resolveOtherName(c, otherId);
-      const preview = previewLabel(c.lastMessageText || '', uid, c.lastMessageSenderId);
+      const preview = previewLabel(c.lastMessageText || '', uid ?? undefined, c.lastMessageSenderId);
       const isFirst = index === 0;
       const isLast = index === visibleConversations.length - 1;
 
