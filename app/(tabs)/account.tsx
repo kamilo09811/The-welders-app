@@ -8,11 +8,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ApplicationListItem } from '@/components/application-list-item';
 import { uploadUserAvatar } from '@/lib/avatarStorage';
 import { clearExpoPushToken } from '@/lib/expo-push';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
-import type { TranslationKey } from '@/lib/i18n';
-import type { ListingApplication } from '@/lib/listing-applications';
 import { usePreferences } from '@/lib/preferences-context';
 import type { AppColors } from '@/lib/theme';
 import { getHeaderGradient } from '@/lib/theme';
@@ -20,16 +19,6 @@ import { useUserConversations } from '@/lib/use-chat';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
 import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
-
-function statusLabel(
-  status: ListingApplication['status'],
-  t: (key: TranslationKey) => string
-): string {
-  if (status === 'new') return t('status.new');
-  if (status === 'in_progress') return t('status.inProgress');
-  if (status === 'accepted') return t('status.accepted');
-  return t('status.rejected');
-}
 
 function NavRow({
   icon,
@@ -63,7 +52,7 @@ export default function AccountScreen() {
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
   const { uid, profile } = useCurrentUserProfile();
-  const { colors, t, theme } = usePreferences();
+  const { colors, t, theme, locale } = usePreferences();
   const { unreadCount: messagesUnreadCount } = useUserConversations(uid ?? undefined);
   const { unreadCount: notifUnreadCount } = useInAppNotifications(uid ?? undefined);
   const { applications: myApplications, loading: loadingMyApplications } = useApplicationsByApplicant(
@@ -296,26 +285,26 @@ export default function AccountScreen() {
             </Pressable>
           </View>
           {loadingMyApplications ? (
-            <Text style={styles.hint}>{t('common.loading')}</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : myApplications.length === 0 ? (
-            <Text style={styles.hint}>{t('account.noSentApps')}</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('account.noSentApps')}</Text>
           ) : (
-            myApplications.slice(0, 5).map((app) => (
-              <Pressable
-                key={app.id}
-                style={styles.applicationRow}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })}>
-                <View style={styles.applicationHead}>
-                  <Text style={styles.applicationTitle} numberOfLines={1}>
-                    {app.listingTitle}
-                  </Text>
-                  <Text style={styles.applicationStatus}>{statusLabel(app.status, t)}</Text>
-                </View>
-                <Text style={styles.applicationMeta} numberOfLines={2}>
-                  {app.message}
-                </Text>
-              </Pressable>
-            ))
+            <View style={styles.appsList}>
+              {myApplications.slice(0, 5).map((app) => (
+                <ApplicationListItem
+                  key={app.id}
+                  app={app}
+                  variant="sent"
+                  colors={colors}
+                  locale={locale}
+                  t={t}
+                  compact
+                  onPress={() =>
+                    router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })
+                  }
+                />
+              ))}
+            </View>
           )}
 
           <View style={styles.sectionHeaderRow}>
@@ -325,26 +314,26 @@ export default function AccountScreen() {
             </Pressable>
           </View>
           {loadingIncomingApplications ? (
-            <Text style={styles.hint}>{t('common.loading')}</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : incomingApplications.length === 0 ? (
-            <Text style={styles.hint}>{t('account.noIncomingApps')}</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('account.noIncomingApps')}</Text>
           ) : (
-            incomingApplications.slice(0, 5).map((app) => (
-              <Pressable
-                key={app.id}
-                style={styles.applicationRow}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })}>
-                <View style={styles.applicationHead}>
-                  <Text style={styles.applicationTitle} numberOfLines={1}>
-                    {app.listingTitle}
-                  </Text>
-                  <Text style={styles.applicationStatus}>{statusLabel(app.status, t)}</Text>
-                </View>
-                <Text style={styles.applicationMeta} numberOfLines={2}>
-                  {app.applicantName || t('account.user')} · {app.message}
-                </Text>
-              </Pressable>
-            ))
+            <View style={styles.appsList}>
+              {incomingApplications.slice(0, 5).map((app) => (
+                <ApplicationListItem
+                  key={app.id}
+                  app={app}
+                  variant="incoming"
+                  colors={colors}
+                  locale={locale}
+                  t={t}
+                  compact
+                  onPress={() =>
+                    router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })
+                  }
+                />
+              ))}
+            </View>
           )}
 
           <Pressable style={styles.logoutBtn} onPress={onLogout}>
@@ -463,26 +452,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   saveBtnText: { color: '#FFFFFF', fontWeight: '700' },
-
-  applicationRow: {
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(148,163,184,0.35)',
-    gap: 4,
-  },
-  applicationHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  applicationTitle: { color: '#0F172A', fontWeight: '700', flex: 1 },
-  applicationStatus: {
-    color: '#1E3A8A',
-    backgroundColor: 'rgba(219,234,254,0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: '700',
-    overflow: 'hidden',
-  },
-  applicationMeta: { color: '#64748B', fontSize: 12 },
+  appsList: { gap: 8 },
 
   logoutBtn: {
     marginTop: 16,

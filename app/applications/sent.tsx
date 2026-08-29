@@ -1,94 +1,140 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { applicationStatusLabel } from '@/lib/i18n/labels';
+import { ApplicationListItem } from '@/components/application-list-item';
 import { usePreferences } from '@/lib/preferences-context';
+import { getHeaderGradient } from '@/lib/theme';
 import { useApplicationsByApplicant } from '@/lib/use-listing-applications';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
 export default function SentApplicationsScreen() {
   const router = useRouter();
-  const { t } = usePreferences();
   const { uid } = useCurrentUserProfile();
+  const { t, colors, locale, theme } = usePreferences();
   const { applications, loading } = useApplicationsByApplicant(uid ?? undefined);
+  const headerGradient = getHeaderGradient(theme);
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={[styles.root, { backgroundColor: colors.bg }]}>
+        <LinearGradient colors={[...headerGradient]} locations={[0, 0.55]} style={styles.bgGlow} />
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>{t('apps.sentTitle')}</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>{t('apps.sentTitle')}</Text>
+              {!loading ? (
+                <Text style={styles.headerSub}>
+                  {applications.length} {t('market.results')}
+                </Text>
+              ) : null}
+            </View>
           </View>
 
           {loading ? (
-            <View style={styles.card}>
-              <Text style={styles.note}>{t('common.loading')}</Text>
-            </View>
-          ) : applications.length === 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.note}>{t('apps.sentEmpty')}</Text>
+            <View style={styles.center}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={[styles.note, { color: colors.textMuted }]}>{t('common.loading')}</Text>
             </View>
           ) : (
-            applications.map((app) => (
-              <Pressable
-                key={app.id}
-                style={styles.applicationRow}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })}>
-                <View style={styles.applicationHead}>
-                  <Text style={styles.applicationTitle}>{app.listingTitle}</Text>
-                  <Text style={styles.applicationStatus}>{applicationStatusLabel(app.status, t)}</Text>
+            <FlatList
+              data={applications}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={[
+                styles.list,
+                applications.length === 0 && styles.listEmpty,
+              ]}
+              showsVerticalScrollIndicator={false}
+              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+              ListEmptyComponent={
+                <View style={[styles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.emptyIcon, { backgroundColor: colors.primaryMuted }]}>
+                    <MaterialIcons name="outbox" size={28} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('apps.sentEmpty')}</Text>
+                  <Pressable
+                    style={[styles.emptyCta, { backgroundColor: colors.primary }]}
+                    onPress={() => router.replace('/(tabs)')}>
+                    <Text style={styles.emptyCtaText}>{t('chats.goToMarket')}</Text>
+                  </Pressable>
                 </View>
-                <Text style={styles.applicationMeta}>{app.message}</Text>
-              </Pressable>
-            ))
+              }
+              renderItem={({ item }) => (
+                <ApplicationListItem
+                  app={item}
+                  variant="sent"
+                  colors={colors}
+                  locale={locale}
+                  t={t}
+                  onPress={() =>
+                    router.push({ pathname: '/listing/[id]', params: { id: item.listingId } })
+                  }
+                />
+              )}
+            />
           )}
-        </ScrollView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  root: { flex: 1 },
+  bgGlow: { position: 'absolute', left: 0, right: 0, top: 0, height: 160 },
+  safe: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingTop: 4,
+  },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D5DEEA',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#DFE6F2', padding: 14 },
-  note: { color: '#64748B', fontSize: 12, lineHeight: 17 },
-  applicationRow: {
+  headerText: { flex: 1, gap: 2 },
+  headerTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
+  headerSub: { color: 'rgba(255,255,255,0.82)', fontSize: 13, fontWeight: '600' },
+  list: { paddingHorizontal: 16, paddingBottom: 32, paddingTop: 4 },
+  listEmpty: { flexGrow: 1, justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  note: { fontSize: 13 },
+  empty: {
     borderWidth: 1,
-    borderColor: '#DFE6F2',
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: '#FFFFFF',
-    gap: 4,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    gap: 10,
   },
-  applicationHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  applicationTitle: { color: '#0F172A', fontWeight: '700', flex: 1 },
-  applicationStatus: {
-    color: '#1E3A8A',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: '700',
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
-  applicationMeta: { color: '#64748B', fontSize: 12 },
+  emptyTitle: { fontSize: 15, fontWeight: '700', textAlign: 'center', lineHeight: 22 },
+  emptyCta: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  emptyCtaText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
 });
