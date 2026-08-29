@@ -56,7 +56,7 @@ export default function LoginScreen() {
       return;
     }
     if (!isFirebaseConfigured()) {
-      setError('Brak konfiguracji Firebase (lib/firebaseConfig).');
+      setError(t('auth.firebaseMissing'));
       return;
     }
     setBusy(true);
