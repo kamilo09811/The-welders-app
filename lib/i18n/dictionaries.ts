@@ -206,6 +206,46 @@ export type TranslationKey =
   | 'listing.publish'
   | 'listing.publisher'
   | 'listing.companyOnListing'
+  | 'auth.firebaseMissing'
+  | 'auth.passwordMinPlaceholder'
+  | 'auth.confirmPasswordPlaceholder'
+  | 'auth.companyPlaceholder'
+  | 'auth.namePlaceholder'
+  | 'auth.continueGoogle'
+  | 'auth.googleNeedsBuild'
+  | 'auth.googleMissingClient'
+  | 'auth.err.generic'
+  | 'auth.err.invalidEmail'
+  | 'auth.err.userDisabled'
+  | 'auth.err.userNotFound'
+  | 'auth.err.wrongPassword'
+  | 'auth.err.invalidCredential'
+  | 'auth.err.emailInUse'
+  | 'auth.err.weakPassword'
+  | 'auth.err.tooManyRequests'
+  | 'auth.err.network'
+  | 'auth.err.notAllowed'
+  | 'auth.err.missingEmail'
+  | 'auth.err.differentCredential'
+  | 'auth.err.default'
+  | 'chats.aboutListing'
+  | 'chats.sendFailed'
+  | 'chats.imageSendFailed'
+  | 'chats.attachment'
+  | 'chats.pickSource'
+  | 'chats.gallery'
+  | 'chats.camera'
+  | 'chats.noGalleryAccess'
+  | 'chats.noCameraAccess'
+  | 'chats.loadingMessages'
+  | 'chats.olderMessages'
+  | 'chats.scrollForHistory'
+  | 'chats.startConversation'
+  | 'chats.startHint'
+  | 'chats.writeMessage'
+  | 'chats.uploadingImage'
+  | 'chats.addAttachment'
+  | 'chats.youPrefix'
   | 'auth.login'
   | 'auth.register'
   | 'auth.logout';
@@ -411,6 +451,46 @@ const pl: Dict = {
   'listing.publish': 'Opublikuj ogłoszenie',
   'listing.publisher': 'Autor ogłoszenia',
   'listing.companyOnListing': 'Firma na ogłoszeniu',
+  'auth.firebaseMissing': 'Brak konfiguracji Firebase.',
+  'auth.passwordMinPlaceholder': 'min. {n} znaków',
+  'auth.confirmPasswordPlaceholder': 'powtórz hasło',
+  'auth.companyPlaceholder': 'np. WeldPro Sp. z o.o.',
+  'auth.namePlaceholder': 'np. Jan Kowalski',
+  'auth.continueGoogle': 'Kontynuuj z Google',
+  'auth.googleNeedsBuild': 'wymaga buildu, nie Expo Go',
+  'auth.googleMissingClient': 'brak Client ID — dotknij po instrukcję',
+  'auth.err.generic': 'Coś poszło nie tak. Spróbuj ponownie.',
+  'auth.err.invalidEmail': 'Nieprawidłowy adres e-mail.',
+  'auth.err.userDisabled': 'To konto zostało wyłączone.',
+  'auth.err.userNotFound': 'Nie znaleziono konta z tym adresem e-mail.',
+  'auth.err.wrongPassword': 'Nieprawidłowe hasło.',
+  'auth.err.invalidCredential': 'Błędny e-mail lub hasło.',
+  'auth.err.emailInUse': 'Ten adres e-mail jest już zarejestrowany.',
+  'auth.err.weakPassword': 'Hasło jest za słabe.',
+  'auth.err.tooManyRequests': 'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.',
+  'auth.err.network': 'Brak połączenia z siecią. Sprawdź internet.',
+  'auth.err.notAllowed': 'Ta metoda logowania jest wyłączona w Firebase.',
+  'auth.err.missingEmail': 'Podaj adres e-mail.',
+  'auth.err.differentCredential': 'To konto jest już powiązane z inną metodą logowania.',
+  'auth.err.default': 'Nie udało się wykonać operacji.',
+  'chats.aboutListing': 'Rozmowa o ogłoszeniu',
+  'chats.sendFailed': 'Nie udało się wysłać wiadomości.',
+  'chats.imageSendFailed': 'Nie udało się wysłać zdjęcia.',
+  'chats.attachment': 'Załącznik',
+  'chats.pickSource': 'Wybierz źródło zdjęcia',
+  'chats.gallery': 'Galeria',
+  'chats.camera': 'Aparat',
+  'chats.noGalleryAccess': 'Brak dostępu do galerii.',
+  'chats.noCameraAccess': 'Brak dostępu do aparatu.',
+  'chats.loadingMessages': 'Ładowanie wiadomości…',
+  'chats.olderMessages': 'Starsze wiadomości…',
+  'chats.scrollForHistory': 'Przewiń wyżej, by wczytać historię',
+  'chats.startConversation': 'Zacznij rozmowę',
+  'chats.startHint': 'Napisz wiadomość albo dołącz zdjęcie z galerii / aparatu.',
+  'chats.writeMessage': 'Napisz wiadomość…',
+  'chats.uploadingImage': 'Wysyłanie zdjęcia…',
+  'chats.addAttachment': 'Dodaj załącznik',
+  'chats.youPrefix': 'Ty:',
   'auth.login': 'Zaloguj się',
   'auth.register': 'Zarejestruj się',
   'auth.logout': 'Wyloguj',
@@ -616,6 +696,46 @@ const en: Dict = {
   'listing.publish': 'Publish listing',
   'listing.publisher': 'Listing author',
   'listing.companyOnListing': 'Company on listing',
+  'auth.firebaseMissing': 'Firebase is not configured.',
+  'auth.passwordMinPlaceholder': 'min. {n} characters',
+  'auth.confirmPasswordPlaceholder': 'repeat password',
+  'auth.companyPlaceholder': 'e.g. WeldPro Ltd.',
+  'auth.namePlaceholder': 'e.g. John Smith',
+  'auth.continueGoogle': 'Continue with Google',
+  'auth.googleNeedsBuild': 'requires a build, not Expo Go',
+  'auth.googleMissingClient': 'missing Client ID — tap for instructions',
+  'auth.err.generic': 'Something went wrong. Please try again.',
+  'auth.err.invalidEmail': 'Invalid email address.',
+  'auth.err.userDisabled': 'This account has been disabled.',
+  'auth.err.userNotFound': 'No account found with this email.',
+  'auth.err.wrongPassword': 'Incorrect password.',
+  'auth.err.invalidCredential': 'Wrong email or password.',
+  'auth.err.emailInUse': 'This email is already registered.',
+  'auth.err.weakPassword': 'Password is too weak.',
+  'auth.err.tooManyRequests': 'Too many attempts. Wait a moment and try again.',
+  'auth.err.network': 'No network connection. Check your internet.',
+  'auth.err.notAllowed': 'This sign-in method is disabled in Firebase.',
+  'auth.err.missingEmail': 'Enter an email address.',
+  'auth.err.differentCredential': 'This account is linked to a different sign-in method.',
+  'auth.err.default': 'Could not complete the operation.',
+  'chats.aboutListing': 'Listing conversation',
+  'chats.sendFailed': 'Could not send the message.',
+  'chats.imageSendFailed': 'Could not send the photo.',
+  'chats.attachment': 'Attachment',
+  'chats.pickSource': 'Choose a photo source',
+  'chats.gallery': 'Gallery',
+  'chats.camera': 'Camera',
+  'chats.noGalleryAccess': 'No gallery access.',
+  'chats.noCameraAccess': 'No camera access.',
+  'chats.loadingMessages': 'Loading messages…',
+  'chats.olderMessages': 'Older messages…',
+  'chats.scrollForHistory': 'Scroll up to load history',
+  'chats.startConversation': 'Start the conversation',
+  'chats.startHint': 'Write a message or attach a photo from gallery / camera.',
+  'chats.writeMessage': 'Write a message…',
+  'chats.uploadingImage': 'Uploading photo…',
+  'chats.addAttachment': 'Add attachment',
+  'chats.youPrefix': 'You:',
   'auth.login': 'Sign in',
   'auth.register': 'Sign up',
   'auth.logout': 'Sign out',
@@ -821,6 +941,46 @@ const de: Dict = {
   'listing.publish': 'Anzeige veröffentlichen',
   'listing.publisher': 'Anzeigenautor',
   'listing.companyOnListing': 'Firma auf der Anzeige',
+  'auth.firebaseMissing': 'Firebase ist nicht konfiguriert.',
+  'auth.passwordMinPlaceholder': 'min. {n} Zeichen',
+  'auth.confirmPasswordPlaceholder': 'Passwort wiederholen',
+  'auth.companyPlaceholder': 'z. B. WeldPro GmbH',
+  'auth.namePlaceholder': 'z. B. Max Mustermann',
+  'auth.continueGoogle': 'Mit Google fortfahren',
+  'auth.googleNeedsBuild': 'benötigt Build, nicht Expo Go',
+  'auth.googleMissingClient': 'Client ID fehlt — tippen für Anleitung',
+  'auth.err.generic': 'Etwas ist schiefgelaufen. Bitte erneut versuchen.',
+  'auth.err.invalidEmail': 'Ungültige E-Mail-Adresse.',
+  'auth.err.userDisabled': 'Dieses Konto wurde deaktiviert.',
+  'auth.err.userNotFound': 'Kein Konto mit dieser E-Mail gefunden.',
+  'auth.err.wrongPassword': 'Falsches Passwort.',
+  'auth.err.invalidCredential': 'Falsche E-Mail oder Passwort.',
+  'auth.err.emailInUse': 'Diese E-Mail ist bereits registriert.',
+  'auth.err.weakPassword': 'Passwort ist zu schwach.',
+  'auth.err.tooManyRequests': 'Zu viele Versuche. Bitte kurz warten.',
+  'auth.err.network': 'Keine Netzwerkverbindung.',
+  'auth.err.notAllowed': 'Diese Anmeldemethode ist in Firebase deaktiviert.',
+  'auth.err.missingEmail': 'E-Mail-Adresse eingeben.',
+  'auth.err.differentCredential': 'Konto ist mit einer anderen Anmeldemethode verknüpft.',
+  'auth.err.default': 'Vorgang konnte nicht abgeschlossen werden.',
+  'chats.aboutListing': 'Gespräch zur Anzeige',
+  'chats.sendFailed': 'Nachricht konnte nicht gesendet werden.',
+  'chats.imageSendFailed': 'Foto konnte nicht gesendet werden.',
+  'chats.attachment': 'Anhang',
+  'chats.pickSource': 'Fotoquelle wählen',
+  'chats.gallery': 'Galerie',
+  'chats.camera': 'Kamera',
+  'chats.noGalleryAccess': 'Kein Galeriezugriff.',
+  'chats.noCameraAccess': 'Kein Kamerazugriff.',
+  'chats.loadingMessages': 'Nachrichten werden geladen…',
+  'chats.olderMessages': 'Ältere Nachrichten…',
+  'chats.scrollForHistory': 'Nach oben scrollen für Verlauf',
+  'chats.startConversation': 'Gespräch starten',
+  'chats.startHint': 'Nachricht schreiben oder Foto anhängen.',
+  'chats.writeMessage': 'Nachricht schreiben…',
+  'chats.uploadingImage': 'Foto wird hochgeladen…',
+  'chats.addAttachment': 'Anhang hinzufügen',
+  'chats.youPrefix': 'Du:',
   'auth.login': 'Anmelden',
   'auth.register': 'Registrieren',
   'auth.logout': 'Abmelden',
@@ -1026,6 +1186,46 @@ const da: Dict = {
   'listing.publish': 'Offentliggør opslag',
   'listing.publisher': 'Opslagsforfatter',
   'listing.companyOnListing': 'Firma på opslaget',
+  'auth.firebaseMissing': 'Firebase er ikke konfigureret.',
+  'auth.passwordMinPlaceholder': 'min. {n} tegn',
+  'auth.confirmPasswordPlaceholder': 'gentag adgangskode',
+  'auth.companyPlaceholder': 'f.eks. WeldPro ApS',
+  'auth.namePlaceholder': 'f.eks. Jens Hansen',
+  'auth.continueGoogle': 'Fortsæt med Google',
+  'auth.googleNeedsBuild': 'kræver build, ikke Expo Go',
+  'auth.googleMissingClient': 'mangler Client ID — tryk for vejledning',
+  'auth.err.generic': 'Noget gik galt. Prøv igen.',
+  'auth.err.invalidEmail': 'Ugyldig e-mailadresse.',
+  'auth.err.userDisabled': 'Denne konto er deaktiveret.',
+  'auth.err.userNotFound': 'Ingen konto med denne e-mail.',
+  'auth.err.wrongPassword': 'Forkert adgangskode.',
+  'auth.err.invalidCredential': 'Forkert e-mail eller adgangskode.',
+  'auth.err.emailInUse': 'Denne e-mail er allerede registreret.',
+  'auth.err.weakPassword': 'Adgangskoden er for svag.',
+  'auth.err.tooManyRequests': 'For mange forsøg. Vent lidt og prøv igen.',
+  'auth.err.network': 'Ingen netværksforbindelse.',
+  'auth.err.notAllowed': 'Denne loginmetode er deaktiveret i Firebase.',
+  'auth.err.missingEmail': 'Angiv en e-mailadresse.',
+  'auth.err.differentCredential': 'Kontoen er knyttet til en anden loginmetode.',
+  'auth.err.default': 'Handlingen kunne ikke fuldføres.',
+  'chats.aboutListing': 'Samtale om opslag',
+  'chats.sendFailed': 'Kunne ikke sende beskeden.',
+  'chats.imageSendFailed': 'Kunne ikke sende billedet.',
+  'chats.attachment': 'Vedhæftning',
+  'chats.pickSource': 'Vælg billedkilde',
+  'chats.gallery': 'Galleri',
+  'chats.camera': 'Kamera',
+  'chats.noGalleryAccess': 'Ingen adgang til galleri.',
+  'chats.noCameraAccess': 'Ingen adgang til kamera.',
+  'chats.loadingMessages': 'Indlæser beskeder…',
+  'chats.olderMessages': 'Ældre beskeder…',
+  'chats.scrollForHistory': 'Rul op for at hente historik',
+  'chats.startConversation': 'Start samtalen',
+  'chats.startHint': 'Skriv en besked eller vedhæft et billede.',
+  'chats.writeMessage': 'Skriv en besked…',
+  'chats.uploadingImage': 'Uploader billede…',
+  'chats.addAttachment': 'Tilføj vedhæftning',
+  'chats.youPrefix': 'Dig:',
   'auth.login': 'Log ind',
   'auth.register': 'Opret konto',
   'auth.logout': 'Log ud',

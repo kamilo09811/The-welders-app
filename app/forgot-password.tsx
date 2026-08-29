@@ -27,7 +27,7 @@ import { usePreferences } from '@/lib/preferences-context';
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
   const [email, setEmail] = useState(typeof emailParam === 'string' ? emailParam : '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,11 +65,11 @@ export default function ForgotPasswordScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (e) {
-      setError(mapAuthError(e));
+      setError(mapAuthError(e, locale));
     } finally {
       setBusy(false);
     }
-  }, [email]);
+  }, [email, locale, t]);
 
   return (
     <>

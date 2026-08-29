@@ -32,7 +32,7 @@ const MIN_PASSWORD_LEN = 8;
 export default function RegisterScreen() {
   const router = useRouter();
   const { role } = useLocalSearchParams<{ role?: string }>();
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -79,7 +79,7 @@ export default function RegisterScreen() {
       return;
     }
     if (!isFirebaseConfigured()) {
-      setError('Brak konfiguracji Firebase.');
+      setError(t('auth.firebaseMissing'));
       return;
     }
     if (Platform.OS !== 'web') {
@@ -93,7 +93,7 @@ export default function RegisterScreen() {
         fullName: isEmployer ? '' : nameTrimmed,
         companyName: isEmployer ? nameTrimmed : '',
       });
-      const sent = await sendAccountVerificationEmail(cred.user);
+      const sent = await sendAccountVerificationEmail(cred.user, locale);
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -106,11 +106,11 @@ export default function RegisterScreen() {
         router.replace('/(tabs)');
       }
     } catch (e) {
-      setError(mapAuthError(e));
+      setError(mapAuthError(e, locale));
     } finally {
       setBusy(false);
     }
-  }, [email, password, confirm, displayName, isEmployer, isWelder, router, t]);
+  }, [email, password, confirm, displayName, isEmployer, isWelder, locale, router, t]);
 
   return (
     <>
@@ -145,7 +145,9 @@ export default function RegisterScreen() {
                     <Text style={styles.label}>{isEmployer ? t('account.companyName') : t('account.fullName')}</Text>
                     <TextInput
                       style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
-                      placeholder={isEmployer ? 'np. WeldPro Sp. z o.o.' : 'np. Jan Kowalski'}
+                      placeholder={
+                        isEmployer ? t('auth.companyPlaceholder') : t('auth.namePlaceholder')
+                      }
                       placeholderTextColor={C.placeholder}
                       autoCapitalize="words"
                       autoCorrect={false}
@@ -175,7 +177,7 @@ export default function RegisterScreen() {
                 <Text style={[styles.label, styles.labelSpaced]}>{t('auth.password')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
-                  placeholder={`min. ${MIN_PASSWORD_LEN} znaków`}
+                  placeholder={t('auth.passwordMinPlaceholder', { n: MIN_PASSWORD_LEN })}
                   placeholderTextColor={C.placeholder}
                   secureTextEntry
                   autoComplete="new-password"
@@ -188,7 +190,7 @@ export default function RegisterScreen() {
                 <Text style={[styles.label, styles.labelSpaced]}>{t('auth.confirmPassword')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
-                  placeholder="powtórz hasło"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   placeholderTextColor={C.placeholder}
                   secureTextEntry
                   autoComplete="new-password"

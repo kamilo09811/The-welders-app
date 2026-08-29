@@ -26,19 +26,21 @@ import {
   type ChatMessage,
 } from '@/lib/chat';
 import { uploadChatImagePair } from '@/lib/chatMedia';
+import { localeToBcp47 } from '@/lib/i18n';
+import { usePreferences } from '@/lib/preferences-context';
 import { useConversation, useConversationMessagesPaged } from '@/lib/use-chat';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
-function formatMsgTime(d: Date | null): string {
+function formatMsgTime(d: Date | null, localeTag: string): string {
   if (!d) return '';
   const now = new Date();
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  const time = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  const time = d.toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit' });
   if (sameDay) return time;
-  return `${d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}, ${time}`;
+  return `${d.toLocaleDateString(localeTag, { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
 export default function ConversationScreen() {
@@ -47,6 +49,8 @@ export default function ConversationScreen() {
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
+  const { t, locale, colors } = usePreferences();
+  const localeTag = localeToBcp47(locale);
   const { conversation } = useConversation(id);
   const { messages, loading, loadingOlder, hasMoreOlder, loadOlder } = useConversationMessagesPaged(id);
   const [text, setText] = useState('');
@@ -61,7 +65,7 @@ export default function ConversationScreen() {
     if (!uid || !conversation) return '';
     return conversation.participantIds.find((p) => p !== uid) || conversation.participantIds[0] || '';
   }, [conversation, uid]);
-  const otherName = (otherId && conversation?.participantNames[otherId]) || 'Użytkownik';
+  const otherName = (otherId && conversation?.participantNames[otherId]) || t('chats.user');
   const otherAvatar = (otherId && conversation?.participantAvatars[otherId]) || '';
   const myAvatar = uid ? conversation?.participantAvatars[uid] || profile.avatarUrl || '' : '';
 
@@ -87,7 +91,7 @@ export default function ConversationScreen() {
       await sendConversationMessage(id, uid, text);
       setText('');
     } catch (e) {
-      setFeedback(e instanceof Error ? e.message : 'Nie udało się wysłać wiadomości.');
+      setFeedback(e instanceof Error ? e.message : t('chats.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -107,7 +111,7 @@ export default function ConversationScreen() {
         await sendConversationImageMessage(id, uid, text.trim(), imageUrl, thumbUrl);
         setText('');
       } catch (e) {
-        setFeedback(e instanceof Error ? e.message : 'Nie udało się wysłać zdjęcia.');
+        setFeedback(e instanceof Error ? e.message : t('chats.imageSendFailed'));
       } finally {
         setUploadingImage(false);
       }
@@ -117,14 +121,14 @@ export default function ConversationScreen() {
 
   const onAttachPress = useCallback(() => {
     if (!uid || !id || uploadingImage || sending) return;
-    Alert.alert('Załącznik', 'Wybierz źródło zdjęcia', [
+    Alert.alert(t('chats.attachment'), t('chats.pickSource'), [
       {
-        text: 'Galeria',
+        text: t('chats.gallery'),
         onPress: () => {
           void (async () => {
             const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!perm.granted) {
-              setFeedback('Brak dostępu do galerii.');
+              setFeedback(t('chats.noGalleryAccess'));
               return;
             }
             const result = await ImagePicker.launchImageLibraryAsync({
@@ -138,12 +142,12 @@ export default function ConversationScreen() {
         },
       },
       {
-        text: 'Aparat',
+        text: t('chats.camera'),
         onPress: () => {
           void (async () => {
             const perm = await ImagePicker.requestCameraPermissionsAsync();
             if (!perm.granted) {
-              setFeedback('Brak dostępu do aparatu.');
+              setFeedback(t('chats.noCameraAccess'));
               return;
             }
             const result = await ImagePicker.launchCameraAsync({
@@ -155,9 +159,9 @@ export default function ConversationScreen() {
           })();
         },
       },
-      { text: 'Anuluj', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
-  }, [id, uid, uploadingImage, sending, uploadAndSendImage]);
+  }, [id, uid, uploadingImage, sending, uploadAndSendImage, t]);
 
   const renderItem = useCallback(
     ({ item: m }: { item: ChatMessage }) => {
@@ -189,7 +193,7 @@ export default function ConversationScreen() {
                 </Text>
               ) : null}
             </View>
-            <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{formatMsgTime(m.createdAt)}</Text>
+            <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{formatMsgTime(m.createdAt, localeTag)}</Text>
           </View>
           {mine ? (
             <UserAvatarPressable userId={senderId} avatarUrl={avatarUrl} size={28} style={styles.msgAvatar} />
@@ -199,13 +203,13 @@ export default function ConversationScreen() {
         </View>
       );
     },
-    [uid, myAvatar, otherAvatar, otherId]
+    [uid, myAvatar, otherAvatar, otherId, localeTag]
   );
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
@@ -225,7 +229,7 @@ export default function ConversationScreen() {
               {otherName}
             </Text>
             <Text style={styles.headerSub} numberOfLines={1}>
-              {conversation?.listingTitle || 'Rozmowa o ogłoszeniu'}
+              {conversation?.listingTitle || t('chats.aboutListing')}
             </Text>
           </Pressable>
           {otherId ? (
@@ -244,7 +248,7 @@ export default function ConversationScreen() {
           {loading ? (
             <View style={styles.centerNote}>
               <ActivityIndicator color="#0E4AA4" />
-              <Text style={styles.note}>Ładowanie wiadomości…</Text>
+              <Text style={styles.note}>{t('chats.loadingMessages')}</Text>
             </View>
           ) : (
             <FlatList
@@ -261,10 +265,10 @@ export default function ConversationScreen() {
                 loadingOlder ? (
                   <View style={styles.olderLoading}>
                     <ActivityIndicator color="#0E4AA4" />
-                    <Text style={styles.olderLoadingText}>Starsze wiadomości…</Text>
+                    <Text style={styles.olderLoadingText}>{t('chats.olderMessages')}</Text>
                   </View>
                 ) : hasMoreOlder && messages.length > 0 ? (
-                  <Text style={styles.hintTop}>Przewiń wyżej, by wczytać historię</Text>
+                  <Text style={styles.hintTop}>{t('chats.scrollForHistory')}</Text>
                 ) : null
               }
               ListEmptyComponent={
@@ -272,10 +276,8 @@ export default function ConversationScreen() {
                   <View style={styles.emptyIcon}>
                     <MaterialIcons name="chat-bubble-outline" size={28} color="#0E4AA4" />
                   </View>
-                  <Text style={styles.emptyTitle}>Zacznij rozmowę</Text>
-                  <Text style={styles.note}>
-                    Napisz wiadomość albo dołącz zdjęcie z galerii / aparatu.
-                  </Text>
+                  <Text style={styles.emptyTitle}>{t('chats.startConversation')}</Text>
+                  <Text style={styles.note}>{t('chats.startHint')}</Text>
                 </View>
               }
             />
@@ -293,7 +295,7 @@ export default function ConversationScreen() {
               style={[styles.iconBtn, (uploadingImage || sending) && styles.iconBtnDisabled]}
               onPress={onAttachPress}
               disabled={uploadingImage || sending}
-              accessibilityLabel="Dodaj załącznik">
+              accessibilityLabel={t('chats.addAttachment')}>
               {uploadingImage ? (
                 <ActivityIndicator size="small" color="#0E4AA4" />
               ) : (
@@ -304,7 +306,7 @@ export default function ConversationScreen() {
               style={styles.input}
               value={text}
               onChangeText={setText}
-              placeholder={uploadingImage ? 'Wysyłanie zdjęcia…' : 'Napisz wiadomość…'}
+              placeholder={uploadingImage ? t('chats.uploadingImage') : t('chats.writeMessage')}
               placeholderTextColor="#94A3B8"
               editable={!uploadingImage}
               multiline

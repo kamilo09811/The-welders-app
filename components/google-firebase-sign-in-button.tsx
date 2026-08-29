@@ -13,6 +13,7 @@ import {
   isGoogleOAuthConfiguredForCurrentPlatform,
 } from '@/lib/googleOAuthConfig';
 import { mapAuthError } from '@/lib/mapAuthError';
+import { usePreferences } from '@/lib/preferences-context';
 import { ensureUserProfileForOAuth, type AccountRole } from '@/lib/user-profile';
 
 type Props = {
@@ -25,6 +26,7 @@ type Props = {
 
 function GoogleSignInInner({ disabled, onFirebaseError, oauthRole }: Props) {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const config = getGoogleOAuthConfig();
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     webClientId: config.webClientId || undefined,
@@ -40,7 +42,7 @@ function GoogleSignInInner({ disabled, onFirebaseError, oauthRole }: Props) {
     }
     if (response.type === 'error') {
       const p = response.params as { error_description?: string; error?: string };
-      onFirebaseError(p.error_description || p.error || 'Logowanie Google nie powiodło się.');
+      onFirebaseError(p.error_description || p.error || t('auth.err.default'));
       setPending(false);
       return;
     }
@@ -68,7 +70,7 @@ function GoogleSignInInner({ disabled, onFirebaseError, oauthRole }: Props) {
       })
       .catch((e) => {
         if (!cancelled) {
-          onFirebaseError(mapAuthError(e));
+          onFirebaseError(mapAuthError(e, locale));
         }
       })
       .finally(() => {
@@ -80,7 +82,7 @@ function GoogleSignInInner({ disabled, onFirebaseError, oauthRole }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [response, onFirebaseError, oauthRole, router]);
+  }, [response, onFirebaseError, oauthRole, router, locale, t]);
 
   const onPress = useCallback(async () => {
     if (!request) {
@@ -114,7 +116,7 @@ function GoogleSignInInner({ disabled, onFirebaseError, oauthRole }: Props) {
       ) : (
         <>
           <MaterialCommunityIcons name="google" size={22} color="#4285F4" />
-          <Text style={[styles.googleBtnText, { color: C.text }]}>Kontynuuj z Google</Text>
+          <Text style={[styles.googleBtnText, { color: C.text }]}>{t('auth.continueGoogle')}</Text>
         </>
       )}
     </Pressable>
@@ -123,31 +125,17 @@ function GoogleSignInInner({ disabled, onFirebaseError, oauthRole }: Props) {
 
 /** Przycisk logowania Google → Firebase Auth (`signInWithCredential`). */
 export function GoogleFirebaseSignInButton({ disabled, onFirebaseError, oauthRole }: Props) {
+  const { t } = usePreferences();
   const isExpoGo = Constants.appOwnership === 'expo';
   const configured = isGoogleOAuthConfiguredForCurrentPlatform();
 
   const showExpoGoHint = useCallback(() => {
-    Alert.alert(
-      'Expo Go',
-      'Logowanie Google z OAuth nie działa w Expo Go (ograniczenia przekierowań). Uruchom zbudowaną aplikację: npx expo run:android albo npx expo run:ios (development build).',
-    );
-  }, []);
+    Alert.alert('Expo Go', t('auth.googleNeedsBuild'));
+  }, [t]);
 
   const showConfigHint = useCallback(() => {
-    Alert.alert(
-      'Konfiguracja Google OAuth',
-      [
-        'W Google Cloud Console utwórz identyfikatory OAuth 2:',
-        Platform.OS === 'android'
-          ? '• typ „Android” — nazwa pakietu jak w zbudowanej aplikacji + SHA-1 (debug z keytool lub EAS).'
-          : Platform.OS === 'ios'
-            ? '• typ „iOS” — Bundle ID jak w aplikacji.'
-            : '• typ „Web application”.',
-        '',
-        'Wpisz Client ID w lib/googleOAuthConfig.ts (stałe DEFAULT) albo w .env jako EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID / IOS / WEB.',
-      ].join('\n'),
-    );
-  }, []);
+    Alert.alert('Google OAuth', t('auth.googleMissingClient'));
+  }, [t]);
 
   if (isExpoGo) {
     return (
@@ -159,8 +147,8 @@ export function GoogleFirebaseSignInButton({ disabled, onFirebaseError, oauthRol
         ]}>
         <MaterialCommunityIcons name="google" size={22} color="#4285F4" />
         <View style={styles.labelCol}>
-          <Text style={[styles.googleBtnText, { color: C.text }]}>Kontynuuj z Google</Text>
-          <Text style={[styles.subHint, { color: C.muted }]}>wymaga buildu, nie Expo Go</Text>
+          <Text style={[styles.googleBtnText, { color: C.text }]}>{t('auth.continueGoogle')}</Text>
+          <Text style={[styles.subHint, { color: C.muted }]}>{t('auth.googleNeedsBuild')}</Text>
         </View>
       </Pressable>
     );
@@ -176,8 +164,8 @@ export function GoogleFirebaseSignInButton({ disabled, onFirebaseError, oauthRol
         ]}>
         <MaterialCommunityIcons name="google" size={22} color="#4285F4" />
         <View style={styles.labelCol}>
-          <Text style={[styles.googleBtnText, { color: C.text }]}>Kontynuuj z Google</Text>
-          <Text style={[styles.subHint, { color: C.muted }]}>brak Client ID — dotknij po instrukcję</Text>
+          <Text style={[styles.googleBtnText, { color: C.text }]}>{t('auth.continueGoogle')}</Text>
+          <Text style={[styles.subHint, { color: C.muted }]}>{t('auth.googleMissingClient')}</Text>
         </View>
       </Pressable>
     );

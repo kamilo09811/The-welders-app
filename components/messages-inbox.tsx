@@ -51,13 +51,14 @@ function previewLabel(
   text: string,
   uid: string | undefined,
   senderId: string,
-  emptyLabel: string
+  emptyLabel: string,
+  youPrefix: string
 ): string {
   const raw = text.trim();
   if (!raw) return emptyLabel;
   const mine = Boolean(uid && senderId && senderId === uid);
   const body = raw.startsWith('📷') ? raw : raw;
-  return mine ? `Ty: ${body}` : body;
+  return mine ? `${youPrefix} ${body}` : body;
 }
 
 type Props = {
@@ -165,7 +166,8 @@ export function MessagesInbox({ showBack = false }: Props) {
         c.lastMessageText || '',
         uid ?? undefined,
         c.lastMessageSenderId,
-        t('chats.writeFirst')
+        t('chats.writeFirst'),
+        t('chats.youPrefix')
       );
       const isFirst = index === 0;
       const isLast = index === visibleConversations.length - 1;

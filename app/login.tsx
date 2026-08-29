@@ -28,7 +28,7 @@ import { usePreferences } from '@/lib/preferences-context';
 export default function LoginScreen() {
   const router = useRouter();
   const { role } = useLocalSearchParams<{ role?: string }>();
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,14 +72,14 @@ export default function LoginScreen() {
         router.replace('/(tabs)');
       }
     } catch (e) {
-      setError(mapAuthError(e));
+      setError(mapAuthError(e, locale));
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } finally {
       setBusy(false);
     }
-  }, [email, password, router, t]);
+  }, [email, password, locale, router, t]);
 
   const goForgotPassword = useCallback(() => {
     router.push({
