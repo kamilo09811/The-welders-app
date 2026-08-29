@@ -240,6 +240,7 @@ export function MessagesInbox({ showBack = false }: Props) {
       visibleConversations.length,
       localeTag,
       colors,
+      t,
     ]
   );
 
