@@ -206,7 +206,7 @@ export default function SettingsScreen() {
               <Pill
                 key={opt.value}
                 active={locale === opt.value}
-                label={opt.nativeLabel}
+                label={`${opt.flag} ${opt.nativeLabel}`}
                 colors={colors}
                 onPress={() => void setLocale(opt.value)}
               />

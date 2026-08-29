@@ -1,10 +1,10 @@
 export type AppLocale = 'pl' | 'en' | 'de' | 'da';
 
-export const APP_LOCALES: { value: AppLocale; label: string; nativeLabel: string }[] = [
-  { value: 'pl', label: 'Polish', nativeLabel: 'Polski' },
-  { value: 'en', label: 'English', nativeLabel: 'English' },
-  { value: 'de', label: 'German', nativeLabel: 'Deutsch' },
-  { value: 'da', label: 'Danish', nativeLabel: 'Dansk' },
+export const APP_LOCALES: { value: AppLocale; label: string; nativeLabel: string; flag: string }[] = [
+  { value: 'pl', label: 'Polish', nativeLabel: 'Polski', flag: '🇵🇱' },
+  { value: 'en', label: 'English', nativeLabel: 'English', flag: '🇬🇧' },
+  { value: 'de', label: 'German', nativeLabel: 'Deutsch', flag: '🇩🇪' },
+  { value: 'da', label: 'Danish', nativeLabel: 'Dansk', flag: '🇩🇰' },
 ];
 
 export type TranslationKey =
