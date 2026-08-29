@@ -126,9 +126,11 @@ function normalizeQuickSlots(raw: FirestoreListing['quickSlots']): QuickSlots {
         }))
     : [];
   const max = typeof raw?.max === 'number' && raw.max > 0 ? raw.max : QUICK_SLOT_MAX;
+  // Źródło prawdy = liczba awatarów w tablicy (nie pole filled, które bywało 0).
+  const filled = Math.min(applicants.length, max);
   return {
     max,
-    filled: Math.min(typeof raw?.filled === 'number' ? raw.filled : applicants.length, max),
+    filled,
     applicants,
   };
 }
@@ -181,9 +183,10 @@ export function isQuickListing(listing: Pick<MarketListing, 'kind'> | null | und
 }
 
 export function quickSlotsRemaining(listing: MarketListing): number {
-  if (!isQuickListing(listing) || !listing.quickSlots) return 0;
+  if (!isQuickListing(listing) || !listing.quickSlots) return QUICK_SLOT_MAX;
   if (listing.quickStatus === 'awarded' || listing.quickStatus === 'closed') return 0;
-  return Math.max(0, listing.quickSlots.max - listing.quickSlots.filled);
+  const taken = listing.quickSlots.applicants.length;
+  return Math.max(0, listing.quickSlots.max - taken);
 }
 
 /** Lista marketplace — pełna kolekcja (filtry po stronie klienta). */

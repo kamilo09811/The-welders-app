@@ -185,7 +185,7 @@ exports.onApplicationCreatedNotify = onDocumentCreated(
             name: (data.applicantName && String(data.applicantName).trim()) || 'Użytkownik',
             avatarUrl: typeof data.applicantAvatarUrl === 'string' ? data.applicantAvatarUrl : '',
             applicationId,
-            joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+            joinedAt: admin.firestore.Timestamp.now(),
           });
         }
 

@@ -153,7 +153,8 @@ export async function createApplication(input: CreateApplicationInput) {
 
   try {
     if (isQuickListing(listing)) {
-      // Transakcja: zgłoszenie + od razu awatar w slotach (bez czekania na Cloud Function).
+      // Transakcja: zgłoszenie + od razu awatar w slotach.
+      // UWAGA: serverTimestamp() NIE działa wewnątrz tablic — używamy Timestamp.now().
       await runTransaction(db, async (tx) => {
         const listingSnap = await tx.get(listingRef);
         if (!listingSnap.exists()) {
@@ -204,19 +205,15 @@ export async function createApplication(input: CreateApplicationInput) {
             name: applicantName,
             avatarUrl: applicantAvatarUrl,
             applicationId: id,
-            joinedAt: serverTimestamp(),
+            joinedAt: Timestamp.now(),
           },
         ];
         const filled = nextApplicants.length;
-        tx.set(
-          listingRef,
-          {
-            quickSlots: { max, filled, applicants: nextApplicants },
-            quickStatus: filled >= max ? 'full' : 'open',
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+        tx.update(listingRef, {
+          quickSlots: { max, filled, applicants: nextApplicants },
+          quickStatus: filled >= max ? 'full' : 'open',
+          updatedAt: serverTimestamp(),
+        });
       });
     } else {
       await setDoc(ref, {
@@ -250,6 +247,49 @@ export async function createApplication(input: CreateApplicationInput) {
     throw error;
   }
   // Powiadomienie: Cloud Function onApplicationCreatedNotify
+}
+
+/** Dopina brakujący slot awatara, gdy zgłoszenie jest, a listing.quickSlots nie zdążyło się zaktualizować. */
+export async function repairOwnQuickSlot(input: {
+  listingId: string;
+  applicantId: string;
+  applicantName: string;
+  applicantAvatarUrl: string;
+  applicationId: string;
+}): Promise<void> {
+  const db = getFirebaseFirestore();
+  const listingRef = doc(db, 'listings', input.listingId);
+  await runTransaction(db, async (tx) => {
+    const listingSnap = await tx.get(listingRef);
+    if (!listingSnap.exists()) return;
+    const live = listingSnap.data() as Record<string, unknown>;
+    if (live.kind !== 'quick') return;
+    if (live.quickStatus === 'awarded' || live.quickStatus === 'closed') return;
+    const rawSlots =
+      live.quickSlots && typeof live.quickSlots === 'object'
+        ? (live.quickSlots as { max?: number; applicants?: Array<Record<string, unknown>> })
+        : {};
+    const max = typeof rawSlots.max === 'number' && rawSlots.max > 0 ? rawSlots.max : QUICK_SLOT_MAX;
+    const applicants = Array.isArray(rawSlots.applicants) ? [...rawSlots.applicants] : [];
+    if (applicants.some((a) => a && a.uid === input.applicantId)) return;
+    if (applicants.length >= max) return;
+    const nextApplicants = [
+      ...applicants,
+      {
+        uid: input.applicantId,
+        name: input.applicantName,
+        avatarUrl: input.applicantAvatarUrl,
+        applicationId: input.applicationId,
+        joinedAt: Timestamp.now(),
+      },
+    ];
+    const filled = nextApplicants.length;
+    tx.update(listingRef, {
+      quickSlots: { max, filled, applicants: nextApplicants },
+      quickStatus: filled >= max ? 'full' : 'open',
+      updatedAt: serverTimestamp(),
+    });
+  });
 }
 
 export async function updateApplicationStatus(

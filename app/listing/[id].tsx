@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { UserAvatarPressable } from '@/components/user-avatar-pressable';
 import { createOrGetConversation } from '@/lib/chat';
 import {
   createApplication,
+  repairOwnQuickSlot,
   selectQuickJobWinner,
   updateApplicationStatus,
   type ListingApplication,
@@ -81,7 +82,7 @@ export default function ListingDetailsScreen() {
     ].slice(0, 5);
   }, [listing?.quickSlots?.applicants, uid, quick, myApplication, profile.avatarUrl, profile.fullName]);
 
-  const slotsLeft = listing ? quickSlotsRemaining(listing) : 0;
+  const slotsLeft = Math.max(0, 5 - displaySlotApplicants.length);
   const canJoinQuick =
     quick &&
     !isAuthor &&
@@ -89,6 +90,29 @@ export default function ListingDetailsScreen() {
     listing?.quickStatus !== 'awarded' &&
     listing?.quickStatus !== 'closed' &&
     slotsLeft > 0;
+
+  useEffect(() => {
+    if (!quick || !uid || !listing?.id || !myApplication) return;
+    const already = (listing.quickSlots?.applicants || []).some((a) => a.uid === uid);
+    if (already) return;
+    void repairOwnQuickSlot({
+      listingId: listing.id,
+      applicantId: uid,
+      applicantName: myApplication.applicantName || profile.fullName || 'Użytkownik',
+      applicantAvatarUrl: myApplication.applicantAvatarUrl || profile.avatarUrl || '',
+      applicationId: myApplication.id,
+    }).catch(() => {
+      // Reguły / pełne sloty — UI i tak pokazuje optymistycznie.
+    });
+  }, [
+    quick,
+    uid,
+    listing?.id,
+    listing?.quickSlots?.applicants,
+    myApplication,
+    profile.avatarUrl,
+    profile.fullName,
+  ]);
 
   const onDelete = async () => {
     if (!listing || !isAuthor) return;
