@@ -1,5 +1,6 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import {
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -11,13 +12,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
 
-/** Reguły Firestore (przykład): `match /users/{userId} { allow read, write: if request.auth != null && request.auth.uid == userId; }` */
-
 export type AccountRole = 'welder' | 'employer';
 
 export type UserProfile = {
   role: AccountRole;
   fullName: string;
+  /** Nazwa firmy — dla konta pracodawcy (widoczna na ogłoszeniach). */
+  companyName: string;
   phone: string;
   city: string;
   avatarUrl: string;
@@ -30,6 +31,7 @@ export type UserProfile = {
 const DEFAULT_PROFILE: UserProfile = {
   role: 'welder',
   fullName: '',
+  companyName: '',
   phone: '',
   city: '',
   avatarUrl: '',
@@ -39,6 +41,11 @@ const DEFAULT_PROFILE: UserProfile = {
 
 function usersDoc(uid: string) {
   return doc(getFirebaseFirestore(), 'users', uid);
+}
+
+/** Telefon i inne dane wrażliwe — tylko właściciel (reguły meta). */
+function privateMetaDoc(uid: string) {
+  return doc(getFirebaseFirestore(), 'users', uid, 'meta', 'private');
 }
 
 export type PublicUserInfo = {
@@ -51,16 +58,24 @@ function normalizeRole(v: unknown): AccountRole {
   return v === 'employer' ? 'employer' : 'welder';
 }
 
-function snapshotToProfile(data: Record<string, unknown>): UserProfile {
+function snapshotToPublicFields(data: Record<string, unknown>): Omit<UserProfile, 'phone'> {
   return {
     role: normalizeRole(data.role),
     fullName: typeof data.fullName === 'string' ? data.fullName : '',
-    phone: typeof data.phone === 'string' ? data.phone : '',
+    companyName: typeof data.companyName === 'string' ? data.companyName : '',
     city: typeof data.city === 'string' ? data.city : '',
     avatarUrl: typeof data.avatarUrl === 'string' ? data.avatarUrl : '',
     publicBio: typeof data.publicBio === 'string' ? data.publicBio : '',
     emailVerified: data.emailVerified === true,
   };
+}
+
+/** Nazwa wyświetlana na ogłoszeniach: firma (pracodawca) lub imię (spawacz). */
+export function getListingPublisherName(profile: Pick<UserProfile, 'role' | 'fullName' | 'companyName'>): string {
+  if (profile.role === 'employer') {
+    return profile.companyName.trim() || profile.fullName.trim() || 'Firma';
+  }
+  return profile.fullName.trim() || 'Spawacz';
 }
 
 /** Aktualizuje pole `emailVerified` w profilu na podstawie Firebase Auth. */
@@ -75,16 +90,17 @@ export async function syncEmailVerified(uid: string, emailVerified: boolean): Pr
   );
 }
 
-/** Tworzy dokument profilu z rolą (np. po rejestracji e-mail). */
+/** Tworzy dokument profilu z rolą (np. po rejestracji e-mail). Bez telefonu na dokumencie publicznym. */
 export async function createUserProfile(
   uid: string,
   role: AccountRole,
-  emailVerified = false
+  emailVerified = false,
+  extras?: { fullName?: string; companyName?: string }
 ): Promise<void> {
   await setDoc(usersDoc(uid), {
     role,
-    fullName: '',
-    phone: '',
+    fullName: extras?.fullName?.trim() || '',
+    companyName: role === 'employer' ? extras?.companyName?.trim() || '' : '',
     city: '',
     avatarUrl: '',
     publicBio: '',
@@ -111,7 +127,7 @@ export async function ensureUserProfileForOAuth(
   await setDoc(ref, {
     role: preferredRole ?? 'welder',
     fullName: '',
-    phone: '',
+    companyName: '',
     city: '',
     avatarUrl: '',
     publicBio: '',
@@ -153,19 +169,34 @@ export async function getAuthorsEmailVerified(
   return result;
 }
 
-/** Aktualizacja danych osobowych — rola pozostaje bez zmian (ustawiana tylko przy rejestracji / pierwszym OAuth). */
+/**
+ * Aktualizacja danych osobowych.
+ * Telefon trafia do `users/{uid}/meta/private`; z dokumentu publicznego jest usuwany.
+ */
 export async function updateUserPersonalFields(
   uid: string,
   fields: Omit<UserProfile, 'role' | 'emailVerified'>
 ): Promise<void> {
-  await setDoc(
-    usersDoc(uid),
-    {
-      ...fields,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const { phone, ...publicFields } = fields;
+  await Promise.all([
+    setDoc(
+      privateMetaDoc(uid),
+      {
+        phone: phone.trim(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    ),
+    setDoc(
+      usersDoc(uid),
+      {
+        ...publicFields,
+        phone: deleteField(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    ),
+  ]);
 }
 
 export function useCurrentUserProfile() {
@@ -175,10 +206,13 @@ export function useCurrentUserProfile() {
 
   useEffect(() => {
     let unsubDoc: (() => void) | undefined;
+    let unsubPrivate: (() => void) | undefined;
 
     const unsubAuth = onAuthStateChanged(getFirebaseAuth(), (user) => {
       unsubDoc?.();
+      unsubPrivate?.();
       unsubDoc = undefined;
+      unsubPrivate = undefined;
 
       if (!user) {
         setUid(null);
@@ -189,25 +223,92 @@ export function useCurrentUserProfile() {
 
       setUid(user.uid);
       setLoading(true);
+
+      let publicPart: Omit<UserProfile, 'phone'> = {
+        role: DEFAULT_PROFILE.role,
+        fullName: '',
+        companyName: '',
+        city: '',
+        avatarUrl: '',
+        publicBio: '',
+        emailVerified: false,
+      };
+      let phone = '';
+      let legacyPhone = '';
+      let publicReady = false;
+      let privateReady = false;
+
+      const publish = () => {
+        if (!publicReady || !privateReady) return;
+        setProfile({
+          ...publicPart,
+          // Preferuj meta/private; fallback na stare pole phone podczas migracji.
+          phone: phone || legacyPhone,
+        });
+        setLoading(false);
+      };
+
       unsubDoc = onSnapshot(
         usersDoc(user.uid),
         (snap) => {
           if (snap.exists()) {
-            setProfile(snapshotToProfile(snap.data() as Record<string, unknown>));
+            const data = snap.data() as Record<string, unknown>;
+            publicPart = snapshotToPublicFields(data);
+            legacyPhone = typeof data.phone === 'string' ? data.phone : '';
           } else {
-            setProfile(DEFAULT_PROFILE);
+            publicPart = {
+              role: DEFAULT_PROFILE.role,
+              fullName: '',
+              companyName: '',
+              city: '',
+              avatarUrl: '',
+              publicBio: '',
+              emailVerified: false,
+            };
+            legacyPhone = '';
           }
-          setLoading(false);
+          publicReady = true;
+          publish();
         },
         () => {
-          setProfile(DEFAULT_PROFILE);
-          setLoading(false);
+          publicPart = {
+            role: DEFAULT_PROFILE.role,
+            fullName: '',
+            companyName: '',
+            city: '',
+            avatarUrl: '',
+            publicBio: '',
+            emailVerified: false,
+          };
+          legacyPhone = '';
+          publicReady = true;
+          publish();
+        }
+      );
+
+      unsubPrivate = onSnapshot(
+        privateMetaDoc(user.uid),
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data() as Record<string, unknown>;
+            phone = typeof data.phone === 'string' ? data.phone : '';
+          } else {
+            phone = '';
+          }
+          privateReady = true;
+          publish();
+        },
+        () => {
+          phone = '';
+          privateReady = true;
+          publish();
         }
       );
     });
 
     return () => {
       unsubDoc?.();
+      unsubPrivate?.();
       unsubAuth();
     };
   }, []);

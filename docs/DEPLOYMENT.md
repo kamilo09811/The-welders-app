@@ -53,7 +53,10 @@ Po sukcesie:
 
 - Reguly Firestore i Storage beda aktywne w projekcie.
 - Indeksy zostana utworzone lub zaktualizowane (duze indeksy moga budowac sie kilka minut).
-- Funkcja `onInAppNotificationPush` (Firestore trigger na `users/{userId}/notifications/{notifId}`) zostanie wdrozona w `europe-west1`.
+- Funkcje w `europe-west1`:
+  - `onApplicationCreatedNotify` / `onApplicationStatusNotify` / `onChatMessageNotify` — tworzą powiadomienia in-app
+  - `onInAppNotificationPush` — Expo Push po utworzeniu in-app notification
+- Klient nie może tworzyć dokumentów w `users/.../notifications` (tylko Cloud Functions).
 
 Jesli pojawi sie **401 / invalid authentication**: uruchom ponownie `firebase login` i sprobuj deploy jeszcze raz.
 
@@ -178,6 +181,18 @@ Eksport web trafia do katalogu `dist`. Ostatni udany eksport obejmowal m.in. tra
 1. Firebase Console (Auth, Firestore, Storage, Blaze)
 2. `firebase login` + deploy reguly/indeksy/storage/functions
 3. Google OAuth (Web + iOS + Android + SHA-1)
-4. `.env` lokalnie + EAS Secrets
-5. `eas build --profile preview`
+4. `.env` lokalnie + EAS Secrets (`EXPO_PUBLIC_GOOGLE_*`)
+5. `eas build --profile preview` / `production`
 6. Test logowania Google i push na fizycznym urzadzeniu
+
+Po udanym buildzie iOS zobacz tez **`docs/POST_BUILD.md`** (checklista Functions + Google Secrets + test push).
+
+### EAS Secrets (Google) — wymagane przed buildem z logowaniem Google
+
+```powershell
+eas secret:create --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value "....apps.googleusercontent.com" --scope project
+eas secret:create --name EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID --value "....apps.googleusercontent.com" --scope project
+eas secret:create --name EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID --value "....apps.googleusercontent.com" --scope project
+```
+
+Bez tych zmiennych w buildzie przycisk Google pokaze „brak Client ID”.

@@ -1,43 +1,67 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getFirebaseAuth } from '@/lib/firebaseAuth';
+import { ApplicationListItem } from '@/components/application-list-item';
 import { uploadUserAvatar } from '@/lib/avatarStorage';
 import { clearExpoPushToken } from '@/lib/expo-push';
-import type { ListingApplication } from '@/lib/listing-applications';
-import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
-import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
+import { getFirebaseAuth } from '@/lib/firebaseAuth';
+import { usePreferences } from '@/lib/preferences-context';
+import type { AppColors } from '@/lib/theme';
+import { getHeaderGradient } from '@/lib/theme';
 import { useUserConversations } from '@/lib/use-chat';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
+import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
+import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
 
-const ROLE_LABEL_PL: Record<'welder' | 'employer', string> = {
-  welder: 'Spawacz',
-  employer: 'Pracodawca / zleceniodawca',
-};
-
-const STATUS_LABEL: Record<ListingApplication['status'], string> = {
-  new: 'Nowe',
-  in_progress: 'W trakcie',
-  accepted: 'Zaakceptowane',
-  rejected: 'Odrzucone',
-};
+function NavRow({
+  icon,
+  label,
+  badge,
+  onPress,
+  colors,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  badge?: number;
+  onPress: () => void;
+  colors: AppColors;
+}) {
+  return (
+    <Pressable style={styles.navRow} onPress={onPress}>
+      <MaterialIcons name={icon} size={20} color={colors.primary} />
+      <Text style={[styles.navRowText, { color: colors.text }]}>{label}</Text>
+      {badge && badge > 0 ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
+        </View>
+      ) : null}
+      <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
+    </Pressable>
+  );
+}
 
 export default function AccountScreen() {
   const router = useRouter();
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
   const { uid, profile } = useCurrentUserProfile();
+  const { colors, t, theme, locale } = usePreferences();
   const { unreadCount: messagesUnreadCount } = useUserConversations(uid ?? undefined);
   const { unreadCount: notifUnreadCount } = useInAppNotifications(uid ?? undefined);
-  const { applications: myApplications, loading: loadingMyApplications } = useApplicationsByApplicant(uid ?? undefined);
-  const { applications: incomingApplications, loading: loadingIncomingApplications } = useApplicationsByAuthor(uid ?? undefined);
+  const { applications: myApplications, loading: loadingMyApplications } = useApplicationsByApplicant(
+    uid ?? undefined
+  );
+  const { applications: incomingApplications, loading: loadingIncomingApplications } =
+    useApplicationsByAuthor(uid ?? undefined);
   const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -45,10 +69,12 @@ export default function AccountScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const isEmployer = profile.role === 'employer';
 
   useEffect(() => {
     if (isEditing) return;
     setFullName(profile.fullName);
+    setCompanyName(profile.companyName);
     setPhone(profile.phone);
     setCity(profile.city);
     setAvatarUrl(profile.avatarUrl);
@@ -61,22 +87,37 @@ export default function AccountScreen() {
 
   const onSave = async () => {
     if (!uid) {
-      setMessage('Brak aktywnej sesji.');
+      setMessage(t('account.noSession'));
       return;
     }
-    await updateUserPersonalFields(uid, { fullName, phone, city, avatarUrl, publicBio });
+    if (isEmployer && !companyName.trim()) {
+      setMessage(t('account.needCompanyMsg'));
+      return;
+    }
+    if (!isEmployer && !fullName.trim()) {
+      setMessage(t('account.needNameMsg'));
+      return;
+    }
+    await updateUserPersonalFields(uid, {
+      fullName,
+      companyName: isEmployer ? companyName.trim() : '',
+      phone,
+      city,
+      avatarUrl,
+      publicBio,
+    });
     setIsEditing(false);
-    setMessage('Profil zapisany.');
+    setMessage(t('account.saved'));
   };
 
   const onPickAvatar = useCallback(async () => {
     if (!uid) {
-      setMessage('Zaloguj się, aby zmienić zdjęcie.');
+      setMessage(t('account.loginForPhoto'));
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setMessage('Brak uprawnień do galerii.');
+      setMessage(t('account.noGallery'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -95,18 +136,19 @@ export default function AccountScreen() {
       setAvatarUrl(downloadUrl);
       await updateUserPersonalFields(uid, {
         fullName,
+        companyName: isEmployer ? companyName.trim() : '',
         phone,
         city,
         avatarUrl: downloadUrl,
         publicBio,
       });
-      setMessage('Zdjęcie profilowe zapisane.');
+      setMessage(t('account.photoSaved'));
     } catch {
-      setMessage('Nie udało się wgrać zdjęcia.');
+      setMessage(t('account.photoFailed'));
     } finally {
       setAvatarUploading(false);
     }
-  }, [city, fullName, phone, publicBio, uid]);
+  }, [city, companyName, fullName, isEmployer, phone, publicBio, t, uid]);
 
   const onLogout = async () => {
     if (uid) {
@@ -117,227 +159,226 @@ export default function AccountScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Konto</Text>
-            <Text style={styles.headerSub}>{user?.email ?? 'Nie zalogowano'}</Text>
-          </View>
-          <Pressable style={styles.avatarWrap} onPress={onPickAvatar} disabled={avatarUploading}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <MaterialIcons name="photo-camera" size={20} color="#0F172A" />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <LinearGradient colors={[...getHeaderGradient(theme)]} locations={[0, 0.36]} style={styles.bgGlow} />
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View style={styles.headerTextCol}>
+              <Text style={styles.headerTitle}>{t('account.title')}</Text>
+              <Text style={styles.headerSub}>{user?.email ?? '—'}</Text>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>{profile.role === 'employer' ? t('account.roleEmployer') : t('account.roleWelder')}</Text>
               </View>
-            )}
-            {avatarUploading ? (
-              <View style={styles.avatarUploadOverlay}>
-                <MaterialIcons name="hourglass-top" size={18} color="#FFFFFF" />
-              </View>
-            ) : null}
-          </Pressable>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Powiadomienia</Text>
-          <Text style={styles.note}>Nowe zgłoszenia, zmiany statusów i wiadomości z czatu.</Text>
-          <View style={styles.messagesBtnWrap}>
-            <Pressable
-              style={styles.messagesBtn}
-              onPress={() => router.push('/notifications' as never)}>
-              <MaterialIcons name="notifications-none" size={18} color="#0E4AA4" />
-              <Text style={styles.messagesBtnText}>Centrum powiadomień</Text>
+            </View>
+            <Pressable style={styles.avatarWrap} onPress={onPickAvatar} disabled={avatarUploading}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" />
+              ) : (
+                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.card }]}>
+                  <MaterialIcons name="photo-camera" size={20} color={colors.text} />
+                </View>
+              )}
+              {avatarUploading ? (
+                <View style={styles.avatarUploadOverlay}>
+                  <MaterialIcons name="hourglass-top" size={18} color="#FFFFFF" />
+                </View>
+              ) : null}
             </Pressable>
-            {notifUnreadCount > 0 ? (
-              <View style={styles.messagesBadge}>
-                <Text style={styles.messagesBadgeText}>
-                  {notifUnreadCount > 99 ? '99+' : notifUnreadCount}
-                </Text>
-              </View>
-            ) : null}
           </View>
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Typ konta</Text>
-          <Text style={styles.roleReadonly}>{ROLE_LABEL_PL[profile.role]}</Text>
-          <Text style={styles.note}>Rola jest wybierana tylko przy rejestracji i nie można jej tu zmienić.</Text>
-          <View style={styles.messagesBtnWrap}>
-            <Pressable
-              style={styles.messagesBtn}
-              onPress={() => router.push('/messages' as never)}>
-              <MaterialIcons name="chat-bubble-outline" size={18} color="#0E4AA4" />
-              <Text style={styles.messagesBtnText}>Wiadomości</Text>
-            </Pressable>
-            {messagesUnreadCount > 0 ? (
-              <View style={styles.messagesBadge}>
-                <Text style={styles.messagesBadgeText}>
-                  {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Profil publiczny</Text>
-          <Text style={styles.note}>
-            Opis, oceny i statystyki widzą inni użytkownicy (np. po kliknięciu Twojego zdjęcia w czacie).
-          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.shortcuts')}</Text>
+          <NavRow
+            icon="notifications-none"
+            label={t('account.notifications')}
+            badge={notifUnreadCount}
+            onPress={() => router.push('/notifications' as never)}
+            colors={colors}
+          />
+          <NavRow
+            icon="chat-bubble-outline"
+            label={t('account.messages')}
+            badge={messagesUnreadCount}
+            onPress={() => router.push('/(tabs)/messages' as never)}
+            colors={colors}
+          />
           {uid ? (
-            <Pressable
-              style={styles.messagesBtn}
-              onPress={() => router.push({ pathname: '/user/[id]', params: { id: uid } })}>
-              <MaterialIcons name="visibility" size={18} color="#0E4AA4" />
-              <Text style={styles.messagesBtnText}>Podgląd profilu publicznego</Text>
-            </Pressable>
+            <NavRow
+              icon="visibility"
+              label={t('account.publicProfile')}
+              onPress={() => router.push({ pathname: '/user/[id]', params: { id: uid } })}
+              colors={colors}
+            />
           ) : null}
+
+          <View style={styles.divider} />
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.profile')}</Text>
+          <Text style={[styles.hint, { color: colors.textSoft }]}>
+            {isEmployer ? t('account.hintEmployer') : t('account.hintWelder')}
+          </Text>
           <TextInput
-            style={[styles.input, styles.bioInput]}
+            style={[styles.input, styles.bioInput, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={publicBio}
             onChangeText={(v) => {
               setIsEditing(true);
               setPublicBio(v);
             }}
-            placeholder="Krótki opis (doświadczenie, specjalizacja, obszar…)"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.bio')}
+            placeholderTextColor={colors.textSoft}
             multiline
           />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Dane osobowe</Text>
+          {isEmployer ? (
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
+              value={companyName}
+              onChangeText={(v) => {
+                setIsEditing(true);
+                setCompanyName(v);
+              }}
+              placeholder={t('account.companyName')}
+              placeholderTextColor={colors.textSoft}
+            />
+          ) : null}
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={fullName}
             onChangeText={(v) => {
               setIsEditing(true);
               setFullName(v);
             }}
-            placeholder="Imię i nazwisko"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.fullName')}
+            placeholderTextColor={colors.textSoft}
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={phone}
             onChangeText={(v) => {
               setIsEditing(true);
               setPhone(v);
             }}
-            placeholder="Telefon"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.phone')}
+            placeholderTextColor={colors.textSoft}
             keyboardType="phone-pad"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={city}
             onChangeText={(v) => {
               setIsEditing(true);
               setCity(v);
             }}
-            placeholder="Miasto"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.city')}
+            placeholderTextColor={colors.textSoft}
           />
-          <Pressable style={styles.saveBtn} onPress={onSave}>
+          <Pressable style={[styles.saveBtn, { backgroundColor: colors.primary }]} onPress={onSave}>
             <MaterialIcons name="save" size={18} color="#FFFFFF" />
-            <Text style={styles.saveBtnText}>Zapisz profil</Text>
+            <Text style={styles.saveBtnText}>{t('account.saveProfile')}</Text>
           </Pressable>
-        </View>
 
-        <View style={styles.card}>
+          <View style={styles.divider} />
+
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.cardTitle}>Moje zgłoszenia</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.myApplications')}</Text>
             <Pressable onPress={() => router.push('/applications/sent' as never)}>
-              <Text style={styles.seeAllLink}>Zobacz wszystkie</Text>
+              <Text style={[styles.seeAllLink, { color: colors.primary }]}>{t('account.seeAll')}</Text>
             </Pressable>
           </View>
           {loadingMyApplications ? (
-            <Text style={styles.note}>Ładowanie...</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : myApplications.length === 0 ? (
-            <Text style={styles.note}>Nie wysłałeś jeszcze żadnego zgłoszenia.</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('account.noSentApps')}</Text>
           ) : (
-            myApplications.slice(0, 5).map((app) => (
-              <Pressable
-                key={app.id}
-                style={styles.applicationRow}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })}>
-                <View style={styles.applicationHead}>
-                  <Text style={styles.applicationTitle} numberOfLines={1}>
-                    {app.listingTitle}
-                  </Text>
-                  <Text style={styles.applicationStatus}>{STATUS_LABEL[app.status]}</Text>
-                </View>
-                <Text style={styles.applicationMeta} numberOfLines={2}>
-                  {app.message}
-                </Text>
-              </Pressable>
-            ))
+            <View style={styles.appsList}>
+              {myApplications.slice(0, 5).map((app) => (
+                <ApplicationListItem
+                  key={app.id}
+                  app={app}
+                  variant="sent"
+                  colors={colors}
+                  locale={locale}
+                  t={t}
+                  compact
+                  onPress={() =>
+                    router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })
+                  }
+                />
+              ))}
+            </View>
           )}
-        </View>
 
-        <View style={styles.card}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.cardTitle}>Zgłoszenia do moich ogłoszeń</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.incomingApplications')}</Text>
             <Pressable onPress={() => router.push('/applications/incoming' as never)}>
-              <Text style={styles.seeAllLink}>Zobacz wszystkie</Text>
+              <Text style={[styles.seeAllLink, { color: colors.primary }]}>{t('account.seeAll')}</Text>
             </Pressable>
           </View>
           {loadingIncomingApplications ? (
-            <Text style={styles.note}>Ładowanie...</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : incomingApplications.length === 0 ? (
-            <Text style={styles.note}>Brak zgłoszeń do Twoich ogłoszeń.</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>{t('account.noIncomingApps')}</Text>
           ) : (
-            incomingApplications.slice(0, 5).map((app) => (
-              <Pressable
-                key={app.id}
-                style={styles.applicationRow}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })}>
-                <View style={styles.applicationHead}>
-                  <Text style={styles.applicationTitle} numberOfLines={1}>
-                    {app.listingTitle}
-                  </Text>
-                  <Text style={styles.applicationStatus}>{STATUS_LABEL[app.status]}</Text>
-                </View>
-                <Text style={styles.applicationMeta} numberOfLines={2}>
-                  {app.applicantName || 'Użytkownik'} • {app.message}
-                </Text>
-              </Pressable>
-            ))
+            <View style={styles.appsList}>
+              {incomingApplications.slice(0, 5).map((app) => (
+                <ApplicationListItem
+                  key={app.id}
+                  app={app}
+                  variant="incoming"
+                  colors={colors}
+                  locale={locale}
+                  t={t}
+                  compact
+                  onPress={() =>
+                    router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })
+                  }
+                />
+              ))}
+            </View>
           )}
-        </View>
 
-        <View style={styles.card}>
           <Pressable style={styles.logoutBtn} onPress={onLogout}>
             <MaterialIcons name="logout" size={18} color="#B91C1C" />
-            <Text style={styles.logoutText}>Wyloguj</Text>
+            <Text style={styles.logoutText}>{t('account.logout')}</Text>
           </Pressable>
-        </View>
 
-        {message ? <Text style={styles.message}>{message}</Text> : null}
-      </ScrollView>
-    </SafeAreaView>
+          {message ? <Text style={styles.message}>{message}</Text> : null}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
+  root: { flex: 1, backgroundColor: '#E8EEF7' },
+  bgGlow: { ...StyleSheet.absoluteFillObject },
+  safe: { flex: 1 },
+  content: { padding: 16, gap: 10, paddingBottom: 36 },
   header: {
-    backgroundColor: '#0E4AA4',
-    borderRadius: 18,
-    padding: 16,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: 12,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
-  headerSub: { color: '#DCEBFF', marginTop: 6 },
+  headerTextCol: { flex: 1, gap: 6 },
+  headerTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', letterSpacing: -0.3 },
+  headerSub: { color: '#D7E6FF', fontSize: 13 },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  roleBadgeText: { color: '#E8F0FF', fontSize: 11, fontWeight: '700' },
   avatarWrap: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     borderWidth: 2,
     borderColor: 'rgba(248, 250, 252, 0.9)',
     backgroundColor: '#EFF6FF',
@@ -345,51 +386,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
+  avatarPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: '100%', height: '100%' },
   avatarUploadOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    padding: 14,
-    gap: 10,
-  },
-  cardTitle: { color: '#10233E', fontSize: 15, fontWeight: '700' },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  seeAllLink: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
-  roleReadonly: { color: '#0F172A', fontSize: 16, fontWeight: '700' },
-  note: { color: '#64748B', fontSize: 12, lineHeight: 17 },
-  messagesBtnWrap: { marginTop: 4, position: 'relative', alignSelf: 'stretch' },
-  messagesBtn: {
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    backgroundColor: '#EFF6FF',
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  sectionTitle: { color: '#10233E', fontSize: 15, fontWeight: '800', marginTop: 8 },
+  sectionHeaderRow: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
   },
-  messagesBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -4,
+  seeAllLink: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
+  hint: { color: '#64748B', fontSize: 12, lineHeight: 17, marginTop: -2 },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(100,116,139,0.35)',
+    marginVertical: 8,
+  },
+
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(148,163,184,0.4)',
+  },
+  navRowText: { flex: 1, color: '#0F172A', fontSize: 15, fontWeight: '600' },
+  badge: {
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -397,19 +427,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
-  messagesBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
-  messagesBtnText: { color: '#0E4AA4', fontWeight: '700' },
+  badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+
   input: {
     borderWidth: 1,
-    borderColor: '#D5DEEA',
-    borderRadius: 11,
-    backgroundColor: '#F8FAFD',
+    borderColor: 'rgba(213,222,234,0.95)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.88)',
     color: '#0F172A',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     fontSize: 14,
   },
   bioInput: { minHeight: 88, textAlignVertical: 'top' },
@@ -419,46 +447,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderRadius: 11,
+    borderRadius: 12,
     backgroundColor: '#0E4AA4',
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
   saveBtnText: { color: '#FFFFFF', fontWeight: '700' },
-  applicationRow: {
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: '#F8FAFD',
-    gap: 4,
-  },
-  applicationHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  applicationTitle: { color: '#0F172A', fontWeight: '700', flex: 1 },
-  applicationStatus: {
-    color: '#1E3A8A',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  applicationMeta: { color: '#64748B', fontSize: 12 },
+  appsList: { gap: 8 },
+
   logoutBtn: {
+    marginTop: 16,
     borderWidth: 1,
     borderColor: '#FECACA',
-    borderRadius: 11,
-    backgroundColor: '#FFF5F5',
-    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,245,245,0.95)',
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   logoutText: { color: '#B91C1C', fontWeight: '700' },
-  message: { textAlign: 'center', color: '#0E4AA4', fontWeight: '600' },
+  message: { textAlign: 'center', color: '#0E4AA4', fontWeight: '600', marginTop: 4 },
 });

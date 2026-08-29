@@ -25,24 +25,30 @@ import { mapAuthError } from '@/lib/mapAuthError';
 import { needsEmailVerification } from '@/lib/auth-email';
 import { sendAccountVerificationEmail } from '@/lib/auth-verification';
 import { createUserProfile } from '@/lib/user-profile';
+import { usePreferences } from '@/lib/preferences-context';
 
-const MIN_PASSWORD_LEN = 6;
+const MIN_PASSWORD_LEN = 8;
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { role } = useLocalSearchParams<{ role?: string }>();
+  const { t, locale } = usePreferences();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isEmployer = role === 'employer';
+  const isWelder = role === 'welder';
+
   const roleHint =
-    role === 'welder'
-      ? 'Rejestracja — konto spawacza'
-      : role === 'employer'
-        ? 'Rejestracja — firma / zlecenia'
-        : 'Załóż konto';
+    isWelder
+      ? t('auth.registerHintWelder')
+      : isEmployer
+        ? t('auth.registerHintEmployer')
+        : t('auth.registerHint');
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -55,20 +61,25 @@ export default function RegisterScreen() {
   const onRegister = useCallback(async () => {
     setError(null);
     const trimmed = email.trim();
+    const nameTrimmed = displayName.trim();
     if (!trimmed || !password || !confirm) {
-      setError('Wypełnij wszystkie pola.');
+      setError(t('auth.fillAll'));
+      return;
+    }
+    if ((isWelder || isEmployer) && !nameTrimmed) {
+      setError(isEmployer ? t('listing.needCompany') : t('listing.needName'));
       return;
     }
     if (password.length < MIN_PASSWORD_LEN) {
-      setError(`Hasło musi mieć co najmniej ${MIN_PASSWORD_LEN} znaków.`);
+      setError(t('auth.passwordMin', { n: MIN_PASSWORD_LEN }));
       return;
     }
     if (password !== confirm) {
-      setError('Hasła muszą być takie same.');
+      setError(t('auth.passwordsMismatch'));
       return;
     }
     if (!isFirebaseConfigured()) {
-      setError('Brak konfiguracji Firebase.');
+      setError(t('auth.firebaseMissing'));
       return;
     }
     if (Platform.OS !== 'web') {
@@ -76,13 +87,13 @@ export default function RegisterScreen() {
     }
     setBusy(true);
     try {
+      const accountRole = isEmployer ? 'employer' : 'welder';
       const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), trimmed, password);
-      await createUserProfile(
-        cred.user.uid,
-        role === 'employer' ? 'employer' : 'welder',
-        cred.user.emailVerified
-      );
-      const sent = await sendAccountVerificationEmail(cred.user);
+      await createUserProfile(cred.user.uid, accountRole, cred.user.emailVerified, {
+        fullName: isEmployer ? '' : nameTrimmed,
+        companyName: isEmployer ? nameTrimmed : '',
+      });
+      const sent = await sendAccountVerificationEmail(cred.user, locale);
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -95,11 +106,11 @@ export default function RegisterScreen() {
         router.replace('/(tabs)');
       }
     } catch (e) {
-      setError(mapAuthError(e));
+      setError(mapAuthError(e, locale));
     } finally {
       setBusy(false);
     }
-  }, [email, password, confirm, role, router]);
+  }, [email, password, confirm, displayName, isEmployer, isWelder, locale, router, t]);
 
   return (
     <>
@@ -122,14 +133,33 @@ export default function RegisterScreen() {
                   style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
                   <MaterialIcons name="arrow-back" size={22} color={C.text} />
                 </Pressable>
-                <Text style={styles.topTitle}>Rejestracja</Text>
+                <Text style={styles.topTitle}>{t('auth.registerTitle')}</Text>
                 <View style={styles.topSpacer} />
               </View>
 
               <Text style={styles.hint}>{roleHint}</Text>
 
               <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
-                <Text style={styles.label}>E-mail</Text>
+                {(isWelder || isEmployer) ? (
+                  <>
+                    <Text style={styles.label}>{isEmployer ? t('account.companyName') : t('account.fullName')}</Text>
+                    <TextInput
+                      style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
+                      placeholder={
+                        isEmployer ? t('auth.companyPlaceholder') : t('auth.namePlaceholder')
+                      }
+                      placeholderTextColor={C.placeholder}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                      value={displayName}
+                      onChangeText={setDisplayName}
+                      editable={!busy}
+                    />
+                    <Text style={[styles.label, styles.labelSpaced]}>{t('auth.email')}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.label}>{t('auth.email')}</Text>
+                )}
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder="twoj@email.pl"
@@ -144,10 +174,10 @@ export default function RegisterScreen() {
                   editable={!busy}
                 />
 
-                <Text style={[styles.label, styles.labelSpaced]}>Hasło</Text>
+                <Text style={[styles.label, styles.labelSpaced]}>{t('auth.password')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
-                  placeholder={`min. ${MIN_PASSWORD_LEN} znaków`}
+                  placeholder={t('auth.passwordMinPlaceholder', { n: MIN_PASSWORD_LEN })}
                   placeholderTextColor={C.placeholder}
                   secureTextEntry
                   autoComplete="new-password"
@@ -157,10 +187,10 @@ export default function RegisterScreen() {
                   editable={!busy}
                 />
 
-                <Text style={[styles.label, styles.labelSpaced]}>Powtórz hasło</Text>
+                <Text style={[styles.label, styles.labelSpaced]}>{t('auth.confirmPassword')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
-                  placeholder="powtórz hasło"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   placeholderTextColor={C.placeholder}
                   secureTextEntry
                   autoComplete="new-password"
@@ -187,13 +217,13 @@ export default function RegisterScreen() {
                   {busy ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Utwórz konto</Text>
+                    <Text style={styles.primaryBtnText}>{t('auth.register')}</Text>
                   )}
                 </Pressable>
 
                 <View style={styles.dividerRow}>
                   <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
-                  <Text style={[styles.dividerText, { color: C.muted }]}>lub</Text>
+                  <Text style={[styles.dividerText, { color: C.muted }]}>{t('auth.or')}</Text>
                   <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
                 </View>
 
@@ -205,7 +235,7 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.loginRow}>
-                <Text style={[styles.loginLead, { color: C.muted }]}>Masz już konto? </Text>
+                <Text style={[styles.loginLead, { color: C.muted }]}>{t('auth.hasAccount')} </Text>
                 <Pressable
                   onPress={() =>
                     router.replace({
@@ -213,7 +243,7 @@ export default function RegisterScreen() {
                       ...(role === 'welder' || role === 'employer' ? { params: { role } } : {}),
                     })
                   }>
-                  <Text style={[styles.loginLink, { color: C.primary }]}>Zaloguj się</Text>
+                  <Text style={[styles.loginLink, { color: C.primary }]}>{t('auth.login')}</Text>
                 </Pressable>
               </View>
             </ScrollView>
