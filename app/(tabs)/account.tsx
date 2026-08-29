@@ -12,10 +12,12 @@ import { uploadUserAvatar } from '@/lib/avatarStorage';
 import { clearExpoPushToken } from '@/lib/expo-push';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import type { ListingApplication } from '@/lib/listing-applications';
+import { usePreferences } from '@/lib/preferences-context';
 import { useUserConversations } from '@/lib/use-chat';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
 import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
+import type { AppColors } from '@/lib/theme';
 
 const ROLE_LABEL_PL: Record<'welder' | 'employer', string> = {
   welder: 'Spawacz',
@@ -34,22 +36,24 @@ function NavRow({
   label,
   badge,
   onPress,
+  colors,
 }: {
   icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
   badge?: number;
   onPress: () => void;
+  colors: AppColors;
 }) {
   return (
     <Pressable style={styles.navRow} onPress={onPress}>
-      <MaterialIcons name={icon} size={20} color="#0E4AA4" />
-      <Text style={styles.navRowText}>{label}</Text>
+      <MaterialIcons name={icon} size={20} color={colors.primary} />
+      <Text style={[styles.navRowText, { color: colors.text }]}>{label}</Text>
       {badge && badge > 0 ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
         </View>
       ) : null}
-      <MaterialIcons name="chevron-right" size={20} color="#94A3B8" />
+      <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
     </Pressable>
   );
 }
@@ -59,6 +63,7 @@ export default function AccountScreen() {
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
   const { uid, profile } = useCurrentUserProfile();
+  const { colors, t, theme } = usePreferences();
   const { unreadCount: messagesUnreadCount } = useUserConversations(uid ?? undefined);
   const { unreadCount: notifUnreadCount } = useInAppNotifications(uid ?? undefined);
   const { applications: myApplications, loading: loadingMyApplications } = useApplicationsByApplicant(
@@ -165,14 +170,22 @@ export default function AccountScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={['#0A2F6B', '#E8EEF7']} locations={[0, 0.36]} style={styles.bgGlow} />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <LinearGradient
+        colors={
+          theme === 'dark'
+            ? (['#1C1917', '#0C0A09'] as const)
+            : (['#9A3412', '#F4F1EA'] as const)
+        }
+        locations={[0, 0.36]}
+        style={styles.bgGlow}
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <View style={styles.headerTextCol}>
-              <Text style={styles.headerTitle}>Konto</Text>
-              <Text style={styles.headerSub}>{user?.email ?? 'Nie zalogowano'}</Text>
+              <Text style={styles.headerTitle}>{t('account.title')}</Text>
+              <Text style={styles.headerSub}>{user?.email ?? '—'}</Text>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleBadgeText}>{ROLE_LABEL_PL[profile.role]}</Text>
               </View>
@@ -181,8 +194,8 @@ export default function AccountScreen() {
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <MaterialIcons name="photo-camera" size={20} color="#0F172A" />
+                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.card }]}>
+                  <MaterialIcons name="photo-camera" size={20} color={colors.text} />
                 </View>
               )}
               {avatarUploading ? (
@@ -193,92 +206,95 @@ export default function AccountScreen() {
             </Pressable>
           </View>
 
-          <Text style={styles.sectionTitle}>Skróty</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.shortcuts')}</Text>
           <NavRow
             icon="notifications-none"
-            label="Centrum powiadomień"
+            label={t('account.notifications')}
             badge={notifUnreadCount}
             onPress={() => router.push('/notifications' as never)}
+            colors={colors}
           />
           <NavRow
             icon="chat-bubble-outline"
-            label="Wiadomości"
+            label={t('account.messages')}
             badge={messagesUnreadCount}
             onPress={() => router.push('/(tabs)/messages' as never)}
+            colors={colors}
           />
           {uid ? (
             <NavRow
               icon="visibility"
-              label="Profil publiczny"
+              label={t('account.publicProfile')}
               onPress={() => router.push({ pathname: '/user/[id]', params: { id: uid } })}
+              colors={colors}
             />
           ) : null}
 
           <View style={styles.divider} />
 
-          <Text style={styles.sectionTitle}>Profil</Text>
-          <Text style={styles.hint}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.profile')}</Text>
+          <Text style={[styles.hint, { color: colors.textSoft }]}>
             {isEmployer
               ? 'Nazwa firmy trafia automatycznie na Twoje ogłoszenia. Możesz ją zmienić tutaj.'
               : 'Imię i nazwisko trafia automatycznie na Twoje ogłoszenia.'}
           </Text>
           <TextInput
-            style={[styles.input, styles.bioInput]}
+            style={[styles.input, styles.bioInput, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={publicBio}
             onChangeText={(v) => {
               setIsEditing(true);
               setPublicBio(v);
             }}
-            placeholder="Krótki opis (doświadczenie, specjalizacja…)"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.bio')}
+            placeholderTextColor={colors.textSoft}
             multiline
           />
           {isEmployer ? (
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
               value={companyName}
               onChangeText={(v) => {
                 setIsEditing(true);
                 setCompanyName(v);
               }}
-              placeholder="Nazwa firmy *"
-              placeholderTextColor="#94A3B8"
+              placeholder={t('account.companyName')}
+              placeholderTextColor={colors.textSoft}
             />
           ) : null}
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={fullName}
             onChangeText={(v) => {
               setIsEditing(true);
               setFullName(v);
             }}
-            placeholder={isEmployer ? 'Osoba kontaktowa (opcjonalnie)' : 'Imię i nazwisko *'}
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.fullName')}
+            placeholderTextColor={colors.textSoft}
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={phone}
             onChangeText={(v) => {
               setIsEditing(true);
               setPhone(v);
             }}
-            placeholder="Telefon"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.phone')}
+            placeholderTextColor={colors.textSoft}
             keyboardType="phone-pad"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.text }]}
             value={city}
             onChangeText={(v) => {
               setIsEditing(true);
               setCity(v);
             }}
-            placeholder="Miasto"
-            placeholderTextColor="#94A3B8"
+            placeholder={t('account.city')}
+            placeholderTextColor={colors.textSoft}
           />
-          <Pressable style={styles.saveBtn} onPress={onSave}>
+          <Pressable style={[styles.saveBtn, { backgroundColor: colors.primary }]} onPress={onSave}>
             <MaterialIcons name="save" size={18} color="#FFFFFF" />
-            <Text style={styles.saveBtnText}>Zapisz profil</Text>
+            <Text style={styles.saveBtnText}>{t('account.saveProfile')}</Text>
           </Pressable>
 
           <View style={styles.divider} />

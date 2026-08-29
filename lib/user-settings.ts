@@ -2,7 +2,9 @@ import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/fires
 import { useEffect, useState } from 'react';
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
+import { isAppLocale, translate, type AppLocale } from '@/lib/i18n';
 import type { ListingIntent, WorkMode } from '@/lib/market-listings';
+import type { AppThemeMode } from '@/lib/theme';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
 export type SettingsRadius = '25 km' | '50 km' | '100 km' | 'Cała Polska';
@@ -28,6 +30,10 @@ export type UserSettings = {
   preferredModes: WorkMode[];
   /** Ukryj własne ogłoszenia w domyślnym widoku rynku. */
   hideOwnInFeed: boolean;
+  /** Motyw aplikacji (jasny / ciemny). */
+  theme: AppThemeMode;
+  /** Język UI: pl / en / de / da. */
+  locale: AppLocale;
 };
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -43,6 +49,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   minRate: 0,
   preferredModes: [],
   hideOwnInFeed: false,
+  theme: 'light',
+  locale: 'pl',
 };
 
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
@@ -67,6 +75,9 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
       : 'all';
   const minRate = typeof data.minRate === 'number' && Number.isFinite(data.minRate) ? Math.max(0, data.minRate) : 0;
 
+  const theme: AppThemeMode = data.theme === 'dark' ? 'dark' : 'light';
+  const locale: AppLocale = isAppLocale(data.locale) ? data.locale : DEFAULT_SETTINGS.locale;
+
   return {
     baseCity: typeof data.baseCity === 'string' ? data.baseCity : '',
     radius:
@@ -86,6 +97,8 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
     minRate,
     preferredModes: normalizeModes(data.preferredModes),
     hideOwnInFeed: data.hideOwnInFeed === true,
+    theme,
+    locale,
   };
 }
 
@@ -120,11 +133,18 @@ export function wantsAnyPush(settings: UserSettings): boolean {
   return settings.notifNewJobs || settings.notifMessages || settings.notifApplications;
 }
 
-export function formatRateLabel(rateMin: number, rateMax: number, showGrossRate: boolean): string {
-  const suffix = showGrossRate ? 'PLN/h brutto' : 'PLN/h netto';
+export function formatRateLabel(
+  rateMin: number,
+  rateMax: number,
+  showGrossRate: boolean,
+  locale: AppLocale = 'pl'
+): string {
+  const suffix = showGrossRate
+    ? translate(locale, 'common.rateGross')
+    : translate(locale, 'common.rateNet');
   const min = Number.isFinite(rateMin) ? rateMin : 0;
   const max = Number.isFinite(rateMax) ? rateMax : 0;
-  if (min <= 0 && max <= 0) return 'Stawka do uzgodnienia';
+  if (min <= 0 && max <= 0) return translate(locale, 'common.rateNegotiable');
   if (min > 0 && max > 0 && min !== max) return `${min}-${max} ${suffix}`;
   const single = min > 0 ? min : max;
   return `${single} ${suffix}`;

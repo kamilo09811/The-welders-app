@@ -17,14 +17,13 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-listings';
 import { isQuickListing } from '@/lib/market-listings';
 import { matchesLocationPreference } from '@/lib/pl-cities';
+import { usePreferences } from '@/lib/preferences-context';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
-import {
-  formatRateLabel,
-  useUserSettings,
-  type SettingsSort,
-} from '@/lib/user-settings';
+import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
+import type { AppLocale } from '@/lib/i18n';
+import type { AppColors } from '@/lib/theme';
 
 type Role = 'welder' | 'employer';
 
@@ -40,24 +39,29 @@ const chipsType: ('Wszystkie' | ListingType)[] = [
   'Umowa zlecenie',
 ];
 const chipsIntent: ('Wszystkie' | ListingIntent)[] = ['Wszystkie', 'offer', 'seek'];
-const INTENT_LABEL: Record<ListingIntent, string> = {
-  offer: 'Oferuję',
-  seek: 'Poszukuję',
-};
 
-function wynikSlowo(n: number): string {
-  const abs = Math.abs(n);
-  if (abs === 1) return 'wynik';
-  const mod10 = abs % 10;
-  const mod100 = abs % 100;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'wyniki';
-  return 'wyników';
-}
-
-function Chip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+function Chip({
+  active,
+  label,
+  onPress,
+  colors,
+}: {
+  active: boolean;
+  label: string;
+  onPress: () => void;
+  colors: AppColors;
+}) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.chip,
+        { borderColor: colors.border, backgroundColor: colors.card },
+        active && { backgroundColor: colors.primary, borderColor: colors.primary },
+      ]}>
+      <Text style={[styles.chipText, { color: colors.textMuted }, active && { color: '#FFFFFF' }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -72,39 +76,65 @@ function ListingRow({
   item,
   role,
   showGrossRate,
+  locale,
+  colors,
+  t,
   onPress,
 }: {
   item: MarketListing;
   role: Role;
   showGrossRate: boolean;
+  locale: AppLocale;
+  colors: AppColors;
+  t: (key: 'market.quickJob' | 'market.applyCta' | 'market.detailsCta' | 'market.joinQuick' | 'market.awarded' | 'settings.intentOffer' | 'settings.intentSeek' | 'listing.publisher') => string;
   onPress: () => void;
 }) {
   const quick = isQuickListing(item);
+  const intentLabel =
+    item.intent === 'offer' ? t('settings.intentOffer') : t('settings.intentSeek');
   return (
-    <Pressable style={[styles.listingRow, quick && styles.listingRowQuick]} onPress={onPress}>
+    <Pressable
+      style={[
+        styles.listingRow,
+        { borderBottomColor: colors.border },
+        quick && { backgroundColor: colors.warningSoft, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, borderBottomWidth: 0 },
+      ]}
+      onPress={onPress}>
       <View style={styles.listingTop}>
         <View style={styles.listingBadges}>
           {quick ? (
-            <Text style={[styles.metaBadge, styles.quickBadge]}>Szybkie zlecenie</Text>
+            <Text style={[styles.metaBadge, { color: colors.warning, backgroundColor: colors.warningSoft }]}>
+              {t('market.quickJob')}
+            </Text>
           ) : (
-            <Text style={styles.metaBadge}>{item.type}</Text>
+            <Text style={[styles.metaBadge, { color: colors.chipText, backgroundColor: colors.chip }]}>
+              {item.type}
+            </Text>
           )}
-          <Text style={[styles.metaBadge, styles.intentBadge]}>{INTENT_LABEL[item.intent]}</Text>
+          <Text style={[styles.metaBadge, { color: colors.warning, backgroundColor: colors.warningSoft }]}>
+            {intentLabel}
+          </Text>
           {quick && item.durationHint ? (
-            <Text style={[styles.metaBadge, styles.durationBadge]}>{item.durationHint}</Text>
+            <Text style={[styles.metaBadge, { color: colors.success, backgroundColor: colors.successSoft }]}>
+              {item.durationHint}
+            </Text>
           ) : null}
         </View>
-        <Text style={styles.listingRate}>{formatRateLabel(item.rateMin, item.rateMax, showGrossRate)}</Text>
+        <Text style={[styles.listingRate, { color: colors.primary }]}>
+          {formatRateLabel(item.rateMin, item.rateMax, showGrossRate, locale)}
+        </Text>
       </View>
-      <Text style={styles.listingTitle}>{item.title}</Text>
-      <Text style={styles.listingCompany}>{item.company || 'Ogłoszenie prywatne'}</Text>
+      <Text style={[styles.listingTitle, { color: colors.text }]}>{item.title}</Text>
+      <Text style={[styles.listingCompany, { color: colors.textMuted }]}>
+        {item.company || t('listing.publisher')}
+      </Text>
       <View style={styles.metaRow}>
-        <MaterialIcons name="place" size={15} color="#64748B" />
-        <Text style={styles.metaText}>{item.location}</Text>
-        <Text style={styles.metaDot}>·</Text>
-        <Text style={styles.metaText}>{item.mode}</Text>
-        <Text style={styles.metaDot}>·</Text>
-        <Text style={styles.metaText}>{hoursAgoLabel(item.createdAt)}</Text>
+        <MaterialIcons name="place" size={15} color={colors.textSoft} />
+        <Text style={[styles.metaText, { color: colors.textSoft }]}>{item.location}</Text>
+        <Text style={[styles.metaDot, { color: colors.textSoft }]}>·</Text>
+        <Text style={[styles.metaText, { color: colors.textSoft }]}>{item.mode}</Text>
+        <Text style={[styles.metaDot, { color: colors.textSoft }]}>·</Text>
+        <Text style={[styles.metaText, { color: colors.textSoft }]}>{hoursAgoLabel(item.createdAt)}</Text>
       </View>
       {quick ? (
         <View style={styles.quickSlotsRow}>
@@ -113,20 +143,20 @@ function ListingRow({
       ) : item.tags.length > 0 ? (
         <View style={styles.tagsWrap}>
           {item.tags.slice(0, 4).map((tag) => (
-            <Text key={tag} style={styles.tagText}>
+            <Text key={tag} style={[styles.tagText, { color: colors.textSoft }]}>
               {tag}
             </Text>
           ))}
         </View>
       ) : null}
-      <Text style={styles.listingCta}>
+      <Text style={[styles.listingCta, { color: colors.primary }]}>
         {quick
           ? item.quickStatus === 'awarded'
-            ? 'Rozstrzygnięte — zobacz →'
-            : 'Dołącz do mikrolicytacji →'
+            ? t('market.awarded')
+            : t('market.joinQuick')
           : role === 'welder'
-            ? 'Zobacz i aplikuj →'
-            : 'Zobacz szczegóły →'}
+            ? t('market.applyCta')
+            : t('market.detailsCta')}
       </Text>
     </Pressable>
   );
@@ -135,7 +165,7 @@ function ListingRow({
 export default function MarketplaceScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
-  const { settings, loading: settingsLoading } = useUserSettings();
+  const { settings, loading: settingsLoading, colors, t, locale, theme } = usePreferences();
   const { listings, loading } = useMarketListings();
   const authorIds = useMemo(() => listings.map((i) => i.authorId), [listings]);
   const { verifiedByAuthor, loading: verifiedLoading } = useAuthorsEmailVerified(
@@ -154,11 +184,23 @@ export default function MarketplaceScreen() {
   const prefsSeeded = useRef(false);
 
   useEffect(() => {
-    if (settingsLoading || prefsSeeded.current) return;
-    prefsSeeded.current = true;
-    setSort(settings.defaultSort);
-    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
+    if (settingsLoading) return;
+    if (!prefsSeeded.current) {
+      prefsSeeded.current = true;
+      setSort(settings.defaultSort);
+      setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
+    }
   }, [settings.defaultSort, settings.preferredIntent, settingsLoading]);
+
+  useEffect(() => {
+    if (!prefsSeeded.current || settingsLoading) return;
+    setSort(settings.defaultSort);
+  }, [settings.defaultSort, settingsLoading]);
+
+  useEffect(() => {
+    if (!prefsSeeded.current || settingsLoading) return;
+    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
+  }, [settings.preferredIntent, settingsLoading]);
 
   const chipsLocation = useMemo(() => {
     const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) =>
@@ -262,8 +304,16 @@ export default function MarketplaceScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={['#0A2F6B', '#0E4AA4', '#E8EEF7']} locations={[0, 0.28, 0.55]} style={styles.bgGlow} />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <LinearGradient
+        colors={
+          theme === 'dark'
+            ? (['#1C1917', '#431407', '#0C0A09'] as const)
+            : (['#9A3412', '#C2410C', '#F4F1EA'] as const)
+        }
+        locations={[0, 0.28, 0.55]}
+        style={styles.bgGlow}
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
@@ -281,35 +331,35 @@ export default function MarketplaceScreen() {
               </View>
             </View>
             <Text style={styles.title}>
-              {role === 'welder' ? 'Oferty dla spawaczy' : 'Zlecenia i kandydaci'}
+              {role === 'welder' ? t('market.titleWelder') : t('market.titleEmployer')}
             </Text>
-            <Text style={styles.subtitle}>Szukaj po tytule, mieście lub tagu — reszta filtrów w jednym miejscu.</Text>
-            <Pressable style={styles.addBtn} onPress={() => router.push('/listing/new')}>
-              <MaterialIcons name="add" size={18} color="#0E4AA4" />
-              <Text style={styles.addBtnText}>Dodaj ogłoszenie</Text>
+            <Text style={styles.subtitle}>{t('market.subtitle')}</Text>
+            <Pressable style={[styles.addBtn, { backgroundColor: colors.card }]} onPress={() => router.push('/listing/new')}>
+              <MaterialIcons name="add" size={18} color={colors.primary} />
+              <Text style={[styles.addBtnText, { color: colors.primary }]}>{t('market.addListing')}</Text>
             </Pressable>
           </View>
 
           <View style={styles.quickBar}>
-            <View style={styles.searchField}>
-              <MaterialIcons name="search" size={20} color="#64748B" />
+            <View style={[styles.searchField, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MaterialIcons name="search" size={20} color={colors.textSoft} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.text }]}
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Szukaj ofert…"
-                placeholderTextColor="#94A3B8"
+                placeholder={t('market.searchPlaceholder')}
+                placeholderTextColor={colors.textSoft}
                 returnKeyType="search"
               />
               {query ? (
                 <Pressable onPress={() => setQuery('')} hitSlop={8}>
-                  <MaterialIcons name="close" size={18} color="#94A3B8" />
+                  <MaterialIcons name="close" size={18} color={colors.textSoft} />
                 </Pressable>
               ) : null}
             </View>
-            <Pressable style={styles.filtersBtn} onPress={() => setFiltersOpen(true)}>
+            <Pressable style={[styles.filtersBtn, { backgroundColor: colors.primary }]} onPress={() => setFiltersOpen(true)}>
               <MaterialIcons name="tune" size={18} color="#FFFFFF" />
-              <Text style={styles.filtersBtnText}>Filtry</Text>
+              <Text style={styles.filtersBtnText}>{t('market.filters')}</Text>
               {activeFilterCount > 0 ? (
                 <View style={styles.filtersCount}>
                   <Text style={styles.filtersCountText}>{activeFilterCount}</Text>
@@ -320,8 +370,7 @@ export default function MarketplaceScreen() {
 
           {settings.baseCity.trim() || settings.onlyVerified || settings.minRate > 0 ? (
             <Pressable style={styles.prefsLine} onPress={() => router.push('/(tabs)/explore')}>
-              <Text style={styles.prefsLineText} numberOfLines={1}>
-                Preferencje:{' '}
+              <Text style={[styles.prefsLineText, { color: colors.textMuted }]} numberOfLines={1}>
                 {[
                   settings.baseCity.trim()
                     ? settings.radius === 'Cała Polska'
@@ -329,28 +378,30 @@ export default function MarketplaceScreen() {
                       : `${settings.baseCity.trim()} · ${settings.radius}`
                     : '',
                   settings.minRate > 0 ? `min. ${settings.minRate} PLN/h` : '',
-                  settings.onlyVerified ? 'tylko zweryfikowani' : '',
+                  settings.onlyVerified ? t('settings.onlyVerified') : '',
                 ]
                   .filter(Boolean)
                   .join(' · ')}
               </Text>
-              <MaterialIcons name="chevron-right" size={18} color="#64748B" />
+              <MaterialIcons name="chevron-right" size={18} color={colors.textSoft} />
             </Pressable>
           ) : null}
 
-          <Text style={styles.resultsLabel}>
-            {filtered.length} {wynikSlowo(filtered.length)}
+          <Text style={[styles.resultsLabel, { color: colors.text }]}>
+            {filtered.length} {t('market.results')}
           </Text>
 
           {loading || (settings.onlyVerified && verifiedLoading) ? (
-            <Text style={styles.emptyText}>Ładowanie ogłoszeń…</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : filtered.length === 0 ? (
             <View style={styles.emptyBlock}>
-              <Text style={styles.emptyTitle}>Brak wyników</Text>
-              <Text style={styles.emptyText}>Zmień wyszukiwanie albo otwórz filtry.</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('market.empty')}</Text>
+              <Pressable onPress={() => router.push('/(tabs)/explore')}>
+                <Text style={[styles.resetLink, { color: colors.primary }]}>{t('market.goToSettings')}</Text>
+              </Pressable>
               {activeFilterCount > 0 ? (
                 <Pressable onPress={resetFilters}>
-                  <Text style={styles.resetLink}>Wyczyść filtry</Text>
+                  <Text style={[styles.resetLink, { color: colors.primary }]}>{t('common.cancel')}</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -361,6 +412,9 @@ export default function MarketplaceScreen() {
                 item={item}
                 role={role}
                 showGrossRate={settings.showGrossRate}
+                locale={locale}
+                colors={colors}
+                t={t}
                 onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
               />
             ))
@@ -369,54 +423,100 @@ export default function MarketplaceScreen() {
       </SafeAreaView>
 
       <Modal visible={filtersOpen} animationType="slide" transparent onRequestClose={() => setFiltersOpen(false)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setFiltersOpen(false)} />
-        <View style={styles.sheet}>
-          <View style={styles.sheetHandle} />
+        <Pressable style={[styles.sheetBackdrop, { backgroundColor: colors.overlay }]} onPress={() => setFiltersOpen(false)} />
+        <View style={[styles.sheet, { backgroundColor: colors.bgElevated }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.borderStrong }]} />
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Filtry</Text>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('market.filters')}</Text>
             <Pressable onPress={resetFilters}>
-              <Text style={styles.resetLink}>Wyczyść</Text>
+              <Text style={[styles.resetLink, { color: colors.primary }]}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
-            <Text style={styles.sheetSection}>Lokalizacja</Text>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.section.location')}</Text>
             <View style={styles.chipWrap}>
               {chipsLocation.map((c) => (
-                <Chip key={c} label={c} active={location === c} onPress={() => setLocation(c)} />
+                <Chip
+                  key={c}
+                  label={c === 'Wszystkie' ? t('settings.intentAll') : c}
+                  active={location === c}
+                  onPress={() => setLocation(c)}
+                  colors={colors}
+                />
               ))}
             </View>
-            <Text style={styles.sheetSection}>Forma współpracy</Text>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.preferredModes')}</Text>
             <View style={styles.chipWrap}>
               {chipsType.map((c) => (
-                <Chip key={c} label={c} active={type === c} onPress={() => setType(c)} />
+                <Chip
+                  key={c}
+                  label={c === 'Wszystkie' ? t('settings.intentAll') : c}
+                  active={type === c}
+                  onPress={() => setType(c)}
+                  colors={colors}
+                />
               ))}
             </View>
-            <Text style={styles.sheetSection}>Intencja</Text>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.preferredIntent')}</Text>
             <View style={styles.chipWrap}>
               {chipsIntent.map((c) => (
                 <Chip
                   key={c}
-                  label={c === 'Wszystkie' ? 'Wszystkie' : INTENT_LABEL[c]}
+                  label={
+                    c === 'Wszystkie'
+                      ? t('settings.intentAll')
+                      : c === 'offer'
+                        ? t('settings.intentOffer')
+                        : t('settings.intentSeek')
+                  }
                   active={intent === c}
                   onPress={() => setIntent(c)}
+                  colors={colors}
                 />
               ))}
             </View>
-            <Text style={styles.sheetSection}>Sortowanie</Text>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.defaultSort')}</Text>
             <View style={styles.chipWrap}>
-              <Chip label="Najnowsze" active={sort === 'newest'} onPress={() => setSort('newest')} />
-              <Chip label="Stawka ↓" active={sort === 'rateDesc'} onPress={() => setSort('rateDesc')} />
-              <Chip label="Stawka ↑" active={sort === 'rateAsc'} onPress={() => setSort('rateAsc')} />
+              <Chip
+                label={t('settings.sortNewest')}
+                active={sort === 'newest'}
+                onPress={() => setSort('newest')}
+                colors={colors}
+              />
+              <Chip
+                label={t('settings.sortRateDesc')}
+                active={sort === 'rateDesc'}
+                onPress={() => setSort('rateDesc')}
+                colors={colors}
+              />
+              <Chip
+                label={t('settings.sortRateAsc')}
+                active={sort === 'rateAsc'}
+                onPress={() => setSort('rateAsc')}
+                colors={colors}
+              />
             </View>
-            <Text style={styles.sheetSection}>Widok</Text>
+            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.hideOwn')}</Text>
             <View style={styles.chipWrap}>
-              <Chip label="Wszystkie" active={!onlyMine} onPress={() => setOnlyMine(false)} />
-              <Chip label="Moje ogłoszenia" active={onlyMine} onPress={() => setOnlyMine(true)} />
+              <Chip
+                label={t('settings.intentAll')}
+                active={!onlyMine}
+                onPress={() => setOnlyMine(false)}
+                colors={colors}
+              />
+              <Chip
+                label={t('market.myListings')}
+                active={onlyMine}
+                onPress={() => setOnlyMine(true)}
+                colors={colors}
+              />
             </View>
           </ScrollView>
-          <Pressable style={styles.sheetApply} onPress={() => setFiltersOpen(false)}>
+          <Pressable
+            style={[styles.sheetApply, { backgroundColor: colors.primary }]}
+            onPress={() => setFiltersOpen(false)}>
             <Text style={styles.sheetApplyText}>
-              Pokaż {filtered.length} {wynikSlowo(filtered.length)}
+              {filtered.length} {t('market.results')}
             </Text>
           </Pressable>
         </View>

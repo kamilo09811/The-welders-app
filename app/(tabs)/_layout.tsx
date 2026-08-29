@@ -4,8 +4,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { usePreferences } from '@/lib/preferences-context';
 import { useUserConversations } from '@/lib/use-chat';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
@@ -41,41 +40,45 @@ function MessagesTabIcon({ color }: { color: string }) {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors, t } = usePreferences();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#0E4AA4',
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabInactive,
+        tabBarStyle: {
+          backgroundColor: colors.bgElevated,
+          borderTopColor: colors.border,
+        },
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Rynek',
+          title: t('tabs.market'),
           tabBarIcon: ({ color }) => <MaterialIcons size={24} name="work-outline" color={color} />,
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Czaty',
+          title: t('tabs.chats'),
           tabBarIcon: ({ color }) => <MessagesTabIcon color={color} />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
-          title: 'Konto',
+          title: t('tabs.account'),
           tabBarIcon: ({ color }) => <MaterialIcons size={24} name="person-outline" color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Ustawienia',
+          title: t('tabs.settings'),
           tabBarIcon: ({ color }) => <MaterialIcons size={24} name="settings" color={color} />,
         }}
       />

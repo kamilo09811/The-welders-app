@@ -20,7 +20,8 @@ import {
 } from '@/lib/market-listings';
 import { useListingApplications, useMyListingApplication } from '@/lib/use-listing-applications';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
-import { formatRateLabel, useUserSettings } from '@/lib/user-settings';
+import { formatRateLabel } from '@/lib/user-settings';
+import { usePreferences } from '@/lib/preferences-context';
 import { useMarketListing } from '@/lib/use-market-listings';
 
 const STATUS_LABEL: Record<ListingApplication['status'], string> = {
@@ -35,7 +36,7 @@ export default function ListingDetailsScreen() {
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
-  const { settings } = useUserSettings();
+  const { settings, locale } = usePreferences();
   const { listing, loading: loadingListing } = useMarketListing(id);
 
   const isAuthor = Boolean(uid && listing && listing.authorId === uid);
@@ -244,7 +245,7 @@ export default function ListingDetailsScreen() {
 
                 <Text style={styles.rateLabel}>
                   {quick ? 'Budżet / stawka: ' : 'Stawka: '}
-                  {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate)}
+                  {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate, locale)}
                 </Text>
 
                 {listing.tags.length > 0 ? (

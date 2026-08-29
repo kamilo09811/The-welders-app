@@ -21,17 +21,19 @@ import {
   setConversationMuted,
   type ChatConversation,
 } from '@/lib/chat';
+import { localeToBcp47 } from '@/lib/i18n';
+import { usePreferences } from '@/lib/preferences-context';
 import { useUserConversations } from '@/lib/use-chat';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
 
-function formatListTime(d: Date | null): string {
+function formatListTime(d: Date | null, localeTag: string): string {
   if (!d) return '';
   const now = new Date();
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  if (sameDay) return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  if (sameDay) return d.toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit' });
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (
@@ -39,9 +41,9 @@ function formatListTime(d: Date | null): string {
     d.getMonth() === yesterday.getMonth() &&
     d.getDate() === yesterday.getDate()
   ) {
-    return 'Wczoraj';
+    return '—';
   }
-  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(localeTag, { day: 'numeric', month: 'short' });
 }
 
 function previewLabel(text: string, uid: string | undefined, senderId: string): string {
@@ -59,6 +61,8 @@ type Props = {
 export function MessagesInbox({ showBack = false }: Props) {
   const router = useRouter();
   const { uid } = useCurrentUserProfile();
+  const { colors, t, locale, theme } = usePreferences();
+  const localeTag = localeToBcp47(locale);
   const { conversations, loading, unreadCount } = useUserConversations(uid ?? undefined);
   const [resolvedNames, setResolvedNames] = useState<Record<string, string>>({});
   const [resolvedAvatars, setResolvedAvatars] = useState<Record<string, string>>({});
@@ -187,7 +191,7 @@ export function MessagesInbox({ showBack = false }: Props) {
                 {otherName}
               </Text>
               <Text style={[styles.rowTime, unread && styles.rowTimeUnread]}>
-                {formatListTime(c.lastMessageAt)}
+                {formatListTime(c.lastMessageAt, localeTag)}
               </Text>
             </View>
 
@@ -225,12 +229,20 @@ export function MessagesInbox({ showBack = false }: Props) {
       router,
       onLongPressRow,
       visibleConversations.length,
+      localeTag,
+      colors,
     ]
   );
 
   const listHeader = (
     <View style={styles.topBlock}>
-      <LinearGradient colors={['#0B3A82', '#0E4AA4', '#1A6AD4']} style={styles.hero}>
+      <LinearGradient
+        colors={
+          theme === 'dark'
+            ? (['#1C1917', '#431407', '#292524'] as const)
+            : (['#9A3412', '#C2410C', '#EA580C'] as const)
+        }
+        style={styles.hero}>
         <View style={styles.heroRow}>
           {showBack ? (
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -238,28 +250,28 @@ export function MessagesInbox({ showBack = false }: Props) {
             </Pressable>
           ) : null}
           <View style={styles.heroTextCol}>
-            <Text style={styles.heroTitle}>Czaty</Text>
+            <Text style={styles.heroTitle}>{t('chats.title')}</Text>
             <Text style={styles.heroSub}>
               {loading
-                ? 'Ładowanie…'
+                ? t('common.loading')
                 : unreadCount > 0
-                  ? `${unreadCount} nieprzeczytanych`
+                  ? `${unreadCount} ${t('chats.unread')}`
                   : conversations.length === 0
-                    ? 'Brak aktywnych rozmów'
+                    ? t('chats.noneActive')
                     : `${conversations.length} ${conversations.length === 1 ? 'rozmowa' : 'rozmów'}`}
             </Text>
           </View>
         </View>
       </LinearGradient>
 
-      <View style={styles.searchWrap}>
-        <MaterialIcons name="search" size={20} color="#64748B" />
+      <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <MaterialIcons name="search" size={20} color={colors.textSoft} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Szukaj rozmów…"
-          placeholderTextColor="#94A3B8"
+          placeholder={t('chats.search')}
+          placeholderTextColor={colors.textSoft}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -277,7 +289,7 @@ export function MessagesInbox({ showBack = false }: Props) {
     <View style={styles.empty}>
       {loading ? (
         <>
-          <ActivityIndicator color="#0E4AA4" />
+          <ActivityIndicator color={colors.primary} />
           <Text style={styles.emptyTitle}>Ładowanie rozmów</Text>
         </>
       ) : searchQuery.trim() ? (
@@ -293,7 +305,7 @@ export function MessagesInbox({ showBack = false }: Props) {
           <View style={styles.emptyIcon}>
             <MaterialIcons name="forum" size={28} color="#0E4AA4" />
           </View>
-          <Text style={styles.emptyTitle}>Tu pojawią się Twoje rozmowy</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.empty')}</Text>
           <Text style={styles.emptySub}>
             Otwórz ogłoszenie na Rynku i napisz do drugiej strony — wątek wpadnie na tę listę.
           </Text>
@@ -307,7 +319,7 @@ export function MessagesInbox({ showBack = false }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
       <FlatList
         data={loading ? [] : visibleConversations}
         keyExtractor={(c) => c.id}
