@@ -9,6 +9,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApplicationListItem } from '@/components/application-list-item';
+import { TrustBadge } from '@/components/trust-badge';
 import { uploadUserAvatar } from '@/lib/avatarStorage';
 import { clearExpoPushToken } from '@/lib/expo-push';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
@@ -18,6 +19,7 @@ import { getHeaderGradient } from '@/lib/theme';
 import { useUserConversations } from '@/lib/use-chat';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
+import { usePublicProfileOnce } from '@/lib/use-public-profile';
 import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
 
 function NavRow({
@@ -53,7 +55,7 @@ export default function AccountScreen() {
   const user = auth.currentUser;
   const { uid, profile } = useCurrentUserProfile();
   const { colors, t, theme, locale } = usePreferences();
-  const { unreadCount: messagesUnreadCount } = useUserConversations(uid ?? undefined);
+  const { profile: publicSelf } = usePublicProfileOnce(uid ?? undefined);  const { unreadCount: messagesUnreadCount } = useUserConversations(uid ?? undefined);
   const { unreadCount: notifUnreadCount } = useInAppNotifications(uid ?? undefined);
   const { applications: myApplications, loading: loadingMyApplications } = useApplicationsByApplicant(
     uid ?? undefined
@@ -209,6 +211,22 @@ export default function AccountScreen() {
               onPress={() => router.push({ pathname: '/user/[id]', params: { id: uid } })}
               colors={colors}
             />
+          ) : null}
+          {publicSelf && publicSelf.ratingCount > 0 ? (
+            <Pressable
+              style={[styles.trustCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push({ pathname: '/user/[id]', params: { id: uid! } })}>
+              <Text style={[styles.trustLabel, { color: colors.textMuted }]}>
+                {t('account.yourRating')}
+              </Text>
+              <TrustBadge
+                average={publicSelf.ratingAverage}
+                count={publicSelf.ratingCount}
+                locale={locale}
+                colors={colors}
+                size={18}
+              />
+            </Pressable>
           ) : null}
 
           <View style={styles.divider} />
@@ -453,6 +471,14 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { color: '#FFFFFF', fontWeight: '700' },
   appsList: { gap: 8 },
+  trustCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginTop: 4,
+  },
+  trustLabel: { fontSize: 12, fontWeight: '700' },
 
   logoutBtn: {
     marginTop: 16,

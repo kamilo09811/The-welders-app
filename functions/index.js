@@ -12,7 +12,7 @@
  * Wymaga planu Blaze (wywołania sieciowe do api.expo.dev).
  */
 const admin = require('firebase-admin');
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { Expo } = require('expo-server-sdk');
 
 admin.initializeApp();
@@ -421,5 +421,38 @@ exports.onInAppNotificationPush = onDocumentCreated(
     } catch (e) {
       console.error(e);
     }
+  }
+);
+
+/**
+ * Po zapisie / usunięciu opinii — przelicz ratingAverage i ratingCount na users/{userId}.
+ * (Klient nie może aktualizować cudzego profilu; Admin SDK omija reguły.)
+ */
+exports.onUserReviewWrite = onDocumentWritten(
+  {
+    document: 'users/{userId}/reviews/{reviewId}',
+    region: 'europe-west1',
+  },
+  async (event) => {
+    const userId = event.params.userId;
+    const snap = await db.collection('users').doc(userId).collection('reviews').get();
+    let sum = 0;
+    let count = 0;
+    snap.forEach((docSnap) => {
+      const r = docSnap.data()?.rating;
+      if (typeof r === 'number' && r >= 1 && r <= 5) {
+        sum += r;
+        count += 1;
+      }
+    });
+    const ratingAverage = count ? Math.round((sum / count) * 10) / 10 : 0;
+    await db.doc(`users/${userId}`).set(
+      {
+        ratingAverage,
+        ratingCount: count,
+        ratingUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 );

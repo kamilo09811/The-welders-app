@@ -80,14 +80,19 @@ function validNotificationReadUpdate() {
 }
 
 function validReviewWrite(userId) {
+  let d = request.resource.data;
   return request.auth.uid != userId
-    && request.auth.uid == request.resource.data.reviewerId
-    && request.resource.data.rating is number
-    && request.resource.data.rating >= 1
-    && request.resource.data.rating <= 5
-    && request.resource.data.reviewerName is string
-    && request.resource.data.text is string
-    && request.resource.data.text.size() <= 2000;
+    && request.auth.uid == d.reviewerId
+    && d.keys().hasAll(['reviewerId', 'reviewerName', 'rating', 'text'])
+    && d.rating is number
+    && d.rating >= 1
+    && d.rating <= 5
+    && d.rating == int(d.rating)
+    && d.reviewerName is string
+    && d.reviewerName.size() > 0
+    && d.reviewerName.size() <= 80
+    && d.text is string
+    && d.text.size() <= 2000;
 }
 
 function isQuickSlotSelfJoin() {

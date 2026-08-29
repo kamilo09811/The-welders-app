@@ -384,6 +384,14 @@ export type TranslationKey =
   | 'chats.goToMarket'
   | 'chats.newBadge'
   | 'common.userFallback'
+  | 'profile.rateLocked'
+  | 'profile.updateReview'
+  | 'profile.deleteReview'
+  | 'profile.reviewDeleted'
+  | 'profile.yourReview'
+  | 'profile.noEligibility'
+  | 'profile.trustTitle'
+  | 'account.yourRating'
   | 'auth.logout';
 
 type Dict = Record<TranslationKey, string>;
@@ -767,6 +775,14 @@ const pl: Dict = {
   'chats.goToMarket': "Przejdź do Rynku",
   'chats.newBadge': "Nowe",
   'common.userFallback': "Użytkownik",
+  'profile.rateLocked': "Możesz ocenić dopiero po zaakceptowanej współpracy (zgłoszenie).",
+  'profile.updateReview': "Zaktualizuj opinię",
+  'profile.deleteReview': "Usuń opinię",
+  'profile.reviewDeleted': "Opinia usunięta.",
+  'profile.yourReview': "Twoja opinia",
+  'profile.noEligibility': "Brak wspólnej współpracy — ocena niedostępna.",
+  'profile.trustTitle': "Zaufanie",
+  'account.yourRating': "Twoja ocena publiczna",
   'auth.logout': 'Wyloguj',
 };
 
@@ -1150,6 +1166,14 @@ const en: Dict = {
   'chats.goToMarket': "Go to Market",
   'chats.newBadge': "New",
   'common.userFallback': "User",
+  'profile.rateLocked': "You can rate only after an accepted collaboration (application).",
+  'profile.updateReview': "Update review",
+  'profile.deleteReview': "Delete review",
+  'profile.reviewDeleted': "Review deleted.",
+  'profile.yourReview': "Your review",
+  'profile.noEligibility': "No shared collaboration — rating unavailable.",
+  'profile.trustTitle': "Trust",
+  'account.yourRating': "Your public rating",
   'auth.logout': 'Sign out',
 };
 
@@ -1533,6 +1557,14 @@ const de: Dict = {
   'chats.goToMarket': "Zum Markt",
   'chats.newBadge': "Neu",
   'common.userFallback': "Benutzer",
+  'profile.rateLocked': "Bewertung erst nach akzeptierter Zusammenarbeit möglich.",
+  'profile.updateReview': "Bewertung aktualisieren",
+  'profile.deleteReview': "Bewertung löschen",
+  'profile.reviewDeleted': "Bewertung gelöscht.",
+  'profile.yourReview': "Deine Bewertung",
+  'profile.noEligibility': "Keine gemeinsame Zusammenarbeit — Bewertung nicht möglich.",
+  'profile.trustTitle': "Vertrauen",
+  'account.yourRating': "Deine öffentliche Bewertung",
   'auth.logout': 'Abmelden',
 };
 
@@ -1916,6 +1948,14 @@ const da: Dict = {
   'chats.goToMarket': "Gå til Marked",
   'chats.newBadge': "Ny",
   'common.userFallback': "Bruger",
+  'profile.rateLocked': "Du kan kun bedømme efter accepteret samarbejde (ansøgning).",
+  'profile.updateReview': "Opdater anmeldelse",
+  'profile.deleteReview': "Slet anmeldelse",
+  'profile.reviewDeleted': "Anmeldelse slettet.",
+  'profile.yourReview': "Din anmeldelse",
+  'profile.noEligibility': "Intet fælles samarbejde — bedømmelse utilgængelig.",
+  'profile.trustTitle': "Tillid",
+  'account.yourRating': "Din offentlige bedømmelse",
   'auth.logout': 'Log ud',
 };
 

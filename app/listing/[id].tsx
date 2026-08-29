@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
+import { TrustBadge } from '@/components/trust-badge';
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
 import { createOrGetConversation } from '@/lib/chat';
 import { localeToBcp47 } from '@/lib/i18n';
@@ -32,15 +33,17 @@ import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
 import { formatRateLabel } from '@/lib/user-settings';
 import { usePreferences } from '@/lib/preferences-context';
 import { useMarketListing } from '@/lib/use-market-listings';
+import { usePublicProfileOnce } from '@/lib/use-public-profile';
 
 export default function ListingDetailsScreen() {
   const router = useRouter();
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
-  const { settings, locale, t } = usePreferences();
+  const { settings, locale, t, colors } = usePreferences();
   const localeTag = localeToBcp47(locale);
   const { listing, loading: loadingListing } = useMarketListing(id);
+  const { profile: authorProfile } = usePublicProfileOnce(listing?.authorId);
 
   const isAuthor = Boolean(uid && listing && listing.authorId === uid);
   const quick = isQuickListing(listing);
@@ -242,7 +245,24 @@ export default function ListingDetailsScreen() {
                   ) : null}
                 </View>
                 <Text style={styles.title}>{listing.title}</Text>
-                <Text style={styles.company}>{listing.company || t('listing.privateListing')}</Text>
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/user/[id]', params: { id: listing.authorId } })
+                  }>
+                  <Text style={styles.company}>{listing.company || t('listing.privateListing')}</Text>
+                  {authorProfile ? (
+                    <View style={{ marginTop: 6 }}>
+                      <TrustBadge
+                        average={authorProfile.ratingAverage}
+                        count={authorProfile.ratingCount}
+                        locale={locale}
+                        colors={colors}
+                        size={14}
+                        compact
+                      />
+                    </View>
+                  ) : null}
+                </Pressable>
 
                 <View style={styles.metaRow}>
                   <MaterialIcons name="place" size={16} color="#64748B" />
@@ -442,6 +462,18 @@ export default function ListingDetailsScreen() {
                             }}>
                             <Text style={styles.secondaryBtnText}>{t('listing.openChat')}</Text>
                           </Pressable>
+                          {app.status === 'accepted' ? (
+                            <Pressable
+                              style={styles.secondaryBtn}
+                              onPress={() =>
+                                router.push({
+                                  pathname: '/user/[id]',
+                                  params: { id: app.applicantId },
+                                })
+                              }>
+                              <Text style={styles.secondaryBtnText}>{t('profile.rateUser')}</Text>
+                            </Pressable>
+                          ) : null}
                           {quick &&
                           listing.quickStatus !== 'awarded' &&
                           app.status !== 'rejected' ? (
