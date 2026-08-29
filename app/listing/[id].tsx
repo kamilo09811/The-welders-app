@@ -39,7 +39,7 @@ import { usePublicProfileOnce } from '@/lib/use-public-profile';
 
 export default function ListingDetailsScreen() {
   const router = useRouter();
-  const { id: idParam } = useLocalSearchParams<{ id?: string }>();
+  const { id: idParam, boost: boostParam } = useLocalSearchParams<{ id?: string; boost?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
   const { settings, locale, t, colors } = usePreferences();
@@ -55,6 +55,12 @@ export default function ListingDetailsScreen() {
   const [busySelect, setBusySelect] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [boostOpen, setBoostOpen] = useState(false);
+
+  useEffect(() => {
+    if (boostParam === '1' && isAuthor && listing) {
+      setBoostOpen(true);
+    }
+  }, [boostParam, isAuthor, listing?.id]);
   const { applications, loading: loadingApplications } = useListingApplications(
     listing?.id,
     listing?.authorId,
@@ -400,6 +406,7 @@ export default function ListingDetailsScreen() {
                     <MaterialIcons name="delete-outline" size={16} color="#B91C1C" />
                     <Text style={styles.deleteBtnText}>{t('listing.deleteListing')}</Text>
                   </Pressable>
+                  {feedback ? <Text style={styles.successText}>{feedback}</Text> : null}
                 </View>
               ) : null}
 

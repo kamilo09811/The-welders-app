@@ -400,6 +400,7 @@ export type TranslationKey =
   | 'boost.buy'
   | 'boost.mockNote'
   | 'boost.failed'
+  | 'boost.denied'
   | 'boost.success'
   | 'boost.cta'
   | 'boost.badge'
@@ -802,8 +803,9 @@ const pl: Dict = {
   'boost.popular': "Popularne",
   'boost.tierHint': "Więcej wyświetleń · badge „Wyróżnione”",
   'boost.buy': "Wykup booster",
-  'boost.mockNote': "MVP: płatność mock (bez App Store). Docelowo IAP / RevenueCat.",
-  'boost.failed': "Nie udało się aktywować boostera. Sprawdź połączenie i Cloud Functions.",
+  'boost.mockNote': "MVP: bezpłatny mock (działa od razu). Docelowo IAP / RevenueCat.",
+  'boost.failed': "Nie udało się aktywować boostera. Sprawdź połączenie.",
+  'boost.denied': "Brak uprawnień do promocji tego ogłoszenia. Wdróż zaktualizowane reguły Firestore.",
   'boost.success': "Booster aktywny na {days} dni.",
   'boost.cta': "Wypromuj",
   'boost.badge': "Wyróżnione",
@@ -1206,8 +1208,9 @@ const en: Dict = {
   'boost.popular': "Popular",
   'boost.tierHint': "More views · “Featured” badge",
   'boost.buy': "Buy booster",
-  'boost.mockNote': "MVP: mock payment (no App Store yet). Later: IAP / RevenueCat.",
-  'boost.failed': "Could not activate the booster. Check connection and Cloud Functions.",
+  'boost.mockNote': "MVP: free mock (works immediately). Later: IAP / RevenueCat.",
+  'boost.failed': "Could not activate the booster. Check your connection.",
+  'boost.denied': "No permission to promote this listing. Deploy updated Firestore rules.",
   'boost.success': "Booster active for {days} days.",
   'boost.cta': "Promote",
   'boost.badge': "Featured",
@@ -1610,8 +1613,9 @@ const de: Dict = {
   'boost.popular': "Beliebt",
   'boost.tierHint': "Mehr Aufrufe · Badge „Hervorgehoben“",
   'boost.buy': "Booster kaufen",
-  'boost.mockNote': "MVP: Mock-Zahlung (noch kein App Store). Später: IAP / RevenueCat.",
+  'boost.mockNote': "MVP: kostenloser Mock (sofort). Später: IAP / RevenueCat.",
   'boost.failed': "Booster konnte nicht aktiviert werden.",
+  'boost.denied': "Keine Berechtigung. Bitte Firestore-Regeln deployen.",
   'boost.success': "Booster aktiv für {days} Tage.",
   'boost.cta': "Boosten",
   'boost.badge': "Hervorgehoben",
@@ -2014,8 +2018,9 @@ const da: Dict = {
   'boost.popular': "Populær",
   'boost.tierHint': "Flere visninger · “Fremhævet”-badge",
   'boost.buy': "Køb booster",
-  'boost.mockNote': "MVP: mock-betaling (ingen App Store endnu). Senere: IAP / RevenueCat.",
+  'boost.mockNote': "MVP: gratis mock (virker med det samme). Senere: IAP / RevenueCat.",
   'boost.failed': "Kunne ikke aktivere booster.",
+  'boost.denied': "Ingen tilladelse. Deploy opdaterede Firestore-regler.",
   'boost.success': "Booster aktiv i {days} dage.",
   'boost.cta': "Promovér",
   'boost.badge': "Fremhævet",

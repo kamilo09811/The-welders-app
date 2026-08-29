@@ -22,6 +22,7 @@ import { getHeroGradient } from '@/lib/theme';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
 import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
+import { BoostListingSheet } from '@/components/boost-listing-sheet';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import type { AppLocale } from '@/lib/i18n';
 import {
@@ -91,7 +92,9 @@ function ListingRow({
   locale,
   colors,
   t,
+  isOwn,
   onPress,
+  onBoost,
 }: {
   item: MarketListing;
   role: Role;
@@ -99,7 +102,9 @@ function ListingRow({
   locale: AppLocale;
   colors: AppColors;
   t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
+  isOwn?: boolean;
   onPress: () => void;
+  onBoost?: () => void;
 }) {
   const quick = isQuickListing(item);
   const boosted = isListingBoosted(item);
@@ -167,15 +172,30 @@ function ListingRow({
           ))}
         </View>
       ) : null}
-      <Text style={[styles.listingCta, { color: colors.primary }]}>
-        {quick
-          ? item.quickStatus === 'awarded'
-            ? t('market.awarded')
-            : t('market.joinQuick')
-          : role === 'welder'
-            ? t('market.applyCta')
-            : t('market.detailsCta')}
-      </Text>
+      {isOwn && onBoost ? (
+        <Pressable
+          style={[styles.rowBoostBtn, { backgroundColor: colors.primary }]}
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onBoost();
+          }}
+          hitSlop={6}>
+          <MaterialIcons name="rocket-launch" size={15} color="#FFFFFF" />
+          <Text style={styles.rowBoostText}>
+            {boosted ? t('boost.extend') : t('boost.cta')}
+          </Text>
+        </Pressable>
+      ) : (
+        <Text style={[styles.listingCta, { color: colors.primary }]}>
+          {quick
+            ? item.quickStatus === 'awarded'
+              ? t('market.awarded')
+              : t('market.joinQuick')
+            : role === 'welder'
+              ? t('market.applyCta')
+              : t('market.detailsCta')}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -194,6 +214,8 @@ export default function MarketplaceScreen() {
 
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [boostListingId, setBoostListingId] = useState<string | null>(null);
+  const [boostFeedback, setBoostFeedback] = useState<string | null>(null);
   const [location, setLocation] = useState('Wszystkie');
   const [type, setType] = useState<'Wszystkie' | ListingType>('Wszystkie');
   const [intent, setIntent] = useState<'Wszystkie' | ListingIntent>('Wszystkie');
@@ -467,12 +489,35 @@ export default function MarketplaceScreen() {
                 locale={locale}
                 colors={colors}
                 t={t}
+                isOwn={Boolean(uid && item.authorId === uid)}
                 onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
+                onBoost={
+                  uid && item.authorId === uid
+                    ? () => setBoostListingId(item.id)
+                    : undefined
+                }
               />
             ))
           )}
+          {boostFeedback ? (
+            <Text style={[styles.emptyText, { color: colors.success }]}>{boostFeedback}</Text>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
+
+      {boostListingId ? (
+        <BoostListingSheet
+          visible
+          listingId={boostListingId}
+          colors={colors}
+          t={t}
+          onClose={() => setBoostListingId(null)}
+          onSuccess={(message) => {
+            setBoostFeedback(message);
+            setTimeout(() => setBoostFeedback(null), 4000);
+          }}
+        />
+      ) : null}
 
       <Modal visible={filtersOpen} animationType="slide" transparent onRequestClose={() => setFiltersOpen(false)}>
         <Pressable style={[styles.sheetBackdrop, { backgroundColor: colors.overlay }]} onPress={() => setFiltersOpen(false)} />
@@ -759,6 +804,17 @@ const styles = StyleSheet.create({
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
   tagText: { color: '#64748B', fontSize: 11, fontWeight: '600' },
   listingCta: { color: '#0E4AA4', fontWeight: '700', fontSize: 12, marginTop: 4 },
+  rowBoostBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  rowBoostText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
 
   emptyBlock: { paddingVertical: 28, gap: 6 },
   emptyTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800' },

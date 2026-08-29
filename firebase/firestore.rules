@@ -107,6 +107,19 @@ function listingCreateHasNoBoost() {
     && !('boostProductId' in request.resource.data);
 }
 
+// MVP mock: autor może ustawić tylko pola boost (bez CF). Po IAP zaostrzyć / usunąć.
+function validListingBoostSelfUpdate() {
+  let before = resource.data;
+  let after = request.resource.data;
+  return after.authorId == before.authorId
+    && after.diff(before).affectedKeys()
+      .hasOnly(['boostedUntil', 'boostTier', 'boostedAt', 'boostProductId', 'updatedAt'])
+    && after.boostTier in ['3d', '7d', '14d']
+    && after.boostedUntil is timestamp
+    && after.boostedUntil > request.time
+    && after.boostedUntil <= request.time + duration.value(90, 'd');
+}
+
 function isQuickSlotSelfJoin() {
   // Kandydat może tylko dopisać siebie do quickSlots (1 miejsce).
   let before = resource.data;
@@ -179,10 +192,19 @@ service cloud.firestore {
         && request.resource.data.title is string
         && listingCreateHasNoBoost();
       allow update: if isSignedIn()
-        && listingBoostFieldsUntouched()
         && (
-          request.auth.uid == resource.data.authorId
-          || isQuickSlotSelfJoin()
+          (
+            request.auth.uid == resource.data.authorId
+            && listingBoostFieldsUntouched()
+          )
+          || (
+            request.auth.uid == resource.data.authorId
+            && validListingBoostSelfUpdate()
+          )
+          || (
+            isQuickSlotSelfJoin()
+            && listingBoostFieldsUntouched()
+          )
         );
       allow delete: if isSignedIn()
         && request.auth.uid == resource.data.authorId;

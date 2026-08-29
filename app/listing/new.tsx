@@ -157,7 +157,7 @@ export default function NewListingScreen() {
         authorId: uid,
         durationHint: isQuick ? durationHint : undefined,
       });
-      router.replace({ pathname: '/listing/[id]', params: { id: listingId } });
+      router.replace({ pathname: '/listing/[id]', params: { id: listingId, boost: '1' } });
     } catch {
       setMessage(t('listing.saveFailed'));
     } finally {

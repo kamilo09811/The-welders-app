@@ -59,7 +59,10 @@ Po sukcesie:
   - `onUserReviewWrite` — przelicza `ratingAverage` / `ratingCount` na profilu po opinii
   - `boostListing` — wykup boostera ogłoszenia (MVP: `mockPurchase`; klient nie może pisać pól boost)
 - Klient nie może tworzyć dokumentów w `users/.../notifications` (tylko Cloud Functions).
-- Pola `boostedUntil` / `boostTier` / `boostedAt` / `boostProductId` na `listings` są blokowane w regułach — zapis tylko przez Admin SDK (Cloud Function).
+- Pola `boostedUntil` / `boostTier` / `boostedAt` / `boostProductId` na `listings`:
+  - preferowany zapis przez Cloud Function `boostListing`
+  - MVP fallback: autor może zapisać te pola sam (reguła `validListingBoostSelfUpdate`) gdy CF nie jest wdrożona
+  - po podłączeniu IAP usuń fallback i zostaw tylko CF
 
 Jesli pojawi sie **401 / invalid authentication**: uruchom ponownie `firebase login` i sprobuj deploy jeszcze raz.
 
