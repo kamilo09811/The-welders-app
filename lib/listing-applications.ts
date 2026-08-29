@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
+import { getListing } from '@/lib/market-listings';
 import type { AccountRole, UserProfile } from '@/lib/user-profile';
 
 export type ListingApplication = {
@@ -84,7 +85,16 @@ export async function createApplication(input: CreateApplicationInput) {
   if (!input.listingId || !input.applicantId) {
     throw new Error('Brak identyfikatorów zgłoszenia.');
   }
-  if (input.authorId === input.applicantId) {
+
+  // authorId z serwera — reguły wymagają zgodności z listings/{id}.authorId
+  const listing = await getListing(input.listingId);
+  if (!listing) {
+    throw new Error('Ogłoszenie nie istnieje lub zostało usunięte.');
+  }
+  if (!listing.authorId) {
+    throw new Error('Ogłoszenie ma niekompletne dane autora — nie można aplikować.');
+  }
+  if (listing.authorId === input.applicantId) {
     throw new Error('Nie możesz aplikować na własne ogłoszenie.');
   }
 
@@ -93,35 +103,42 @@ export async function createApplication(input: CreateApplicationInput) {
   // (brak resource.data), stąd fałszywe "missing permission".
   const id = applicationDocId(input.listingId, input.applicantId);
   const ref = doc(getFirebaseFirestore(), APPLICATIONS_COLLECTION, id);
-  const legacySnap = await getDocs(
-    query(
-      collection(getFirebaseFirestore(), APPLICATIONS_COLLECTION),
-      where('listingId', '==', input.listingId),
-      where('applicantId', '==', input.applicantId),
-      limit(1)
-    )
-  );
-  if (!legacySnap.empty) {
-    throw new Error('Już aplikowałeś na to ogłoszenie.');
+  try {
+    const legacySnap = await getDocs(
+      query(
+        collection(getFirebaseFirestore(), APPLICATIONS_COLLECTION),
+        where('listingId', '==', input.listingId),
+        where('applicantId', '==', input.applicantId),
+        limit(1)
+      )
+    );
+    if (!legacySnap.empty) {
+      throw new Error('Już aplikowałeś na to ogłoszenie.');
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Już aplikowałeś')) {
+      throw error;
+    }
+    // Brak indeksu / chwilowy błąd list — i tak chroni deterministyczne ID + reguły update.
   }
 
   try {
     await setDoc(ref, {
       listingId: input.listingId,
-      listingTitle: input.listingTitle,
-      authorId: input.authorId,
+      listingTitle: listing.title || input.listingTitle,
+      authorId: listing.authorId,
       applicantId: input.applicantId,
       applicantRole: input.applicantRole,
       applicantName: input.applicantProfile.fullName || 'Użytkownik',
       applicantPhone: input.applicantProfile.phone || '',
-      message: input.message.trim(),
+      message: input.message.trim() || 'Jestem zainteresowany/a tym ogłoszeniem.',
       status: 'new',
       createdAt: serverTimestamp(),
     });
   } catch (error) {
     if (isPermissionDenied(error)) {
       throw new Error(
-        'Brak uprawnień do wysłania zgłoszenia. Upewnij się, że jesteś zalogowany i nie aplikujesz na własne ogłoszenie.'
+        'Brak uprawnień do wysłania zgłoszenia. Zdeployuj najnowsze reguły Firestore i upewnij się, że nie aplikujesz na własne ogłoszenie.'
       );
     }
     throw error;

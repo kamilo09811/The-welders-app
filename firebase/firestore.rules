@@ -24,7 +24,9 @@ function onlyChatConversationMetaFields() {
   ]);
 }
 
-function validConversationCreate() {
+// Uwaga: `database` trzeba przekazać z match /databases/{database}/...
+// — w helperach poza match `$(database)` bywa niezwiązane i exists/get zawsze failuje.
+function validConversationCreate(database) {
   let d = request.resource.data;
   return d.keys().hasAll(['listingId', 'participantIds', 'pairKey'])
     && d.listingId is string
@@ -41,8 +43,9 @@ function validConversationCreate() {
     && exists(/databases/$(database)/documents/listings/$(d.listingId));
 }
 
-function validApplicationCreate() {
+function validApplicationCreate(database) {
   let d = request.resource.data;
+  let listingPath = /databases/$(database)/documents/listings/$(d.listingId);
   return d.keys().hasAll(['listingId', 'listingTitle', 'authorId', 'applicantId', 'status', 'message'])
     && d.listingId is string
     && d.listingId.size() > 0
@@ -55,8 +58,8 @@ function validApplicationCreate() {
     && d.status == 'new'
     && d.message is string
     && d.message.size() <= 2000
-    && exists(/databases/$(database)/documents/listings/$(d.listingId))
-    && get(/databases/$(database)/documents/listings/$(d.listingId)).data.authorId == d.authorId;
+    && exists(listingPath)
+    && get(listingPath).data.authorId == d.authorId;
 }
 
 function validApplicationStatusUpdate() {
@@ -152,7 +155,7 @@ service cloud.firestore {
       allow list: if isSignedIn()
         && (request.auth.uid == resource.data.applicantId
             || request.auth.uid == resource.data.authorId);
-      allow create: if isSignedIn() && validApplicationCreate();
+      allow create: if isSignedIn() && validApplicationCreate(database);
       allow update: if isSignedIn()
         && request.auth.uid == resource.data.authorId
         && validApplicationStatusUpdate();
@@ -162,7 +165,7 @@ service cloud.firestore {
     match /conversations/{conversationId} {
       allow read: if isSignedIn()
         && request.auth.uid in resource.data.participantIds;
-      allow create: if isSignedIn() && validConversationCreate();
+      allow create: if isSignedIn() && validConversationCreate(database);
       allow update: if isSignedIn()
         && request.auth.uid in resource.data.participantIds
         && onlyChatConversationMetaFields();
