@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import type { ListingIntent, ListingType, MarketListing, WorkMode } from '@/lib/market-listings';
-import { isQuickListing } from '@/lib/market-listings';
+import { isListingBoosted, isQuickListing } from '@/lib/market-listings';
 import { matchesLocationPreference } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
 import { getHeroGradient } from '@/lib/theme';
@@ -102,6 +102,7 @@ function ListingRow({
   onPress: () => void;
 }) {
   const quick = isQuickListing(item);
+  const boosted = isListingBoosted(item);
   const intentLabel = listingIntentShort(item.intent, t);
   return (
     <Pressable
@@ -109,10 +110,16 @@ function ListingRow({
         styles.listingRow,
         { borderBottomColor: colors.border },
         quick && { backgroundColor: colors.warningSoft, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, borderBottomWidth: 0 },
+        boosted && !quick && { backgroundColor: colors.primaryMuted, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, borderBottomWidth: 0 },
       ]}
       onPress={onPress}>
       <View style={styles.listingTop}>
         <View style={styles.listingBadges}>
+          {boosted ? (
+            <Text style={[styles.metaBadge, { color: colors.primary, backgroundColor: colors.primaryMuted }]}>
+              {t('boost.badge')}
+            </Text>
+          ) : null}
           {quick ? (
             <Text style={[styles.metaBadge, { color: colors.warning, backgroundColor: colors.warningSoft }]}>
               {t('market.quickJob')}
@@ -292,6 +299,9 @@ export default function MarketplaceScreen() {
       : afterQuery;
 
     return [...afterVerified].sort((a, b) => {
+      const aBoost = isListingBoosted(a) ? 1 : 0;
+      const bBoost = isListingBoosted(b) ? 1 : 0;
+      if (aBoost !== bBoost) return bBoost - aBoost;
       if (sort === 'rateAsc') return effectiveRate(a) - effectiveRate(b);
       if (sort === 'rateDesc') return effectiveRate(b) - effectiveRate(a);
       return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);

@@ -95,7 +95,18 @@ function validReviewWrite(userId) {
     && d.text.size() <= 2000;
 }
 
-function isQuickSlotSelfJoin() {
+function listingBoostFieldsUntouched() {
+  return !request.resource.data.diff(resource.data).affectedKeys()
+    .hasAny(['boostedUntil', 'boostTier', 'boostedAt', 'boostProductId']);
+}
+
+function listingCreateHasNoBoost() {
+  return !('boostedUntil' in request.resource.data)
+    && !('boostTier' in request.resource.data)
+    && !('boostedAt' in request.resource.data)
+    && !('boostProductId' in request.resource.data);
+}
+
   // Kandydat może tylko dopisać siebie do quickSlots (1 miejsce).
   let before = resource.data;
   let after = request.resource.data;
@@ -164,8 +175,10 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.auth.uid == request.resource.data.authorId
         && request.resource.data.authorId is string
-        && request.resource.data.title is string;
+        && request.resource.data.title is string
+        && listingCreateHasNoBoost();
       allow update: if isSignedIn()
+        && listingBoostFieldsUntouched()
         && (
           request.auth.uid == resource.data.authorId
           || isQuickSlotSelfJoin()

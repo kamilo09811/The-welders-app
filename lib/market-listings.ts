@@ -54,6 +54,10 @@ export type MarketListing = {
   targetRole: AccountRole;
   authorId: string;
   createdAt: Date | null;
+  /** Koniec aktywnego boostera (promocja w feedzie). */
+  boostedUntil?: Date | null;
+  boostTier?: '3d' | '7d' | '14d' | null;
+  boostedAt?: Date | null;
   /** Tylko kind=quick */
   quickStatus?: QuickListingStatus;
   quickSlots?: QuickSlots;
@@ -64,9 +68,21 @@ export type MarketListing = {
 
 type FirestoreListing = Omit<
   MarketListing,
-  'id' | 'createdAt' | 'quickSlots' | 'kind' | 'quickStatus' | 'selectedApplicantId' | 'durationHint'
+  | 'id'
+  | 'createdAt'
+  | 'quickSlots'
+  | 'kind'
+  | 'quickStatus'
+  | 'selectedApplicantId'
+  | 'durationHint'
+  | 'boostedUntil'
+  | 'boostTier'
+  | 'boostedAt'
 > & {
   createdAt?: Timestamp;
+  boostedUntil?: Timestamp | null;
+  boostTier?: string | null;
+  boostedAt?: Timestamp | null;
   kind?: ListingKind | string;
   quickStatus?: QuickListingStatus | string;
   selectedApplicantId?: string;
@@ -171,6 +187,13 @@ function normalizeListing(id: string, data: FirestoreListing): MarketListing {
       listing.durationHint = data.durationHint.trim();
     }
   }
+  const boostedUntil = data.boostedUntil?.toDate?.() ?? null;
+  if (boostedUntil) listing.boostedUntil = boostedUntil;
+  if (data.boostTier === '3d' || data.boostTier === '7d' || data.boostTier === '14d') {
+    listing.boostTier = data.boostTier;
+  }
+  const boostedAt = data.boostedAt?.toDate?.() ?? null;
+  if (boostedAt) listing.boostedAt = boostedAt;
   return listing;
 }
 
@@ -180,6 +203,15 @@ function listingRef(id: string) {
 
 export function isQuickListing(listing: Pick<MarketListing, 'kind'> | null | undefined): boolean {
   return listing?.kind === 'quick';
+}
+
+/** Czy booster jest aktywny (promocja w feedzie). */
+export function isListingBoosted(
+  listing: Pick<MarketListing, 'boostedUntil'> | null | undefined,
+  now = Date.now()
+): boolean {
+  const until = listing?.boostedUntil?.getTime?.() ?? 0;
+  return until > now;
 }
 
 export function quickSlotsRemaining(listing: MarketListing): number {

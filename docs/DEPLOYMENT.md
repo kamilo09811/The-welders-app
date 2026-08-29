@@ -57,7 +57,9 @@ Po sukcesie:
   - `onApplicationCreatedNotify` / `onApplicationStatusNotify` / `onChatMessageNotify` — tworzą powiadomienia in-app
   - `onInAppNotificationPush` — Expo Push po utworzeniu in-app notification
   - `onUserReviewWrite` — przelicza `ratingAverage` / `ratingCount` na profilu po opinii
+  - `boostListing` — wykup boostera ogłoszenia (MVP: `mockPurchase`; klient nie może pisać pól boost)
 - Klient nie może tworzyć dokumentów w `users/.../notifications` (tylko Cloud Functions).
+- Pola `boostedUntil` / `boostTier` / `boostedAt` / `boostProductId` na `listings` są blokowane w regułach — zapis tylko przez Admin SDK (Cloud Function).
 
 Jesli pojawi sie **401 / invalid authentication**: uruchom ponownie `firebase login` i sprobuj deploy jeszcze raz.
 

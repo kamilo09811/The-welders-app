@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BoostListingSheet } from '@/components/boost-listing-sheet';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import { TrustBadge } from '@/components/trust-badge';
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
@@ -26,6 +27,7 @@ import {
 } from '@/lib/listing-applications';
 import {
   deleteListing,
+  isListingBoosted,
   isQuickListing,
 } from '@/lib/market-listings';
 import { useListingApplications, useMyListingApplication } from '@/lib/use-listing-applications';
@@ -47,10 +49,12 @@ export default function ListingDetailsScreen() {
 
   const isAuthor = Boolean(uid && listing && listing.authorId === uid);
   const quick = isQuickListing(listing);
+  const boosted = isListingBoosted(listing);
   const [applyMessage, setApplyMessage] = useState('');
   const [busyApply, setBusyApply] = useState(false);
   const [busySelect, setBusySelect] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [boostOpen, setBoostOpen] = useState(false);
   const { applications, loading: loadingApplications } = useListingApplications(
     listing?.id,
     listing?.authorId,
@@ -230,6 +234,9 @@ export default function ListingDetailsScreen() {
             <>
               <View style={[styles.card, quick && styles.cardQuick]}>
                 <View style={styles.typeRow}>
+                  {boosted ? (
+                    <Text style={[styles.type, styles.boostType]}>{t('boost.badge')}</Text>
+                  ) : null}
                   {quick ? (
                     <Text style={[styles.type, styles.quickType]}>{t('listing.quickDetailTitle')}</Text>
                   ) : (
@@ -244,6 +251,17 @@ export default function ListingDetailsScreen() {
                     </Text>
                   ) : null}
                 </View>
+                {boosted && listing.boostedUntil ? (
+                  <Text style={styles.boostUntil}>
+                    {t('boost.activeUntil', {
+                      date: listing.boostedUntil.toLocaleDateString(localeTag, {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      }),
+                    })}
+                  </Text>
+                ) : null}
                 <Text style={styles.title}>{listing.title}</Text>
                 <Pressable
                   onPress={() =>
@@ -362,6 +380,12 @@ export default function ListingDetailsScreen() {
 
               {isAuthor ? (
                 <View style={styles.ownerActions}>
+                  <Pressable style={styles.boostBtn} onPress={() => setBoostOpen(true)}>
+                    <MaterialIcons name="rocket-launch" size={16} color="#FFFFFF" />
+                    <Text style={styles.boostBtnText}>
+                      {boosted ? t('boost.extend') : t('boost.cta')}
+                    </Text>
+                  </Pressable>
                   {!quick ? (
                     <Pressable
                       style={styles.editBtn}
@@ -498,6 +522,16 @@ export default function ListingDetailsScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+      {listing ? (
+        <BoostListingSheet
+          visible={boostOpen}
+          listingId={listing.id}
+          colors={colors}
+          t={t}
+          onClose={() => setBoostOpen(false)}
+          onSuccess={(message) => setFeedback(message)}
+        />
+      ) : null}
     </>
   );
 }
@@ -551,6 +585,8 @@ const styles = StyleSheet.create({
   intentType: { backgroundColor: '#FFF7ED', color: '#C2410C' },
   quickType: { backgroundColor: '#FFEDD5', color: '#C2410C' },
   durationType: { backgroundColor: '#ECFDF5', color: '#047857' },
+  boostType: { backgroundColor: '#DBEAFE', color: '#0E4AA4' },
+  boostUntil: { fontSize: 12, color: '#0E4AA4', fontWeight: '600', marginTop: -2 },
   title: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   company: { fontSize: 15, color: '#334155' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -596,6 +632,16 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { color: '#0E4AA4', fontWeight: '700' },
   ownerActions: { gap: 8 },
+  boostBtn: {
+    backgroundColor: '#0E4AA4',
+    borderRadius: 11,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  boostBtnText: { color: '#FFFFFF', fontWeight: '800' },
   editBtn: {
     borderWidth: 1,
     borderColor: '#BFDBFE',

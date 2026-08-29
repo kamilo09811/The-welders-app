@@ -392,6 +392,19 @@ export type TranslationKey =
   | 'profile.noEligibility'
   | 'profile.trustTitle'
   | 'account.yourRating'
+  | 'boost.title'
+  | 'boost.subtitle'
+  | 'boost.days'
+  | 'boost.popular'
+  | 'boost.tierHint'
+  | 'boost.buy'
+  | 'boost.mockNote'
+  | 'boost.failed'
+  | 'boost.success'
+  | 'boost.cta'
+  | 'boost.badge'
+  | 'boost.activeUntil'
+  | 'boost.extend'
   | 'auth.logout';
 
 type Dict = Record<TranslationKey, string>;
@@ -783,6 +796,19 @@ const pl: Dict = {
   'profile.noEligibility': "Brak wspólnej współpracy — ocena niedostępna.",
   'profile.trustTitle': "Zaufanie",
   'account.yourRating': "Twoja ocena publiczna",
+  'boost.title': "Wypromuj ogłoszenie",
+  'boost.subtitle': "Booster wypycha Twoje ogłoszenie na górę rynku na wybrany czas.",
+  'boost.days': "{n} dni",
+  'boost.popular': "Popularne",
+  'boost.tierHint': "Więcej wyświetleń · badge „Wyróżnione”",
+  'boost.buy': "Wykup booster",
+  'boost.mockNote': "MVP: płatność mock (bez App Store). Docelowo IAP / RevenueCat.",
+  'boost.failed': "Nie udało się aktywować boostera. Sprawdź połączenie i Cloud Functions.",
+  'boost.success': "Booster aktywny na {days} dni.",
+  'boost.cta': "Wypromuj",
+  'boost.badge': "Wyróżnione",
+  'boost.activeUntil': "Wyróżnione do {date}",
+  'boost.extend': "Przedłuż booster",
   'auth.logout': 'Wyloguj',
 };
 
@@ -1174,6 +1200,19 @@ const en: Dict = {
   'profile.noEligibility': "No shared collaboration — rating unavailable.",
   'profile.trustTitle': "Trust",
   'account.yourRating': "Your public rating",
+  'boost.title': "Promote listing",
+  'boost.subtitle': "A booster pushes your listing to the top of the market for a set time.",
+  'boost.days': "{n} days",
+  'boost.popular': "Popular",
+  'boost.tierHint': "More views · “Featured” badge",
+  'boost.buy': "Buy booster",
+  'boost.mockNote': "MVP: mock payment (no App Store yet). Later: IAP / RevenueCat.",
+  'boost.failed': "Could not activate the booster. Check connection and Cloud Functions.",
+  'boost.success': "Booster active for {days} days.",
+  'boost.cta': "Promote",
+  'boost.badge': "Featured",
+  'boost.activeUntil': "Featured until {date}",
+  'boost.extend': "Extend booster",
   'auth.logout': 'Sign out',
 };
 
@@ -1565,6 +1604,19 @@ const de: Dict = {
   'profile.noEligibility': "Keine gemeinsame Zusammenarbeit — Bewertung nicht möglich.",
   'profile.trustTitle': "Vertrauen",
   'account.yourRating': "Deine öffentliche Bewertung",
+  'boost.title': "Anzeige boosten",
+  'boost.subtitle': "Ein Booster setzt deine Anzeige für begrenzte Zeit nach oben.",
+  'boost.days': "{n} Tage",
+  'boost.popular': "Beliebt",
+  'boost.tierHint': "Mehr Aufrufe · Badge „Hervorgehoben“",
+  'boost.buy': "Booster kaufen",
+  'boost.mockNote': "MVP: Mock-Zahlung (noch kein App Store). Später: IAP / RevenueCat.",
+  'boost.failed': "Booster konnte nicht aktiviert werden.",
+  'boost.success': "Booster aktiv für {days} Tage.",
+  'boost.cta': "Boosten",
+  'boost.badge': "Hervorgehoben",
+  'boost.activeUntil': "Hervorgehoben bis {date}",
+  'boost.extend': "Booster verlängern",
   'auth.logout': 'Abmelden',
 };
 
@@ -1956,6 +2008,19 @@ const da: Dict = {
   'profile.noEligibility': "Intet fælles samarbejde — bedømmelse utilgængelig.",
   'profile.trustTitle': "Tillid",
   'account.yourRating': "Din offentlige bedømmelse",
+  'boost.title': "Promovér opslag",
+  'boost.subtitle': "En booster flytter dit opslag øverst på markedet i en periode.",
+  'boost.days': "{n} dage",
+  'boost.popular': "Populær",
+  'boost.tierHint': "Flere visninger · “Fremhævet”-badge",
+  'boost.buy': "Køb booster",
+  'boost.mockNote': "MVP: mock-betaling (ingen App Store endnu). Senere: IAP / RevenueCat.",
+  'boost.failed': "Kunne ikke aktivere booster.",
+  'boost.success': "Booster aktiv i {days} dage.",
+  'boost.cta': "Promovér",
+  'boost.badge': "Fremhævet",
+  'boost.activeUntil': "Fremhævet til {date}",
+  'boost.extend': "Forlæng booster",
   'auth.logout': 'Log ud',
 };
 

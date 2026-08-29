@@ -13,6 +13,7 @@
  */
 const admin = require('firebase-admin');
 const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { Expo } = require('expo-server-sdk');
 
 admin.initializeApp();
@@ -456,3 +457,58 @@ exports.onUserReviewWrite = onDocumentWritten(
     );
   }
 );
+
+const BOOST_DAYS = { '3d': 3, '7d': 7, '14d': 14 };
+
+/**
+ * Wykup boostera ogłoszenia (MVP: mockPurchase bez prawdziwego IAP).
+ * Docelowo: weryfikacja RevenueCat / StoreKit przed tym samym zapisem.
+ */
+exports.boostListing = onCall({ region: 'europe-west1' }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'Sign in required');
+  }
+  const listingId = String(request.data?.listingId || '').trim();
+  const tier = String(request.data?.tier || '').trim();
+  const mockPurchase = request.data?.mockPurchase === true;
+  const days = BOOST_DAYS[tier];
+  if (!listingId || !days) {
+    throw new HttpsError('invalid-argument', 'listingId and tier (3d|7d|14d) required');
+  }
+  // MVP: tylko mock. Po podłączeniu IAP usuń ten warunek lub zamień na weryfikację receipt.
+  if (!mockPurchase) {
+    throw new HttpsError('failed-precondition', 'Real IAP not wired yet — use mockPurchase');
+  }
+
+  const ref = db.collection('listings').doc(listingId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'Listing not found');
+  }
+  const data = snap.data() || {};
+  if (data.authorId !== request.auth.uid) {
+    throw new HttpsError('permission-denied', 'Only the author can boost this listing');
+  }
+
+  const nowMs = Date.now();
+  const currentUntil = data.boostedUntil?.toDate?.()?.getTime?.() || 0;
+  const baseMs = Math.max(nowMs, currentUntil);
+  const boostedUntil = admin.firestore.Timestamp.fromMillis(baseMs + days * 24 * 60 * 60 * 1000);
+
+  await ref.set(
+    {
+      boostedUntil,
+      boostTier: tier,
+      boostProductId: `boost_${tier}`,
+      boostedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return {
+    ok: true,
+    tier,
+    boostedUntil: boostedUntil.toDate().toISOString(),
+  };
+});
