@@ -1,11 +1,26 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
-import { isConversationMutedForUser, isConversationUnreadForUser, setConversationMuted } from '@/lib/chat';
+import {
+  isConversationMutedForUser,
+  isConversationUnreadForUser,
+  setConversationMuted,
+  type ChatConversation,
+} from '@/lib/chat';
 import { useUserConversations } from '@/lib/use-chat';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
 
@@ -17,15 +32,30 @@ function formatListTime(d: Date | null): string {
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
   if (sameDay) return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) {
+    return 'Wczoraj';
+  }
   return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 }
 
+function previewLabel(text: string, uid: string | undefined, senderId: string): string {
+  const raw = text.trim();
+  if (!raw) return 'Napisz pierwszą wiadomość…';
+  const mine = Boolean(uid && senderId && senderId === uid);
+  const body = raw.startsWith('📷') ? raw : raw;
+  return mine ? `Ty: ${body}` : body;
+}
+
 type Props = {
-  /** Na osobnym stacku pokazuj wstecz; w tabie nie. */
   showBack?: boolean;
 };
 
-/** Skrzynka rozmów — wspólna dla karty dolnej i starej trasy `/messages`. */
 export function MessagesInbox({ showBack = false }: Props) {
   const router = useRouter();
   const { uid } = useCurrentUserProfile();
@@ -73,27 +103,29 @@ export function MessagesInbox({ showBack = false }: Props) {
     };
   }, [conversations, getOtherParticipantId, uid]);
 
+  const resolveOtherName = useCallback(
+    (c: ChatConversation, otherId: string) => {
+      const fromMap = otherId ? c.participantNames?.[otherId] : '';
+      const fallback =
+        Object.entries(c.participantNames || {}).find(([key]) => key !== uid)?.[1] || '';
+      return fromMap || fallback || resolvedNames[otherId] || c.listingTitle || 'Użytkownik';
+    },
+    [resolvedNames, uid]
+  );
+
   const visibleConversations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return conversations;
     return conversations.filter((c) => {
       const otherId = getOtherParticipantId(c.participantIds);
-      const otherNameFromParticipants = otherId ? c.participantNames?.[otherId] : '';
-      const otherNameFromMap =
-        Object.entries(c.participantNames || {}).find(([key]) => key !== uid)?.[1] || '';
-      const otherName =
-        otherNameFromParticipants ||
-        otherNameFromMap ||
-        (otherId ? resolvedNames[otherId] : '') ||
-        c.listingTitle ||
-        'Użytkownik';
+      const otherName = resolveOtherName(c, otherId);
       const hay = `${otherName} ${c.listingTitle || ''} ${c.lastMessageText || ''}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [conversations, getOtherParticipantId, resolvedNames, searchQuery, uid]);
+  }, [conversations, getOtherParticipantId, resolveOtherName, searchQuery]);
 
   const onLongPressRow = useCallback(
-    (c: (typeof conversations)[0], otherName: string) => {
+    (c: ChatConversation, otherName: string) => {
       if (!uid) return;
       const muted = isConversationMutedForUser(c, uid);
       Alert.alert(
@@ -114,201 +146,336 @@ export function MessagesInbox({ showBack = false }: Props) {
     [uid]
   );
 
-  const resolveOtherName = (c: (typeof conversations)[0], otherId: string) => {
-    const otherNameFromParticipants = otherId ? c.participantNames?.[otherId] : '';
-    const otherNameFromMap =
-      Object.entries(c.participantNames || {}).find(([key]) => key !== uid)?.[1] || '';
-    return (
-      otherNameFromParticipants ||
-      otherNameFromMap ||
-      resolvedNames[otherId] ||
-      c.listingTitle ||
-      'Użytkownik'
-    );
-  };
+  const renderItem = useCallback(
+    ({ item: c, index }: { item: ChatConversation; index: number }) => {
+      const unread = uid ? isConversationUnreadForUser(c, uid) : false;
+      const muted = uid ? isConversationMutedForUser(c, uid) : false;
+      const otherId = getOtherParticipantId(c.participantIds);
+      const otherAvatar = c.participantAvatars?.[otherId] || resolvedAvatars[otherId] || '';
+      const otherName = resolveOtherName(c, otherId);
+      const preview = previewLabel(c.lastMessageText || '', uid, c.lastMessageSenderId);
+      const isFirst = index === 0;
+      const isLast = index === visibleConversations.length - 1;
 
-  return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          {showBack ? (
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
-            </Pressable>
-          ) : null}
-          <View style={styles.headerTitleRow}>
-            <Text style={styles.headerTitle}>Wiadomości</Text>
-            {unreadCount > 0 ? (
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+      return (
+        <Pressable
+          onPress={() => router.push({ pathname: '/messages/[id]', params: { id: c.id } })}
+          onLongPress={() => onLongPressRow(c, otherName)}
+          delayLongPress={450}
+          style={({ pressed }) => [
+            styles.row,
+            unread && styles.rowUnread,
+            muted && styles.rowMuted,
+            pressed && styles.rowPressed,
+            isFirst && styles.rowFirst,
+            isLast && styles.rowLast,
+          ]}>
+          <View style={styles.avatarOuter}>
+            {otherId ? (
+              <UserAvatarPressable userId={otherId} avatarUrl={otherAvatar} size={52} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <MaterialIcons name="person" size={22} color="#64748B" />
+              </View>
+            )}
+            {unread ? <View style={styles.onlineDot} /> : null}
+          </View>
+
+          <View style={styles.textCol}>
+            <View style={styles.rowTop}>
+              <Text style={[styles.rowTitle, unread && styles.rowTitleUnread]} numberOfLines={1}>
+                {otherName}
+              </Text>
+              <Text style={[styles.rowTime, unread && styles.rowTimeUnread]}>
+                {formatListTime(c.lastMessageAt)}
+              </Text>
+            </View>
+
+            {c.listingTitle ? (
+              <View style={styles.listingChip}>
+                <MaterialIcons name="work-outline" size={12} color="#0E4AA4" />
+                <Text style={styles.listingChipText} numberOfLines={1}>
+                  {c.listingTitle}
+                </Text>
               </View>
             ) : null}
+
+            <View style={styles.previewRow}>
+              <Text style={[styles.rowSub, unread && styles.rowSubUnread]} numberOfLines={2}>
+                {preview}
+              </Text>
+              <View style={styles.previewMeta}>
+                {muted ? <MaterialIcons name="notifications-off" size={15} color="#94A3B8" /> : null}
+                {unread ? (
+                  <View style={styles.unreadPill}>
+                    <Text style={styles.unreadPillText}>Nowe</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        </Pressable>
+      );
+    },
+    [
+      uid,
+      getOtherParticipantId,
+      resolvedAvatars,
+      resolveOtherName,
+      router,
+      onLongPressRow,
+      visibleConversations.length,
+    ]
+  );
+
+  const listHeader = (
+    <View style={styles.topBlock}>
+      <LinearGradient colors={['#0B3A82', '#0E4AA4', '#1A6AD4']} style={styles.hero}>
+        <View style={styles.heroRow}>
+          {showBack ? (
+            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+              <MaterialIcons name="arrow-back" size={20} color="#FFFFFF" />
+            </Pressable>
+          ) : null}
+          <View style={styles.heroTextCol}>
+            <Text style={styles.heroTitle}>Czaty</Text>
+            <Text style={styles.heroSub}>
+              {loading
+                ? 'Ładowanie…'
+                : unreadCount > 0
+                  ? `${unreadCount} nieprzeczytanych`
+                  : conversations.length === 0
+                    ? 'Brak aktywnych rozmów'
+                    : `${conversations.length} ${conversations.length === 1 ? 'rozmowa' : 'rozmów'}`}
+            </Text>
           </View>
         </View>
+      </LinearGradient>
 
+      <View style={styles.searchWrap}>
+        <MaterialIcons name="search" size={20} color="#64748B" />
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Szukaj po nazwie, ogłoszeniu lub treści…"
+          placeholder="Szukaj rozmów…"
           placeholderTextColor="#94A3B8"
           autoCapitalize="none"
           autoCorrect={false}
+          clearButtonMode="while-editing"
         />
+        {searchQuery.length > 0 ? (
+          <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+            <MaterialIcons name="close" size={18} color="#94A3B8" />
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
 
-        {loading ? (
-          <View style={styles.card}>
-            <Text style={styles.note}>Ładowanie rozmów...</Text>
+  const empty = (
+    <View style={styles.empty}>
+      {loading ? (
+        <>
+          <ActivityIndicator color="#0E4AA4" />
+          <Text style={styles.emptyTitle}>Ładowanie rozmów</Text>
+        </>
+      ) : searchQuery.trim() ? (
+        <>
+          <View style={styles.emptyIcon}>
+            <MaterialIcons name="search-off" size={28} color="#0E4AA4" />
           </View>
-        ) : conversations.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.note}>Brak rozmów. Otwórz ogłoszenie i rozpocznij kontakt.</Text>
+          <Text style={styles.emptyTitle}>Nic nie znaleziono</Text>
+          <Text style={styles.emptySub}>Spróbuj innej frazy albo wyczyść wyszukiwanie.</Text>
+        </>
+      ) : (
+        <>
+          <View style={styles.emptyIcon}>
+            <MaterialIcons name="forum" size={28} color="#0E4AA4" />
           </View>
-        ) : visibleConversations.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.note}>Brak wyników dla „{searchQuery.trim()}”.</Text>
-          </View>
-        ) : (
-          visibleConversations.map((c) => {
-            const unread = uid ? isConversationUnreadForUser(c, uid) : false;
-            const muted = uid ? isConversationMutedForUser(c, uid) : false;
-            const otherId = getOtherParticipantId(c.participantIds);
-            const otherAvatar = c.participantAvatars?.[otherId] || resolvedAvatars[otherId] || '';
-            const otherName = resolveOtherName(c, otherId);
-            return (
-              <Pressable
-                key={c.id}
-                style={[styles.row, unread && styles.rowUnread, muted && styles.rowMuted]}
-                onPress={() => router.push({ pathname: '/messages/[id]', params: { id: c.id } })}
-                onLongPress={() => onLongPressRow(c, otherName)}
-                delayLongPress={450}>
-                <View style={styles.avatarOuter}>
-                  {otherId ? (
-                    <UserAvatarPressable userId={otherId} avatarUrl={otherAvatar} size={42} />
-                  ) : (
-                    <View style={styles.avatarInner}>
-                      <MaterialIcons name="person" size={18} color="#64748B" />
-                    </View>
-                  )}
-                  {unread ? <View style={styles.rowUnreadDot} /> : null}
-                </View>
-                <View style={styles.textCol}>
-                  <View style={styles.rowTop}>
-                    <Text style={[styles.rowTitle, unread && styles.rowTitleUnread]} numberOfLines={1}>
-                      {otherName}
-                    </Text>
-                    <View style={styles.rowIcons}>
-                      <Text style={[styles.rowTime, unread && styles.rowTimeUnread]}>
-                        {formatListTime(c.lastMessageAt)}
-                      </Text>
-                      {muted ? <MaterialIcons name="notifications-off" size={16} color="#94A3B8" /> : null}
-                    </View>
-                  </View>
-                  <Text style={styles.rowListing} numberOfLines={1}>
-                    {c.listingTitle || 'Ogłoszenie'}
-                  </Text>
-                  <Text style={[styles.rowSub, unread && styles.rowSubUnread]} numberOfLines={1}>
-                    {c.lastMessageText || 'Brak wiadomości — napisz pierwszą'}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })
-        )}
-      </ScrollView>
+          <Text style={styles.emptyTitle}>Tu pojawią się Twoje rozmowy</Text>
+          <Text style={styles.emptySub}>
+            Otwórz ogłoszenie na Rynku i napisz do drugiej strony — wątek wpadnie na tę listę.
+          </Text>
+          <Pressable style={styles.emptyCta} onPress={() => router.push('/(tabs)' as never)}>
+            <Text style={styles.emptyCtaText}>Przejdź do Rynku</Text>
+            <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
+          </Pressable>
+        </>
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <FlatList
+        data={loading ? [] : visibleConversations}
+        keyExtractor={(c) => c.id}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={empty}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  root: { flex: 1, backgroundColor: '#F1F5F9' },
+  listContent: { paddingBottom: 28, flexGrow: 1 },
+  topBlock: { marginBottom: 8 },
+  hero: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 22,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D5DEEA',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  headerTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  headerBadge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#0F172A',
-  },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#DFE6F2', padding: 14 },
-  note: { color: '#64748B', fontSize: 12, lineHeight: 17 },
-  row: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    padding: 12,
-    gap: 4,
+  heroTextCol: { flex: 1, gap: 2 },
+  heroTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', letterSpacing: -0.4 },
+  heroSub: { color: 'rgba(255,255,255,0.82)', fontSize: 13, fontWeight: '500' },
+  searchWrap: {
+    marginTop: -14,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'relative',
-  },
-  rowUnread: { borderColor: '#BFDBFE', backgroundColor: '#F8FAFC' },
-  rowMuted: { opacity: 0.78 },
-  avatarOuter: {
-    width: 42,
-    height: 42,
-    marginRight: 10,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInner: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#EFF6FF',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     borderWidth: 1,
-    borderColor: '#DFE6F2',
+    borderColor: '#E2E8F0',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  row: {
+    marginHorizontal: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  rowFirst: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    marginTop: 4,
+  },
+  rowLast: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  rowUnread: { backgroundColor: '#F8FBFF' },
+  rowMuted: { opacity: 0.72 },
+  rowPressed: { backgroundColor: '#EEF2F7' },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E2E8F0',
+    marginLeft: 76,
+    marginRight: 24,
+  },
+  avatarOuter: {
+    width: 52,
+    height: 52,
+    position: 'relative',
+  },
+  avatarFallback: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E8EEF8',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  rowUnreadDot: {
+  onlineDot: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    right: 1,
+    bottom: 1,
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#DC2626',
+    backgroundColor: '#0E4AA4',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  textCol: { flex: 1, gap: 2 },
-  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 },
-  rowIcons: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rowTitle: { color: '#0F172A', fontWeight: '700', flex: 1, marginRight: 8 },
-  rowTitleUnread: { color: '#0E4AA4' },
-  rowTime: { color: '#94A3B8', fontSize: 11 },
+  textCol: { flex: 1, gap: 4, minWidth: 0 },
+  rowTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rowTitle: { color: '#0F172A', fontWeight: '700', fontSize: 16, flex: 1 },
+  rowTitleUnread: { fontWeight: '800' },
+  rowTime: { color: '#94A3B8', fontSize: 12, fontWeight: '500' },
   rowTimeUnread: { color: '#0E4AA4', fontWeight: '700' },
-  rowListing: { color: '#64748B', fontSize: 11 },
-  rowSub: { color: '#64748B', fontSize: 12, flex: 1 },
-  rowSubUnread: { color: '#334155', fontWeight: '600' },
+  listingChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  listingChipText: { color: '#0E4AA4', fontSize: 11, fontWeight: '600', flexShrink: 1 },
+  previewRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  rowSub: { color: '#64748B', fontSize: 13, lineHeight: 18, flex: 1 },
+  rowSubUnread: { color: '#1E293B', fontWeight: '600' },
+  previewMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 1 },
+  unreadPill: {
+    backgroundColor: '#0E4AA4',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  unreadPillText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  empty: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    paddingVertical: 36,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  emptyTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  emptySub: { color: '#64748B', fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 280 },
+  emptyCta: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0E4AA4',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  emptyCtaText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
 });
