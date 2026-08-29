@@ -8,6 +8,7 @@ import { AuthGuardEffect } from '@/components/auth-guard-effect';
 import { PushNotificationBootstrap } from '@/components/push-notification-bootstrap';
 import { PushRegistrationEffect } from '@/components/push-registration-effect';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PreferencesProvider, usePreferencesOptional } from '@/lib/preferences-context';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -17,11 +18,36 @@ export const unstable_settings = {
   anchor: 'welcome',
 };
 
-export default function RootLayout() {
+function RootNavigation() {
   const colorScheme = useColorScheme();
+  const prefs = usePreferencesOptional();
+  const navTheme =
+    colorScheme === 'dark'
+      ? {
+          ...DarkTheme,
+          colors: {
+            ...DarkTheme.colors,
+            primary: prefs?.colors.primary ?? '#60A5FA',
+            background: prefs?.colors.bg ?? DarkTheme.colors.background,
+            card: prefs?.colors.card ?? DarkTheme.colors.card,
+            text: prefs?.colors.text ?? DarkTheme.colors.text,
+            border: prefs?.colors.border ?? DarkTheme.colors.border,
+          },
+        }
+      : {
+          ...DefaultTheme,
+          colors: {
+            ...DefaultTheme.colors,
+            primary: prefs?.colors.primary ?? '#0E4AA4',
+            background: prefs?.colors.bg ?? DefaultTheme.colors.background,
+            card: prefs?.colors.card ?? DefaultTheme.colors.card,
+            text: prefs?.colors.text ?? DefaultTheme.colors.text,
+            border: prefs?.colors.border ?? DefaultTheme.colors.border,
+          },
+        };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navTheme}>
       <AuthGuardEffect />
       <PushNotificationBootstrap />
       <PushRegistrationEffect />
@@ -42,7 +68,15 @@ export default function RootLayout() {
         <Stack.Screen name="register" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <PreferencesProvider>
+      <RootNavigation />
+    </PreferencesProvider>
   );
 }

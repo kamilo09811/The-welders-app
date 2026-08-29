@@ -18,7 +18,7 @@ function formatWhen(d: Date | null): string {
   }
 }
 
-function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 'notifications' {
+function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 'work-outline' | 'notifications' {
   switch (kind) {
     case 'application_new':
       return 'inbox';
@@ -26,6 +26,8 @@ function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 
       return 'flag';
     case 'chat_message':
       return 'chat';
+    case 'listing_new':
+      return 'work-outline';
     default:
       return 'notifications';
   }

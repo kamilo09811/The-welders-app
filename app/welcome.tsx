@@ -1,13 +1,23 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { authColors as C } from '@/constants/auth-ui';
+import { APP_LOCALES } from '@/lib/i18n';
+import { usePreferences } from '@/lib/preferences-context';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t, locale, setLocale } = usePreferences();
+  const [langOpen, setLangOpen] = useState(false);
+
+  const currentLang = useMemo(
+    () => APP_LOCALES.find((l) => l.value === locale) ?? APP_LOCALES[0],
+    [locale]
+  );
 
   return (
     <>
@@ -18,12 +28,22 @@ export default function WelcomeScreen() {
         <View style={styles.circleSmall} />
 
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={() => setLangOpen(true)}
+              style={({ pressed }) => [styles.langBtn, pressed && { opacity: 0.85 }]}>
+              <MaterialIcons name="language" size={18} color="#E5EDFF" />
+              <Text style={styles.langBtnText}>
+                {currentLang.flag} {t('welcome.language')}
+              </Text>
+              <MaterialIcons name="expand-more" size={18} color="#94A3B8" />
+            </Pressable>
+          </View>
+
           <View style={styles.heroCard}>
             <Text style={styles.brand}>TheWeldersWorld</Text>
-            <Text style={styles.title}>Rynek pracy dla spawaczy</Text>
-            <Text style={styles.subtitle}>
-              Miejsce, w którym spawacze znajdują dobre zlecenia, a pracodawcy sprawdzonych specjalistów.
-            </Text>
+            <Text style={styles.title}>{t('welcome.title')}</Text>
+            <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
 
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -35,10 +55,8 @@ export default function WelcomeScreen() {
                   </View>
                 </View>
                 <View style={styles.stripTextCol}>
-                  <Text style={styles.stripTitle}>Dla spawaczy</Text>
-                  <Text style={styles.stripText}>
-                    Przeglądaj oferty z jasną stawką, lokalizacją i trybem pracy dopasowanym do Ciebie.
-                  </Text>
+                  <Text style={styles.stripTitle}>{t('welcome.forWelders')}</Text>
+                  <Text style={styles.stripText}>{t('welcome.forWeldersText')}</Text>
                 </View>
               </View>
 
@@ -49,10 +67,8 @@ export default function WelcomeScreen() {
                   </View>
                 </View>
                 <View style={styles.stripTextCol}>
-                  <Text style={styles.stripTitle}>Dla firm</Text>
-                  <Text style={styles.stripText}>
-                    Dodawaj zlecenia, filtruj kandydatów i buduj stały zespół spawalniczy.
-                  </Text>
+                  <Text style={styles.stripTitle}>{t('welcome.forCompanies')}</Text>
+                  <Text style={styles.stripText}>{t('welcome.forCompaniesText')}</Text>
                 </View>
               </View>
 
@@ -63,17 +79,15 @@ export default function WelcomeScreen() {
                   </View>
                 </View>
                 <View style={styles.stripTextCol}>
-                  <Text style={styles.stripTitle}>Dla osób prywatnych</Text>
-                  <Text style={styles.stripText}>
-                    Szukasz kogoś do bramy, ogrodzenia albo naprawy konstrukcji? Dodaj proste ogłoszenie.
-                  </Text>
+                  <Text style={styles.stripTitle}>{t('welcome.forPrivate')}</Text>
+                  <Text style={styles.stripText}>{t('welcome.forPrivateText')}</Text>
                 </View>
               </View>
             </ScrollView>
           </View>
 
           <View style={styles.actionsCard}>
-            <Text style={styles.sectionLabel}>Wybierz typ konta i przejdź do logowania</Text>
+            <Text style={styles.sectionLabel}>{t('welcome.chooseAccount')}</Text>
 
             <Pressable
               style={({ pressed }) => [
@@ -83,8 +97,8 @@ export default function WelcomeScreen() {
               onPress={() => router.push({ pathname: '/login', params: { role: 'welder' } })}>
               <MaterialIcons name="engineering" size={22} color="#FFFFFF" />
               <View style={styles.primaryTextCol}>
-                <Text style={styles.primaryBtnText}>Jestem spawaczem</Text>
-                <Text style={styles.primaryBtnSub}>Chcę przeglądać oferty i aplikować</Text>
+                <Text style={styles.primaryBtnText}>{t('welcome.imWelder')}</Text>
+                <Text style={styles.primaryBtnSub}>{t('welcome.imWelderSub')}</Text>
               </View>
             </Pressable>
 
@@ -96,19 +110,53 @@ export default function WelcomeScreen() {
               onPress={() => router.push({ pathname: '/login', params: { role: 'employer' } })}>
               <MaterialIcons name="business" size={22} color="#FFFFFF" />
               <View style={styles.primaryTextCol}>
-                <Text style={styles.primaryBtnText}>Szukam spawaczy / zleceniodawców</Text>
-                <Text style={styles.primaryBtnSub}>Chcę dodawać ogłoszenia i kontaktować się</Text>
+                <Text style={styles.primaryBtnText}>{t('welcome.imEmployer')}</Text>
+                <Text style={styles.primaryBtnSub}>{t('welcome.imEmployerSub')}</Text>
               </View>
             </Pressable>
 
             <View style={styles.secondaryRow}>
-              <Text style={[styles.secondaryText, { color: C.muted }]}>Nie masz jeszcze konta? </Text>
+              <Text style={[styles.secondaryText, { color: C.muted }]}>{t('welcome.noAccount')} </Text>
               <Pressable onPress={() => router.push('/register')}>
-                <Text style={[styles.link, { color: C.primary }]}>Zarejestruj się</Text>
+                <Text style={[styles.link, { color: C.primary }]}>{t('welcome.register')}</Text>
               </Pressable>
             </View>
           </View>
         </SafeAreaView>
+
+        <Modal
+          visible={langOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setLangOpen(false)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setLangOpen(false)}>
+            <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>{t('welcome.language')}</Text>
+              {APP_LOCALES.map((opt) => {
+                const active = locale === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => {
+                      void setLocale(opt.value);
+                      setLangOpen(false);
+                    }}
+                    style={[styles.langOption, active && styles.langOptionActive]}>
+                    <Text style={styles.langOptionFlag}>{opt.flag}</Text>
+                    <View style={styles.langOptionTextCol}>
+                      <Text style={[styles.langOptionLabel, active && styles.langOptionLabelActive]}>
+                        {opt.nativeLabel}
+                      </Text>
+                      <Text style={styles.langOptionSub}>{opt.label}</Text>
+                    </View>
+                    {active ? <MaterialIcons name="check" size={20} color="#0E4AA4" /> : null}
+                  </Pressable>
+                );
+              })}
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </>
   );
@@ -140,9 +188,29 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 12,
     paddingBottom: 28,
-    gap: 18,
+    gap: 14,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.28)',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+  },
+  langBtnText: {
+    color: '#E5EDFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   heroCard: {
@@ -217,4 +285,54 @@ const styles = StyleSheet.create({
   secondaryRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 4 },
   secondaryText: { fontSize: 14 },
   link: { fontSize: 14, fontWeight: '700' },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    paddingTop: 10,
+    gap: 6,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    color: '#0F172A',
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 6,
+    paddingHorizontal: 4,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  langOptionActive: {
+    borderColor: '#0E4AA4',
+    backgroundColor: '#EFF6FF',
+  },
+  langOptionFlag: { fontSize: 22 },
+  langOptionTextCol: { flex: 1 },
+  langOptionLabel: { color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  langOptionLabelActive: { color: '#0E4AA4' },
+  langOptionSub: { color: '#64748B', fontSize: 12, marginTop: 1 },
 });
