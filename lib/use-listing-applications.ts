@@ -8,12 +8,12 @@ import {
   type ListingApplication,
 } from '@/lib/listing-applications';
 
-export function useListingApplications(listingId?: string, enabled = true) {
+export function useListingApplications(listingId?: string, authorId?: string, enabled = true) {
   const [applications, setApplications] = useState<ListingApplication[]>([]);
-  const [loading, setLoading] = useState(Boolean(enabled && listingId));
+  const [loading, setLoading] = useState(Boolean(enabled && listingId && authorId));
 
   useEffect(() => {
-    if (!enabled || !listingId) {
+    if (!enabled || !listingId || !authorId) {
       setApplications([]);
       setLoading(false);
       return;
@@ -21,6 +21,7 @@ export function useListingApplications(listingId?: string, enabled = true) {
     setLoading(true);
     const unsub = subscribeApplicationsForListing(
       listingId,
+      authorId,
       (items) => {
         setApplications(items);
         setLoading(false);
@@ -31,7 +32,7 @@ export function useListingApplications(listingId?: string, enabled = true) {
       }
     );
     return unsub;
-  }, [enabled, listingId]);
+  }, [authorId, enabled, listingId]);
 
   return { applications, loading };
 }

@@ -3,19 +3,14 @@ import { Stack, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { ListingApplication } from '@/lib/listing-applications';
+import { applicationStatusLabel } from '@/lib/i18n/labels';
+import { usePreferences } from '@/lib/preferences-context';
 import { useApplicationsByApplicant } from '@/lib/use-listing-applications';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
-const STATUS_LABEL: Record<ListingApplication['status'], string> = {
-  new: 'Nowe',
-  in_progress: 'W trakcie',
-  accepted: 'Zaakceptowane',
-  rejected: 'Odrzucone',
-};
-
 export default function SentApplicationsScreen() {
   const router = useRouter();
+  const { t } = usePreferences();
   const { uid } = useCurrentUserProfile();
   const { applications, loading } = useApplicationsByApplicant(uid ?? undefined);
 
@@ -28,16 +23,16 @@ export default function SentApplicationsScreen() {
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
               <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
             </Pressable>
-            <Text style={styles.headerTitle}>Wszystkie moje zgłoszenia</Text>
+            <Text style={styles.headerTitle}>{t('apps.sentTitle')}</Text>
           </View>
 
           {loading ? (
             <View style={styles.card}>
-              <Text style={styles.note}>Ładowanie...</Text>
+              <Text style={styles.note}>{t('common.loading')}</Text>
             </View>
           ) : applications.length === 0 ? (
             <View style={styles.card}>
-              <Text style={styles.note}>Nie wysłałeś jeszcze żadnego zgłoszenia.</Text>
+              <Text style={styles.note}>{t('apps.sentEmpty')}</Text>
             </View>
           ) : (
             applications.map((app) => (
@@ -47,7 +42,7 @@ export default function SentApplicationsScreen() {
                 onPress={() => router.push({ pathname: '/listing/[id]', params: { id: app.listingId } })}>
                 <View style={styles.applicationHead}>
                   <Text style={styles.applicationTitle}>{app.listingTitle}</Text>
-                  <Text style={styles.applicationStatus}>{STATUS_LABEL[app.status]}</Text>
+                  <Text style={styles.applicationStatus}>{applicationStatusLabel(app.status, t)}</Text>
                 </View>
                 <Text style={styles.applicationMeta}>{app.message}</Text>
               </Pressable>

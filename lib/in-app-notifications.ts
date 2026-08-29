@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDocs,
@@ -16,7 +15,11 @@ import {
 
 import { getFirebaseFirestore } from '@/lib/firebaseFirestore';
 
-export type InAppNotificationKind = 'application_new' | 'application_status' | 'chat_message';
+export type InAppNotificationKind =
+  | 'application_new'
+  | 'application_status'
+  | 'chat_message'
+  | 'listing_new';
 
 export type InAppNotification = {
   id: string;
@@ -44,7 +47,10 @@ function notificationsCol(uid: string) {
 function normalizeNotification(id: string, data: FirestoreInAppNotification): InAppNotification {
   const kind = data.kind;
   const safeKind: InAppNotificationKind =
-    kind === 'application_status' || kind === 'chat_message' || kind === 'application_new'
+    kind === 'application_status' ||
+    kind === 'chat_message' ||
+    kind === 'application_new' ||
+    kind === 'listing_new'
       ? kind
       : 'application_new';
   return {
@@ -63,37 +69,7 @@ function normalizeNotification(id: string, data: FirestoreInAppNotification): In
   };
 }
 
-export async function pushInAppNotification(input: {
-  recipientUid: string;
-  actorUid: string;
-  kind: InAppNotificationKind;
-  title: string;
-  body: string;
-  listingId?: string;
-  listingTitle?: string;
-  applicationId?: string;
-  conversationId?: string;
-}) {
-  if (!input.recipientUid || !input.actorUid || input.recipientUid === input.actorUid) return;
-  try {
-    const docPayload: Record<string, unknown> = {
-      recipientUid: input.recipientUid,
-      actorUid: input.actorUid,
-      kind: input.kind,
-      title: input.title,
-      body: input.body,
-      read: false,
-      createdAt: serverTimestamp(),
-    };
-    if (input.listingId) docPayload.listingId = input.listingId;
-    if (input.listingTitle) docPayload.listingTitle = input.listingTitle;
-    if (input.applicationId) docPayload.applicationId = input.applicationId;
-    if (input.conversationId) docPayload.conversationId = input.conversationId;
-    await addDoc(notificationsCol(input.recipientUid), docPayload);
-  } catch {
-    // Reguły Firestore / sieć — nie blokuj głównej akcji użytkownika.
-  }
-}
+/** Tworzenie powiadomień: wyłącznie Cloud Functions (patrz functions/index.js). */
 
 export function subscribeInAppNotifications(
   uid: string,

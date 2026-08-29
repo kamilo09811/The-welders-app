@@ -14,14 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StarRating } from '@/components/star-rating';
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
+import { reviewCountLabel } from '@/lib/i18n/labels';
+import { usePreferences } from '@/lib/preferences-context';
 import { getMyReviewForUser, submitUserReview } from '@/lib/public-profile';
 import { usePublicProfile } from '@/lib/use-public-profile';
 import { useCurrentUserProfile } from '@/lib/user-profile';
-
-const ROLE_LABEL: Record<'welder' | 'employer', string> = {
-  welder: 'Spawacz',
-  employer: 'Pracodawca / zleceniodawca',
-};
 
 function formatRating(avg: number) {
   if (!avg) return '—';
@@ -30,6 +27,7 @@ function formatRating(avg: number) {
 
 export default function PublicProfileScreen() {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const targetId = typeof id === 'string' ? id : '';
   const { uid, profile: myProfile } = useCurrentUserProfile();
@@ -69,17 +67,20 @@ export default function PublicProfileScreen() {
       await submitUserReview({
         targetUid: targetId,
         reviewerId: uid,
-        reviewerName: myProfile.fullName || 'Użytkownik',
+        reviewerName: myProfile.fullName || t('common.userFallback'),
         rating: myRating,
         text: myReviewText,
       });
-      setReviewMsg('Opinia zapisana. Dziękujemy!');
+      setReviewMsg(t('profile.reviewSaved'));
     } catch {
-      setReviewMsg('Nie udało się zapisać opinii.');
+      setReviewMsg(t('profile.reviewFailed'));
     } finally {
       setReviewBusy(false);
     }
-  }, [isSelf, myProfile.fullName, myRating, myReviewText, targetId, uid]);
+  }, [isSelf, myProfile.fullName, myRating, myReviewText, t, targetId, uid]);
+
+  const roleText =
+    profile?.role === 'employer' ? t('account.roleEmployer') : t('account.roleWelder');
 
   return (
     <>
@@ -89,7 +90,7 @@ export default function PublicProfileScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
           </Pressable>
-          <Text style={styles.headerTitle}>Profil</Text>
+          <Text style={styles.headerTitle}>{t('profile.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -99,7 +100,7 @@ export default function PublicProfileScreen() {
           </View>
         ) : !profile ? (
           <View style={styles.card}>
-            <Text style={styles.note}>Nie znaleziono profilu użytkownika.</Text>
+            <Text style={styles.note}>{t('profile.notFound')}</Text>
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -110,50 +111,50 @@ export default function PublicProfileScreen() {
                 size={88}
                 disabled
               />
-              <Text style={styles.name}>{profile.fullName || 'Użytkownik'}</Text>
-              <Text style={styles.role}>{ROLE_LABEL[profile.role]}</Text>
+              <Text style={styles.name}>{profile.fullName || t('common.userFallback')}</Text>
+              <Text style={styles.role}>{roleText}</Text>
               {profile.city ? <Text style={styles.city}>{profile.city}</Text> : null}
 
               <View style={styles.trustRow}>
                 <StarRating value={displayRating.avg || 0} size={22} />
                 <Text style={styles.ratingText}>
                   {formatRating(displayRating.avg)} ({displayRating.count}{' '}
-                  {displayRating.count === 1 ? 'opinia' : displayRating.count < 5 ? 'opinie' : 'opinii'})
+                  {reviewCountLabel(displayRating.count, locale)})
                 </Text>
               </View>
 
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{profile.completedAsApplicant}</Text>
-                  <Text style={styles.statLabel}>Zakończone jako wykonawca</Text>
+                  <Text style={styles.statLabel}>{t('profile.completedApplicant')}</Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{profile.completedAsAuthor}</Text>
-                  <Text style={styles.statLabel}>Zrealizowane jako zleceniodawca</Text>
+                  <Text style={styles.statLabel}>{t('profile.completedAuthor')}</Text>
                 </View>
               </View>
             </View>
 
             {profile.publicBio ? (
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>O mnie</Text>
+                <Text style={styles.cardTitle}>{t('profile.about')}</Text>
                 <Text style={styles.bio}>{profile.publicBio}</Text>
               </View>
             ) : (
               <View style={styles.card}>
-                <Text style={styles.note}>Brak opisu publicznego.</Text>
+                <Text style={styles.note}>{t('profile.noBio')}</Text>
               </View>
             )}
 
             {canReview ? (
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Oceń użytkownika</Text>
+                <Text style={styles.cardTitle}>{t('profile.rateUser')}</Text>
                 <StarRating value={myRating} onChange={setMyRating} />
                 <TextInput
                   style={styles.input}
                   value={myReviewText}
                   onChangeText={setMyReviewText}
-                  placeholder="Krótka opinia (opcjonalnie)"
+                  placeholder={t('profile.reviewPlaceholder')}
                   placeholderTextColor="#94A3B8"
                   multiline
                 />
@@ -164,7 +165,7 @@ export default function PublicProfileScreen() {
                   {reviewBusy ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Zapisz opinię</Text>
+                    <Text style={styles.primaryBtnText}>{t('profile.saveReview')}</Text>
                   )}
                 </Pressable>
                 {reviewMsg ? <Text style={styles.reviewMsg}>{reviewMsg}</Text> : null}
@@ -172,9 +173,9 @@ export default function PublicProfileScreen() {
             ) : null}
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Opinie</Text>
+              <Text style={styles.cardTitle}>{t('profile.reviews')}</Text>
               {reviews.length === 0 ? (
-                <Text style={styles.note}>Brak opinii.</Text>
+                <Text style={styles.note}>{t('profile.noReviews')}</Text>
               ) : (
                 reviews.map((r) => (
                   <View key={r.id} style={styles.reviewRow}>
@@ -190,7 +191,7 @@ export default function PublicProfileScreen() {
 
             {isSelf ? (
               <Pressable style={styles.linkBtn} onPress={() => router.push('/(tabs)/account' as never)}>
-                <Text style={styles.linkBtnText}>Edytuj profil w Koncie</Text>
+                <Text style={styles.linkBtnText}>{t('profile.editInAccount')}</Text>
               </Pressable>
             ) : null}
           </ScrollView>
