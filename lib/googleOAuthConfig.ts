@@ -14,8 +14,9 @@ import { Platform } from 'react-native';
  * Jeśli ustawisz tylko WEB, Android/iOS użyją go jako zapas — czasem wystarczy;
  * przy `invalid_client` utwórz osobne klienty natywne.
  */
+/** Web OAuth Client ID (publiczny — trafia do binariów). Nadpisz przez EXPO_PUBLIC_GOOGLE_*. */
 const DEFAULT = {
-  webClientId: '',
+  webClientId: '893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com',
   iosClientId: '',
   androidClientId: '',
 } as const;

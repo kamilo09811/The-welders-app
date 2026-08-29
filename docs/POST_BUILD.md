@@ -22,20 +22,19 @@ Wymaga planu **Blaze**. Funkcje: `onApplicationCreatedNotify`, `onApplicationSta
 
 ## 2. Google Sign-In
 
-1. [Google Cloud Console](https://console.cloud.google.com/) → Credentials → OAuth client IDs:
-   - **Web** → `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
-   - **iOS** Bundle ID `com.theweldersworld.app` → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
-   - **Android** package `com.theweldersworld.app` + SHA-1 → `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
-2. Firebase Authentication → włącz **Google** (Web Client ID / Secret).
-3. Lokalnie `.env` + **EAS Secrets** (ważne — poprzedni build bez sekretów = „brak Client ID”):
+**Web Client ID** jest już w repo (`eas.json` + `lib/googleOAuthConfig.ts`):
+`893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com`
 
-```powershell
-eas secret:create --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value "....apps.googleusercontent.com" --scope project
-eas secret:create --name EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID --value "....apps.googleusercontent.com" --scope project
-eas secret:create --name EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID --value "....apps.googleusercontent.com" --scope project
+1. Firebase Authentication → włącz **Google** i podaj ten sam Web Client ID (+ Secret z konsoli Google).
+2. Zalecane: osobny klient **iOS** (Bundle ID `com.theweldersworld.app`) → `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` w `.env` / EAS.
+3. Android: klient z package `com.theweldersworld.app` + SHA-1.
+4. Lokalnie w `.env`:
+
+```
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com
 ```
 
-4. Nowy build (Client ID jest wklejany w czasie buildu):
+5. Nowy build (poprzedni IPA nie miał Client ID):
 
 ```powershell
 git pull
@@ -44,6 +43,7 @@ npx eas-cli build --platform ios --profile production
 ```
 
 SHA-1 Android (release): [expo.dev](https://expo.dev) → Credentials → Android.
+Przy błędzie `invalid_client` na iPhonie utwórz osobny OAuth client typu **iOS**.
 
 ## 3. Push na urządzeniu
 

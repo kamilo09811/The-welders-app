@@ -29,10 +29,8 @@ module.exports = ({ config }) => {
     ]);
   }
 
-  const iosClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ||
-    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() ||
-    '';
+  // Schemat URL Google tylko dla prawdziwego klienta typu iOS (nie Web).
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || '';
   const googleScheme = googleIosUrlScheme(iosClientId);
 
   const existingUrlTypes = config.ios?.infoPlist?.CFBundleURLTypes ?? [];
