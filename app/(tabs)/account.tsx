@@ -67,6 +67,7 @@ export default function AccountScreen() {
   const { applications: incomingApplications, loading: loadingIncomingApplications } =
     useApplicationsByAuthor(uid ?? undefined);
   const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -74,10 +75,12 @@ export default function AccountScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const isEmployer = profile.role === 'employer';
 
   useEffect(() => {
     if (isEditing) return;
     setFullName(profile.fullName);
+    setCompanyName(profile.companyName);
     setPhone(profile.phone);
     setCity(profile.city);
     setAvatarUrl(profile.avatarUrl);
@@ -93,7 +96,22 @@ export default function AccountScreen() {
       setMessage('Brak aktywnej sesji.');
       return;
     }
-    await updateUserPersonalFields(uid, { fullName, phone, city, avatarUrl, publicBio });
+    if (isEmployer && !companyName.trim()) {
+      setMessage('Nazwa firmy jest wymagana — pojawia się na Twoich ogłoszeniach.');
+      return;
+    }
+    if (!isEmployer && !fullName.trim()) {
+      setMessage('Imię i nazwisko jest wymagane — pojawia się na Twoich ogłoszeniach.');
+      return;
+    }
+    await updateUserPersonalFields(uid, {
+      fullName,
+      companyName: isEmployer ? companyName.trim() : '',
+      phone,
+      city,
+      avatarUrl,
+      publicBio,
+    });
     setIsEditing(false);
     setMessage('Profil zapisany.');
   };
@@ -124,6 +142,7 @@ export default function AccountScreen() {
       setAvatarUrl(downloadUrl);
       await updateUserPersonalFields(uid, {
         fullName,
+        companyName: isEmployer ? companyName.trim() : '',
         phone,
         city,
         avatarUrl: downloadUrl,
@@ -135,7 +154,7 @@ export default function AccountScreen() {
     } finally {
       setAvatarUploading(false);
     }
-  }, [city, fullName, phone, publicBio, uid]);
+  }, [city, companyName, fullName, isEmployer, phone, publicBio, uid]);
 
   const onLogout = async () => {
     if (uid) {
@@ -198,7 +217,11 @@ export default function AccountScreen() {
           <View style={styles.divider} />
 
           <Text style={styles.sectionTitle}>Profil</Text>
-          <Text style={styles.hint}>Rola jest ustawiana przy rejestracji i nie zmienia się tutaj.</Text>
+          <Text style={styles.hint}>
+            {isEmployer
+              ? 'Nazwa firmy trafia automatycznie na Twoje ogłoszenia. Możesz ją zmienić tutaj.'
+              : 'Imię i nazwisko trafia automatycznie na Twoje ogłoszenia.'}
+          </Text>
           <TextInput
             style={[styles.input, styles.bioInput]}
             value={publicBio}
@@ -210,6 +233,18 @@ export default function AccountScreen() {
             placeholderTextColor="#94A3B8"
             multiline
           />
+          {isEmployer ? (
+            <TextInput
+              style={styles.input}
+              value={companyName}
+              onChangeText={(v) => {
+                setIsEditing(true);
+                setCompanyName(v);
+              }}
+              placeholder="Nazwa firmy *"
+              placeholderTextColor="#94A3B8"
+            />
+          ) : null}
           <TextInput
             style={styles.input}
             value={fullName}
@@ -217,7 +252,7 @@ export default function AccountScreen() {
               setIsEditing(true);
               setFullName(v);
             }}
-            placeholder="Imię i nazwisko"
+            placeholder={isEmployer ? 'Osoba kontaktowa (opcjonalnie)' : 'Imię i nazwisko *'}
             placeholderTextColor="#94A3B8"
           />
           <TextInput
@@ -241,6 +276,7 @@ export default function AccountScreen() {
             placeholder="Miasto"
             placeholderTextColor="#94A3B8"
           />
+          {message ? <Text style={styles.hint}>{message}</Text> : null}
           <Pressable style={styles.saveBtn} onPress={onSave}>
             <MaterialIcons name="save" size={18} color="#FFFFFF" />
             <Text style={styles.saveBtnText}>Zapisz profil</Text>

@@ -17,6 +17,8 @@ export type AccountRole = 'welder' | 'employer';
 export type UserProfile = {
   role: AccountRole;
   fullName: string;
+  /** Nazwa firmy — dla konta pracodawcy (widoczna na ogłoszeniach). */
+  companyName: string;
   phone: string;
   city: string;
   avatarUrl: string;
@@ -29,6 +31,7 @@ export type UserProfile = {
 const DEFAULT_PROFILE: UserProfile = {
   role: 'welder',
   fullName: '',
+  companyName: '',
   phone: '',
   city: '',
   avatarUrl: '',
@@ -59,11 +62,20 @@ function snapshotToPublicFields(data: Record<string, unknown>): Omit<UserProfile
   return {
     role: normalizeRole(data.role),
     fullName: typeof data.fullName === 'string' ? data.fullName : '',
+    companyName: typeof data.companyName === 'string' ? data.companyName : '',
     city: typeof data.city === 'string' ? data.city : '',
     avatarUrl: typeof data.avatarUrl === 'string' ? data.avatarUrl : '',
     publicBio: typeof data.publicBio === 'string' ? data.publicBio : '',
     emailVerified: data.emailVerified === true,
   };
+}
+
+/** Nazwa wyświetlana na ogłoszeniach: firma (pracodawca) lub imię (spawacz). */
+export function getListingPublisherName(profile: Pick<UserProfile, 'role' | 'fullName' | 'companyName'>): string {
+  if (profile.role === 'employer') {
+    return profile.companyName.trim() || profile.fullName.trim() || 'Firma';
+  }
+  return profile.fullName.trim() || 'Spawacz';
 }
 
 /** Aktualizuje pole `emailVerified` w profilu na podstawie Firebase Auth. */
@@ -82,11 +94,13 @@ export async function syncEmailVerified(uid: string, emailVerified: boolean): Pr
 export async function createUserProfile(
   uid: string,
   role: AccountRole,
-  emailVerified = false
+  emailVerified = false,
+  extras?: { fullName?: string; companyName?: string }
 ): Promise<void> {
   await setDoc(usersDoc(uid), {
     role,
-    fullName: '',
+    fullName: extras?.fullName?.trim() || '',
+    companyName: role === 'employer' ? extras?.companyName?.trim() || '' : '',
     city: '',
     avatarUrl: '',
     publicBio: '',
@@ -113,6 +127,7 @@ export async function ensureUserProfileForOAuth(
   await setDoc(ref, {
     role: preferredRole ?? 'welder',
     fullName: '',
+    companyName: '',
     city: '',
     avatarUrl: '',
     publicBio: '',
@@ -212,6 +227,7 @@ export function useCurrentUserProfile() {
       let publicPart: Omit<UserProfile, 'phone'> = {
         role: DEFAULT_PROFILE.role,
         fullName: '',
+        companyName: '',
         city: '',
         avatarUrl: '',
         publicBio: '',
@@ -243,6 +259,7 @@ export function useCurrentUserProfile() {
             publicPart = {
               role: DEFAULT_PROFILE.role,
               fullName: '',
+              companyName: '',
               city: '',
               avatarUrl: '',
               publicBio: '',
@@ -257,6 +274,7 @@ export function useCurrentUserProfile() {
           publicPart = {
             role: DEFAULT_PROFILE.role,
             fullName: '',
+            companyName: '',
             city: '',
             avatarUrl: '',
             publicBio: '',

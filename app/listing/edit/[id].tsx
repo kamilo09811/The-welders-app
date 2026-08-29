@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { type ListingIntent, type ListingType, type WorkMode, updateListing } from '@/lib/market-listings';
 import { useMarketListing } from '@/lib/use-market-listings';
-import { useCurrentUserProfile } from '@/lib/user-profile';
+import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profile';
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
@@ -39,7 +39,6 @@ export default function EditListingScreen() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [company, setCompany] = useState('');
   const [location, setLocation] = useState('');
   const [rateMin, setRateMin] = useState('');
   const [rateMax, setRateMax] = useState('');
@@ -51,12 +50,15 @@ export default function EditListingScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [formHydrated, setFormHydrated] = useState(false);
   const isEmployer = profile.role === 'employer';
+  const publisherName = getListingPublisherName(profile);
+  const publisherReady = isEmployer
+    ? Boolean(profile.companyName.trim())
+    : Boolean(profile.fullName.trim());
 
   useEffect(() => {
     if (!listing || formHydrated) return;
     setTitle(listing.title);
     setDescription(listing.description);
-    setCompany(listing.company);
     setLocation(listing.location);
     setRateMin(String(listing.rateMin));
     setRateMax(String(listing.rateMax));
@@ -72,7 +74,8 @@ export default function EditListingScreen() {
   }, [id]);
 
   const canSave = Boolean(
-    title.trim() &&
+    publisherReady &&
+      title.trim() &&
       description.trim() &&
       location.trim() &&
       Number(rateMin) > 0 &&
@@ -82,6 +85,14 @@ export default function EditListingScreen() {
   const onSubmit = async () => {
     if (!uid || !listing || listing.authorId !== uid) {
       setMessage('Brak uprawnień do edycji tego ogłoszenia.');
+      return;
+    }
+    if (!publisherReady) {
+      setMessage(
+        isEmployer
+          ? 'Uzupełnij nazwę firmy w Koncie.'
+          : 'Uzupełnij imię i nazwisko w Koncie.'
+      );
       return;
     }
     if (!canSave) {
@@ -94,7 +105,7 @@ export default function EditListingScreen() {
       await updateListing(listing.id, {
         title: title.trim(),
         description: description.trim(),
-        company: company.trim() || (isEmployer ? '' : 'Spawacz indywidualny'),
+        company: publisherName,
         location: location.trim(),
         mode,
         type,
@@ -143,6 +154,18 @@ export default function EditListingScreen() {
             </View>
           ) : (
             <View style={styles.card}>
+              <View style={styles.publisherRow}>
+                <MaterialIcons name={isEmployer ? 'business' : 'person'} size={18} color="#0E4AA4" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.publisherLabel}>
+                    {isEmployer ? 'Firma na ogłoszeniu' : 'Autor ogłoszenia'}
+                  </Text>
+                  <Text style={styles.publisherValue}>{publisherName}</Text>
+                </View>
+                <Pressable onPress={() => router.push('/(tabs)/account' as never)}>
+                  <Text style={styles.publisherEdit}>Edytuj w Koncie</Text>
+                </Pressable>
+              </View>
               <Text style={styles.label}>Tytuł</Text>
               <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor="#94A3B8" />
               <Text style={styles.label}>Opis</Text>
@@ -151,16 +174,6 @@ export default function EditListingScreen() {
                 value={description}
                 onChangeText={setDescription}
                 multiline
-                placeholderTextColor="#94A3B8"
-              />
-              <Text style={styles.label}>
-                {isEmployer ? 'Firma / zleceniodawca' : 'Nazwa działalności (opcjonalnie)'}
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={company}
-                onChangeText={setCompany}
-                placeholder={isEmployer ? 'Nazwa firmy' : 'Np. TIG Damian Welding'}
                 placeholderTextColor="#94A3B8"
               />
               <Text style={styles.label}>Lokalizacja</Text>
@@ -261,6 +274,18 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 8,
   },
+  publisherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    marginBottom: 4,
+  },
+  publisherLabel: { color: '#64748B', fontSize: 11, fontWeight: '600' },
+  publisherValue: { color: '#0F172A', fontSize: 14, fontWeight: '800' },
+  publisherEdit: { color: '#0E4AA4', fontSize: 12, fontWeight: '700' },
   label: { color: '#10233E', fontSize: 13, fontWeight: '700', marginTop: 6 },
   input: {
     borderWidth: 1,

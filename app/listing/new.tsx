@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,7 +10,7 @@ import {
   type ListingType,
   type WorkMode,
 } from '@/lib/market-listings';
-import { useCurrentUserProfile } from '@/lib/user-profile';
+import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profile';
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
@@ -47,7 +47,6 @@ export default function NewListingScreen() {
   const { uid, profile } = useCurrentUserProfile();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [company, setCompany] = useState('');
   const [location, setLocation] = useState('');
   const [rateMin, setRateMin] = useState('');
   const [rateMax, setRateMax] = useState('');
@@ -57,21 +56,44 @@ export default function NewListingScreen() {
   const [intent, setIntent] = useState<ListingIntent>('offer');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [locationSeeded, setLocationSeeded] = useState(false);
+
   const isEmployer = profile.role === 'employer';
+  const publisherName = getListingPublisherName(profile);
+  const publisherReady = isEmployer
+    ? Boolean(profile.companyName.trim())
+    : Boolean(profile.fullName.trim());
+
+  useEffect(() => {
+    if (locationSeeded) return;
+    if (profile.city.trim()) {
+      setLocation(profile.city.trim());
+      setLocationSeeded(true);
+    }
+  }, [profile.city, locationSeeded]);
 
   const canSave = useMemo(() => {
     return Boolean(
-      title.trim() &&
+      publisherReady &&
+        title.trim() &&
         description.trim() &&
         location.trim() &&
         Number(rateMin) > 0 &&
         Number(rateMax) >= Number(rateMin)
     );
-  }, [description, location, rateMax, rateMin, title]);
+  }, [description, location, publisherReady, rateMax, rateMin, title]);
 
   const onSubmit = async () => {
     if (!uid) {
       setMessage('Zaloguj się, aby dodać ogłoszenie.');
+      return;
+    }
+    if (!publisherReady) {
+      setMessage(
+        isEmployer
+          ? 'Uzupełnij nazwę firmy w Koncie — pojawia się na ogłoszeniu.'
+          : 'Uzupełnij imię i nazwisko w Koncie — pojawia się na ogłoszeniu.'
+      );
       return;
     }
     if (!canSave) {
@@ -85,7 +107,7 @@ export default function NewListingScreen() {
       const listingId = await createListing({
         title: title.trim(),
         description: description.trim(),
-        company: company.trim() || (isEmployer ? '' : 'Spawacz indywidualny'),
+        company: publisherName,
         location: location.trim(),
         mode,
         type,
@@ -116,41 +138,63 @@ export default function NewListingScreen() {
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
               <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
             </Pressable>
-            <Text style={styles.headerTitle}>Dodaj ogłoszenie</Text>
+            <View style={styles.headerTextCol}>
+              <Text style={styles.headerTitle}>Nowe ogłoszenie</Text>
+              <Text style={styles.headerSub}>
+                {isEmployer ? 'Konto pracodawcy' : 'Konto spawacza'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.publisherCard, !publisherReady && styles.publisherCardWarn]}>
+            <View style={styles.publisherIcon}>
+              <MaterialIcons
+                name={isEmployer ? 'business' : 'person'}
+                size={22}
+                color="#0E4AA4"
+              />
+            </View>
+            <View style={styles.publisherTextCol}>
+              <Text style={styles.publisherLabel}>
+                {isEmployer ? 'Firma na ogłoszeniu' : 'Autor ogłoszenia'}
+              </Text>
+              <Text style={styles.publisherValue} numberOfLines={1}>
+                {publisherReady ? publisherName : isEmployer ? 'Brak nazwy firmy' : 'Brak imienia i nazwiska'}
+              </Text>
+              <Text style={styles.publisherHint}>
+                Zmień w Koncie — tu podstawiamy automatycznie.
+              </Text>
+            </View>
+            <Pressable style={styles.publisherEdit} onPress={() => router.push('/(tabs)/account' as never)}>
+              <Text style={styles.publisherEditText}>Edytuj</Text>
+            </Pressable>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.label}>Tytuł</Text>
+            <Text style={styles.sectionLabel}>Podstawy</Text>
+
+            <Text style={styles.label}>Tytuł *</Text>
             <TextInput
               style={styles.input}
               value={title}
               onChangeText={setTitle}
-              placeholder="np. Spawacz TIG 141 do instalacji"
+              placeholder={
+                isEmployer ? 'np. Poszukujemy spawacza TIG 141' : 'np. Spawacz TIG — dostępny od zaraz'
+              }
               placeholderTextColor="#94A3B8"
             />
 
-            <Text style={styles.label}>Opis</Text>
+            <Text style={styles.label}>Opis *</Text>
             <TextInput
               style={[styles.input, styles.textarea]}
               value={description}
               onChangeText={setDescription}
               multiline
-              placeholder="Zakres prac, wymagania, czas trwania..."
+              placeholder="Zakres prac, wymagania, termin, lokalizacja szczegółowa…"
               placeholderTextColor="#94A3B8"
             />
 
-            <Text style={styles.label}>
-              {isEmployer ? 'Firma / zleceniodawca' : 'Nazwa działalności (opcjonalnie)'}
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={company}
-              onChangeText={setCompany}
-              placeholder={isEmployer ? 'Nazwa firmy' : 'Np. TIG Damian Welding'}
-              placeholderTextColor="#94A3B8"
-            />
-
-            <Text style={styles.label}>Lokalizacja</Text>
+            <Text style={styles.label}>Lokalizacja *</Text>
             <TextInput
               style={styles.input}
               value={location}
@@ -158,6 +202,8 @@ export default function NewListingScreen() {
               placeholder="np. Katowice / Śląsk"
               placeholderTextColor="#94A3B8"
             />
+
+            <Text style={styles.sectionLabel}>Szczegóły</Text>
 
             <Text style={styles.label}>Tryb pracy</Text>
             <View style={styles.chipsWrap}>
@@ -187,7 +233,7 @@ export default function NewListingScreen() {
 
             <View style={styles.rateRow}>
               <View style={styles.rateCol}>
-                <Text style={styles.label}>Stawka od (PLN/h)</Text>
+                <Text style={styles.label}>Stawka od (PLN/h) *</Text>
                 <TextInput
                   style={styles.input}
                   value={rateMin}
@@ -198,7 +244,7 @@ export default function NewListingScreen() {
                 />
               </View>
               <View style={styles.rateCol}>
-                <Text style={styles.label}>Stawka do (PLN/h)</Text>
+                <Text style={styles.label}>Stawka do (PLN/h) *</Text>
                 <TextInput
                   style={styles.input}
                   value={rateMax}
@@ -210,7 +256,7 @@ export default function NewListingScreen() {
               </View>
             </View>
 
-            <Text style={styles.label}>Tagi (oddziel przecinkiem)</Text>
+            <Text style={styles.label}>Tagi (opcjonalnie)</Text>
             <TextInput
               style={styles.input}
               value={tags}
@@ -223,9 +269,10 @@ export default function NewListingScreen() {
 
             <Pressable
               style={[styles.saveBtn, (!canSave || busy) && styles.saveBtnDisabled]}
-              onPress={onSubmit}
+              onPress={() => void onSubmit()}
               disabled={!canSave || busy}>
-              <Text style={styles.saveBtnText}>{busy ? 'Zapisywanie...' : 'Opublikuj ogłoszenie'}</Text>
+              <MaterialIcons name="publish" size={18} color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>{busy ? 'Publikowanie…' : 'Opublikuj ogłoszenie'}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -236,7 +283,7 @@ export default function NewListingScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#EEF2F8' },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
+  content: { padding: 16, gap: 12, paddingBottom: 36 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   backBtn: {
     width: 36,
@@ -248,7 +295,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTextCol: { flex: 1, gap: 1 },
   headerTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  headerSub: { color: '#64748B', fontSize: 12 },
+  publisherCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  publisherCardWarn: { borderColor: '#FECACA', backgroundColor: '#FFF7F7' },
+  publisherIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  publisherTextCol: { flex: 1, gap: 2, minWidth: 0 },
+  publisherLabel: { color: '#64748B', fontSize: 11, fontWeight: '600' },
+  publisherValue: { color: '#0F172A', fontSize: 15, fontWeight: '800' },
+  publisherHint: { color: '#94A3B8', fontSize: 11 },
+  publisherEdit: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+  },
+  publisherEditText: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -256,6 +335,14 @@ const styles = StyleSheet.create({
     borderColor: '#DFE6F2',
     padding: 14,
     gap: 8,
+  },
+  sectionLabel: {
+    color: '#0E4AA4',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginTop: 4,
   },
   label: { color: '#10233E', fontSize: 13, fontWeight: '700', marginTop: 6 },
   input: {
@@ -268,10 +355,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
   },
-  textarea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
+  textarea: { minHeight: 110, textAlignVertical: 'top' },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
   chip: {
     paddingHorizontal: 12,
@@ -286,14 +370,17 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#FFFFFF' },
   rateRow: { flexDirection: 'row', gap: 8 },
   rateCol: { flex: 1 },
-  message: { color: '#B91C1C', marginTop: 4 },
+  message: { color: '#B91C1C', marginTop: 4, fontSize: 13 },
   saveBtn: {
     marginTop: 12,
-    borderRadius: 11,
+    borderRadius: 12,
     backgroundColor: '#0E4AA4',
-    paddingVertical: 12,
+    paddingVertical: 13,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
   },
-  saveBtnDisabled: { opacity: 0.65 },
+  saveBtnDisabled: { opacity: 0.55 },
   saveBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
 });

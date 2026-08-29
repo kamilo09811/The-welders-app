@@ -34,13 +34,17 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isEmployer = role === 'employer';
+  const isWelder = role === 'welder';
+
   const roleHint =
-    role === 'welder'
+    isWelder
       ? 'Rejestracja — konto spawacza'
-      : role === 'employer'
+      : isEmployer
         ? 'Rejestracja — firma / zlecenia'
         : 'Załóż konto';
 
@@ -55,8 +59,13 @@ export default function RegisterScreen() {
   const onRegister = useCallback(async () => {
     setError(null);
     const trimmed = email.trim();
+    const nameTrimmed = displayName.trim();
     if (!trimmed || !password || !confirm) {
       setError('Wypełnij wszystkie pola.');
+      return;
+    }
+    if ((isWelder || isEmployer) && !nameTrimmed) {
+      setError(isEmployer ? 'Podaj nazwę firmy.' : 'Podaj imię i nazwisko.');
       return;
     }
     if (password.length < MIN_PASSWORD_LEN) {
@@ -76,12 +85,12 @@ export default function RegisterScreen() {
     }
     setBusy(true);
     try {
+      const accountRole = isEmployer ? 'employer' : 'welder';
       const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), trimmed, password);
-      await createUserProfile(
-        cred.user.uid,
-        role === 'employer' ? 'employer' : 'welder',
-        cred.user.emailVerified
-      );
+      await createUserProfile(cred.user.uid, accountRole, cred.user.emailVerified, {
+        fullName: isEmployer ? '' : nameTrimmed,
+        companyName: isEmployer ? nameTrimmed : '',
+      });
       const sent = await sendAccountVerificationEmail(cred.user);
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -99,7 +108,7 @@ export default function RegisterScreen() {
     } finally {
       setBusy(false);
     }
-  }, [email, password, confirm, role, router]);
+  }, [email, password, confirm, displayName, isEmployer, isWelder, router]);
 
   return (
     <>
@@ -129,7 +138,24 @@ export default function RegisterScreen() {
               <Text style={styles.hint}>{roleHint}</Text>
 
               <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
-                <Text style={styles.label}>E-mail</Text>
+                {(isWelder || isEmployer) ? (
+                  <>
+                    <Text style={styles.label}>{isEmployer ? 'Nazwa firmy' : 'Imię i nazwisko'}</Text>
+                    <TextInput
+                      style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
+                      placeholder={isEmployer ? 'np. WeldPro Sp. z o.o.' : 'np. Jan Kowalski'}
+                      placeholderTextColor={C.placeholder}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                      value={displayName}
+                      onChangeText={setDisplayName}
+                      editable={!busy}
+                    />
+                    <Text style={[styles.label, styles.labelSpaced]}>E-mail</Text>
+                  </>
+                ) : (
+                  <Text style={styles.label}>E-mail</Text>
+                )}
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder="twoj@email.pl"
