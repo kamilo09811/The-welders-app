@@ -22,10 +22,12 @@ import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { isFirebaseConfigured } from '@/lib/firebaseConfig';
 import { getFirebaseProjectHint } from '@/lib/firebase-project-hint';
 import { mapAuthError } from '@/lib/mapAuthError';
+import { usePreferences } from '@/lib/preferences-context';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
+  const { t } = usePreferences();
   const [email, setEmail] = useState(typeof emailParam === 'string' ? emailParam : '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export default function ForgotPasswordScreen() {
     setSent(false);
     const trimmed = email.trim();
     if (!trimmed) {
-      setError('Podaj adres e-mail.');
+      setError(t('auth.enterEmail'));
       return;
     }
     if (!isFirebaseConfigured()) {
@@ -90,16 +92,14 @@ export default function ForgotPasswordScreen() {
                   style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
                   <MaterialIcons name="arrow-back" size={22} color={C.text} />
                 </Pressable>
-                <Text style={styles.topTitle}>Reset hasła</Text>
+                <Text style={styles.topTitle}>{t('auth.forgotTitle')}</Text>
                 <View style={styles.topSpacer} />
               </View>
 
-              <Text style={styles.lead}>
-                Wyślemy link do ustawienia nowego hasła na podany adres (sprawdź też folder spam).
-              </Text>
+              <Text style={styles.lead}>{t('auth.resetSent')}</Text>
 
               <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
-                <Text style={styles.label}>E-mail</Text>
+                <Text style={styles.label}>{t('auth.email')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder="twoj@email.pl"
@@ -117,12 +117,7 @@ export default function ForgotPasswordScreen() {
                 {sent ? (
                   <View style={styles.sentBlock}>
                     <Text style={[styles.success, { color: C.success }]} accessibilityLiveRegion="polite">
-                      Firebase przyjął żądanie. Jeśli konto było założone e-mailem i hasłem (nie tylko Google), sprawdź
-                      skrzynkę — także Spam. Nadawca często: {fb.mailFrom}
-                    </Text>
-                    <Text style={styles.sentSub}>
-                      Nic nie ma? W konsoli Firebase otwórz projekt „{fb.projectId}” → Authentication → Users — czy ten
-                      e-mail tam jest? Konto tylko z Google nie dostaje resetu hasła — zaloguj się przez Google.
+                      {t('auth.resetSent')}
                     </Text>
                   </View>
                 ) : null}
@@ -144,13 +139,13 @@ export default function ForgotPasswordScreen() {
                   {busy ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Wyślij link</Text>
+                    <Text style={styles.primaryBtnText}>{t('auth.sendReset')}</Text>
                   )}
                 </Pressable>
               </View>
 
               <Pressable onPress={() => router.replace('/login')} style={styles.backLogin}>
-                <Text style={[styles.backLoginText, { color: C.primary }]}>Wróć do logowania</Text>
+                <Text style={[styles.backLoginText, { color: C.primary }]}>{t('auth.backToLogin')}</Text>
               </Pressable>
 
               <Text style={styles.projectHint}>

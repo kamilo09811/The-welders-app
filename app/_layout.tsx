@@ -27,7 +27,7 @@ function RootNavigation() {
           ...DarkTheme,
           colors: {
             ...DarkTheme.colors,
-            primary: prefs?.colors.primary ?? '#FB923C',
+            primary: prefs?.colors.primary ?? '#60A5FA',
             background: prefs?.colors.bg ?? DarkTheme.colors.background,
             card: prefs?.colors.card ?? DarkTheme.colors.card,
             text: prefs?.colors.text ?? DarkTheme.colors.text,
@@ -38,7 +38,7 @@ function RootNavigation() {
           ...DefaultTheme,
           colors: {
             ...DefaultTheme.colors,
-            primary: prefs?.colors.primary ?? '#C2410C',
+            primary: prefs?.colors.primary ?? '#0E4AA4',
             background: prefs?.colors.bg ?? DefaultTheme.colors.background,
             card: prefs?.colors.card ?? DefaultTheme.colors.card,
             text: prefs?.colors.text ?? DefaultTheme.colors.text,

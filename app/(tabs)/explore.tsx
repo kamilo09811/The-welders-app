@@ -9,6 +9,7 @@ import type { WorkMode } from '@/lib/market-listings';
 import { PL_CITIES } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
 import type { AppColors } from '@/lib/theme';
+import { getHeaderGradient } from '@/lib/theme';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 import {
   type SettingsIntentPref,
@@ -169,8 +170,7 @@ export default function SettingsScreen() {
       : true
   ).slice(0, 8);
 
-  const headerGradient =
-    theme === 'dark' ? (['#1C1917', '#0C0A09'] as const) : (['#9A3412', '#F4F1EA'] as const);
+  const headerGradient = getHeaderGradient(theme);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>

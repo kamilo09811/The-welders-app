@@ -18,6 +18,7 @@ import type { ListingIntent, ListingType, MarketListing } from '@/lib/market-lis
 import { isQuickListing } from '@/lib/market-listings';
 import { matchesLocationPreference } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
+import { getHeroGradient } from '@/lib/theme';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
 import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
@@ -328,15 +329,7 @@ export default function MarketplaceScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
-      <LinearGradient
-        colors={
-          theme === 'dark'
-            ? (['#1C1917', '#431407', '#0C0A09'] as const)
-            : (['#9A3412', '#C2410C', '#F4F1EA'] as const)
-        }
-        locations={[0, 0.28, 0.55]}
-        style={styles.bgGlow}
-      />
+      <LinearGradient colors={[...getHeroGradient(theme)]} locations={[0, 0.28, 0.55]} style={styles.bgGlow} />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>

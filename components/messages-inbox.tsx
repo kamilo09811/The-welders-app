@@ -23,6 +23,7 @@ import {
 } from '@/lib/chat';
 import { localeToBcp47 } from '@/lib/i18n';
 import { usePreferences } from '@/lib/preferences-context';
+import { getChatsGradient } from '@/lib/theme';
 import { useUserConversations } from '@/lib/use-chat';
 import { getPublicUserInfo, useCurrentUserProfile } from '@/lib/user-profile';
 
@@ -46,9 +47,14 @@ function formatListTime(d: Date | null, localeTag: string): string {
   return d.toLocaleDateString(localeTag, { day: 'numeric', month: 'short' });
 }
 
-function previewLabel(text: string, uid: string | undefined, senderId: string): string {
+function previewLabel(
+  text: string,
+  uid: string | undefined,
+  senderId: string,
+  emptyLabel: string
+): string {
   const raw = text.trim();
-  if (!raw) return 'Napisz pierwszą wiadomość…';
+  if (!raw) return emptyLabel;
   const mine = Boolean(uid && senderId && senderId === uid);
   const body = raw.startsWith('📷') ? raw : raw;
   return mine ? `Ty: ${body}` : body;
@@ -112,7 +118,7 @@ export function MessagesInbox({ showBack = false }: Props) {
       const fromMap = otherId ? c.participantNames?.[otherId] : '';
       const fallback =
         Object.entries(c.participantNames || {}).find(([key]) => key !== uid)?.[1] || '';
-      return fromMap || fallback || resolvedNames[otherId] || c.listingTitle || 'Użytkownik';
+      return fromMap || fallback || resolvedNames[otherId] || c.listingTitle || t('chats.user');
     },
     [resolvedNames, uid]
   );
@@ -134,20 +140,18 @@ export function MessagesInbox({ showBack = false }: Props) {
       const muted = isConversationMutedForUser(c, uid);
       Alert.alert(
         otherName,
-        muted
-          ? 'Odciszyć ten wątek? Znowu będziesz widzieć licznik nieprzeczytanych.'
-          : 'Wyciszyć wątek? Nie zobaczysz czerwonego badge przy nowych wiadomościach z tej rozmowy.',
+        muted ? t('chats.unmuteTitle') : t('chats.muteTitle'),
         [
-          { text: 'Anuluj', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: muted ? 'Odcisz' : 'Wycisz',
+            text: muted ? t('chats.unmute') : t('chats.mute'),
             style: muted ? 'default' : 'destructive',
             onPress: () => void setConversationMuted(c.id, uid, !muted),
           },
         ]
       );
     },
-    [uid]
+    [uid, t]
   );
 
   const renderItem = useCallback(
@@ -157,7 +161,12 @@ export function MessagesInbox({ showBack = false }: Props) {
       const otherId = getOtherParticipantId(c.participantIds);
       const otherAvatar = c.participantAvatars?.[otherId] || resolvedAvatars[otherId] || '';
       const otherName = resolveOtherName(c, otherId);
-      const preview = previewLabel(c.lastMessageText || '', uid ?? undefined, c.lastMessageSenderId);
+      const preview = previewLabel(
+        c.lastMessageText || '',
+        uid ?? undefined,
+        c.lastMessageSenderId,
+        t('chats.writeFirst')
+      );
       const isFirst = index === 0;
       const isLast = index === visibleConversations.length - 1;
 
@@ -236,13 +245,7 @@ export function MessagesInbox({ showBack = false }: Props) {
 
   const listHeader = (
     <View style={styles.topBlock}>
-      <LinearGradient
-        colors={
-          theme === 'dark'
-            ? (['#1C1917', '#431407', '#292524'] as const)
-            : (['#9A3412', '#C2410C', '#EA580C'] as const)
-        }
-        style={styles.hero}>
+      <LinearGradient colors={[...getChatsGradient(theme)]} style={styles.hero}>
         <View style={styles.heroRow}>
           {showBack ? (
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -258,7 +261,7 @@ export function MessagesInbox({ showBack = false }: Props) {
                   ? `${unreadCount} ${t('chats.unread')}`
                   : conversations.length === 0
                     ? t('chats.noneActive')
-                    : `${conversations.length} ${conversations.length === 1 ? 'rozmowa' : 'rozmów'}`}
+                    : `${conversations.length} ${conversations.length === 1 ? t('chats.conversation') : t('chats.conversations')}`}
             </Text>
           </View>
         </View>
@@ -290,15 +293,15 @@ export function MessagesInbox({ showBack = false }: Props) {
       {loading ? (
         <>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.emptyTitle}>Ładowanie rozmów</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.loadingChats')}</Text>
         </>
       ) : searchQuery.trim() ? (
         <>
           <View style={styles.emptyIcon}>
             <MaterialIcons name="search-off" size={28} color="#0E4AA4" />
           </View>
-          <Text style={styles.emptyTitle}>Nic nie znaleziono</Text>
-          <Text style={styles.emptySub}>Spróbuj innej frazy albo wyczyść wyszukiwanie.</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.noneFound')}</Text>
+          <Text style={[styles.emptySub, { color: colors.textSoft }]}>{t('chats.noneFoundSub')}</Text>
         </>
       ) : (
         <>
@@ -306,9 +309,7 @@ export function MessagesInbox({ showBack = false }: Props) {
             <MaterialIcons name="forum" size={28} color="#0E4AA4" />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.empty')}</Text>
-          <Text style={styles.emptySub}>
-            Otwórz ogłoszenie na Rynku i napisz do drugiej strony — wątek wpadnie na tę listę.
-          </Text>
+          <Text style={[styles.emptySub, { color: colors.textSoft }]}>{t('chats.emptySub')}</Text>
           <Pressable style={styles.emptyCta} onPress={() => router.push('/(tabs)' as never)}>
             <Text style={styles.emptyCtaText}>Przejdź do Rynku</Text>
             <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />

@@ -11,6 +11,7 @@ import {
   type ListingType,
   type WorkMode,
 } from '@/lib/market-listings';
+import { usePreferences } from '@/lib/preferences-context';
 import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profile';
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
@@ -21,11 +22,15 @@ const LISTING_INTENTS: { value: ListingIntent; label: string }[] = [
 ];
 const QUICK_DURATIONS = ['Kilka godzin', '1 dzień', 'Kilka dni', 'Tydzień', 'Do uzgodnienia'];
 
-function getIntentLabel(role: 'welder' | 'employer', intent: ListingIntent) {
+function getIntentLabel(
+  role: 'welder' | 'employer',
+  intent: ListingIntent,
+  t: (key: 'listing.intentOfferJob' | 'listing.intentSeekWelder' | 'listing.intentOfferService' | 'listing.intentSeekJob') => string
+) {
   if (role === 'employer') {
-    return intent === 'offer' ? 'Oferuję zlecenie' : 'Poszukuję spawacza';
+    return intent === 'offer' ? t('listing.intentOfferJob') : t('listing.intentSeekWelder');
   }
-  return intent === 'offer' ? 'Oferuję usługi' : 'Poszukuję pracy';
+  return intent === 'offer' ? t('listing.intentOfferService') : t('listing.intentSeekJob');
 }
 
 function SelectChip({
@@ -47,6 +52,7 @@ function SelectChip({
 export default function NewListingScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
+  const { t, colors } = usePreferences();
   const [kind, setKind] = useState<ListingKind | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -117,15 +123,11 @@ export default function NewListingScreen() {
       return;
     }
     if (!publisherReady) {
-      setMessage(
-        isEmployer
-          ? 'Uzupełnij nazwę firmy w Koncie — pojawia się na ogłoszeniu.'
-          : 'Uzupełnij imię i nazwisko w Koncie — pojawia się na ogłoszeniu.'
-      );
+      setMessage(isEmployer ? t('listing.needCompany') : t('listing.needName'));
       return;
     }
     if (!canSave) {
-      setMessage('Uzupełnij poprawnie wszystkie wymagane pola.');
+      setMessage(t('listing.fillRequired'));
       return;
     }
 
@@ -165,7 +167,7 @@ export default function NewListingScreen() {
       });
       router.replace({ pathname: '/listing/[id]', params: { id: listingId } });
     } catch {
-      setMessage('Nie udało się zapisać ogłoszenia. Spróbuj ponownie.');
+      setMessage(t('listing.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -174,7 +176,7 @@ export default function NewListingScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Pressable
@@ -187,28 +189,26 @@ export default function NewListingScreen() {
                 }
               }}
               style={styles.backBtn}>
-              <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
+              <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
             </Pressable>
             <View style={styles.headerTextCol}>
-              <Text style={styles.headerTitle}>Nowe ogłoszenie</Text>
-              <Text style={styles.headerSub}>
-                {isEmployer ? 'Konto pracodawcy' : 'Konto spawacza'}
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('listing.newTitle')}</Text>
+              <Text style={[styles.headerSub, { color: colors.textSoft }]}>
+                {isEmployer ? t('listing.roleEmployer') : t('listing.roleWelder')}
               </Text>
             </View>
           </View>
 
           {!kind ? (
             <View style={styles.chooser}>
-              <Text style={styles.chooserLead}>Co chcesz opublikować?</Text>
+              <Text style={[styles.chooserLead, { color: colors.textMuted }]}>{t('listing.chooserLead')}</Text>
               <Pressable style={styles.choiceCard} onPress={() => setKind('standard')}>
                 <View style={styles.choiceIcon}>
-                  <MaterialIcons name="description" size={26} color="#0E4AA4" />
+                  <MaterialIcons name="description" size={26} color={colors.primary} />
                 </View>
                 <View style={styles.choiceTextCol}>
-                  <Text style={styles.choiceTitle}>Ogłoszenie</Text>
-                  <Text style={styles.choiceSub}>
-                    Klasyczne ogłoszenie o pracę / zlecenie — bez limitu zgłoszeń.
-                  </Text>
+                  <Text style={styles.choiceTitle}>{t('listing.standardTitle')}</Text>
+                  <Text style={styles.choiceSub}>{t('listing.standardSub')}</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
               </Pressable>
@@ -217,10 +217,8 @@ export default function NewListingScreen() {
                   <MaterialIcons name="bolt" size={26} color="#C2410C" />
                 </View>
                 <View style={styles.choiceTextCol}>
-                  <Text style={styles.choiceTitle}>Szybkie zlecenie</Text>
-                  <Text style={styles.choiceSub}>
-                    Mikrolicytacja: max 5 najszybszych. Idealne na bramę, awarię, tydzień na hali.
-                  </Text>
+                  <Text style={styles.choiceTitle}>{t('listing.quickTitle')}</Text>
+                  <Text style={styles.choiceSub}>{t('listing.quickSub')}</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
               </Pressable>
@@ -232,42 +230,40 @@ export default function NewListingScreen() {
                   <MaterialIcons
                     name={isEmployer ? 'business' : 'person'}
                     size={22}
-                    color="#0E4AA4"
+                    color={colors.primary}
                   />
                 </View>
                 <View style={styles.publisherTextCol}>
                   <Text style={styles.publisherLabel}>
-                    {isEmployer ? 'Firma na ogłoszeniu' : 'Autor ogłoszenia'}
+                    {isEmployer ? t('listing.companyOnListing') : t('listing.publisher')}
                   </Text>
                   <Text style={styles.publisherValue} numberOfLines={1}>
                     {publisherReady
                       ? publisherName
                       : isEmployer
-                        ? 'Brak nazwy firmy'
-                        : 'Brak imienia i nazwiska'}
+                        ? t('listing.missingCompany')
+                        : t('listing.missingName')}
                   </Text>
-                  <Text style={styles.publisherHint}>Zmień w Koncie — tu podstawiamy automatycznie.</Text>
+                  <Text style={styles.publisherHint}>{t('listing.publisherHint')}</Text>
                 </View>
                 <Pressable
                   style={styles.publisherEdit}
                   onPress={() => router.push('/(tabs)/account' as never)}>
-                  <Text style={styles.publisherEditText}>Edytuj</Text>
+                  <Text style={styles.publisherEditText}>{t('listing.editInAccount')}</Text>
                 </Pressable>
               </View>
 
               {isQuick ? (
                 <View style={styles.quickBanner}>
                   <MaterialIcons name="bolt" size={18} color="#C2410C" />
-                  <Text style={styles.quickBannerText}>
-                    Szybkie zlecenie · pierwsze 5 osób zajmuje miejsca · Ty wybierasz zwycięzcę
-                  </Text>
+                  <Text style={styles.quickBannerText}>{t('listing.quickBanner')}</Text>
                 </View>
               ) : null}
 
               <View style={styles.card}>
-                <Text style={styles.sectionLabel}>{isQuick ? 'Szybkie zlecenie' : 'Podstawy'}</Text>
+                <Text style={styles.sectionLabel}>{isQuick ? t('listing.quickTitle') : t('listing.basics')}</Text>
 
-                <Text style={styles.label}>Tytuł *</Text>
+                <Text style={styles.label}>{t('listing.titleField')}</Text>
                 <TextInput
                   style={styles.input}
                   value={title}
@@ -284,7 +280,7 @@ export default function NewListingScreen() {
                   placeholderTextColor="#94A3B8"
                 />
 
-                <Text style={styles.label}>Opis *</Text>
+                <Text style={styles.label}>{t('listing.descriptionField')}</Text>
                 <TextInput
                   style={[styles.input, styles.textarea]}
                   value={description}
@@ -298,7 +294,7 @@ export default function NewListingScreen() {
                   placeholderTextColor="#94A3B8"
                 />
 
-                <Text style={styles.label}>Lokalizacja *</Text>
+                <Text style={styles.label}>{t('listing.locationField')}</Text>
                 <TextInput
                   style={styles.input}
                   value={location}
@@ -309,7 +305,7 @@ export default function NewListingScreen() {
 
                 {isQuick ? (
                   <>
-                    <Text style={styles.label}>Czas trwania</Text>
+                    <Text style={styles.label}>{t('listing.duration')}</Text>
                     <View style={styles.chipsWrap}>
                       {QUICK_DURATIONS.map((v) => (
                         <SelectChip
@@ -320,7 +316,7 @@ export default function NewListingScreen() {
                         />
                       ))}
                     </View>
-                    <Text style={styles.label}>Budżet / stawka (PLN, opcjonalnie)</Text>
+                    <Text style={styles.label}>{t('listing.budgetOptional')}</Text>
                     <TextInput
                       style={styles.input}
                       value={rateMin}
@@ -332,25 +328,25 @@ export default function NewListingScreen() {
                   </>
                 ) : (
                   <>
-                    <Text style={styles.sectionLabel}>Szczegóły</Text>
-                    <Text style={styles.label}>Tryb pracy</Text>
+                    <Text style={styles.sectionLabel}>{t('listing.details')}</Text>
+                    <Text style={styles.label}>{t('listing.workMode')}</Text>
                     <View style={styles.chipsWrap}>
                       {WORK_MODES.map((v) => (
                         <SelectChip key={v} label={v} active={mode === v} onPress={() => setMode(v)} />
                       ))}
                     </View>
-                    <Text style={styles.label}>Typ ogłoszenia</Text>
+                    <Text style={styles.label}>{t('listing.intentType')}</Text>
                     <View style={styles.chipsWrap}>
                       {LISTING_INTENTS.map((v) => (
                         <SelectChip
                           key={v.value}
-                          label={getIntentLabel(profile.role, v.value)}
+                          label={getIntentLabel(profile.role, v.value, t)}
                           active={intent === v.value}
                           onPress={() => setIntent(v.value)}
                         />
                       ))}
                     </View>
-                    <Text style={styles.label}>Typ współpracy</Text>
+                    <Text style={styles.label}>{t('listing.collabType')}</Text>
                     <View style={styles.chipsWrap}>
                       {LISTING_TYPES.map((v) => (
                         <SelectChip key={v} label={v} active={type === v} onPress={() => setType(v)} />
@@ -358,7 +354,7 @@ export default function NewListingScreen() {
                     </View>
                     <View style={styles.rateRow}>
                       <View style={styles.rateCol}>
-                        <Text style={styles.label}>Stawka od (opcjonalnie)</Text>
+                        <Text style={styles.label}>{t('listing.rateFrom')}</Text>
                         <TextInput
                           style={styles.input}
                           value={rateMin}
@@ -369,7 +365,7 @@ export default function NewListingScreen() {
                         />
                       </View>
                       <View style={styles.rateCol}>
-                        <Text style={styles.label}>Stawka do (opcjonalnie)</Text>
+                        <Text style={styles.label}>{t('listing.rateTo')}</Text>
                         <TextInput
                           style={styles.input}
                           value={rateMax}
@@ -385,7 +381,7 @@ export default function NewListingScreen() {
 
                 {!isQuick ? (
                   <>
-                    <Text style={styles.label}>Tagi (opcjonalnie)</Text>
+                    <Text style={styles.label}>{t('listing.tags')}</Text>
                     <TextInput
                       style={styles.input}
                       value={tags}
@@ -396,7 +392,7 @@ export default function NewListingScreen() {
                   </>
                 ) : (
                   <>
-                    <Text style={styles.label}>Tryb</Text>
+                    <Text style={styles.label}>{t('listing.mode')}</Text>
                     <View style={styles.chipsWrap}>
                       {WORK_MODES.map((v) => (
                         <SelectChip key={v} label={v} active={mode === v} onPress={() => setMode(v)} />
@@ -413,7 +409,7 @@ export default function NewListingScreen() {
                   disabled={!canSave || busy}>
                   <MaterialIcons name={isQuick ? 'bolt' : 'publish'} size={18} color="#FFFFFF" />
                   <Text style={styles.saveBtnText}>
-                    {busy ? 'Publikowanie…' : isQuick ? 'Opublikuj szybkie zlecenie' : 'Opublikuj ogłoszenie'}
+                    {busy ? t('listing.publishing') : isQuick ? t('listing.publishQuick') : t('listing.publish')}
                   </Text>
                 </Pressable>
               </View>
@@ -426,7 +422,7 @@ export default function NewListingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
+  root: { flex: 1, backgroundColor: '#E8EEF7' },
   content: { padding: 16, gap: 12, paddingBottom: 36 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   backBtn: {

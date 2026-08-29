@@ -25,56 +25,74 @@ export type AppColors = {
   heroOverlay: string;
 };
 
+/** Niebiesko-biały jasny motyw (oryginalny look aplikacji). */
 const light: AppColors = {
-  bg: '#F4F1EA',
+  bg: '#E8EEF7',
   bgElevated: '#FFFFFF',
   card: '#FFFFFF',
-  text: '#1C1917',
-  textMuted: '#57534E',
-  textSoft: '#78716C',
-  border: '#E7E5E4',
-  borderStrong: '#D6D3D1',
-  primary: '#C2410C',
-  primaryMuted: '#FFF7ED',
+  text: '#0F172A',
+  textMuted: '#475569',
+  textSoft: '#64748B',
+  border: '#D5DEEA',
+  borderStrong: '#CBD5E1',
+  primary: '#0E4AA4',
+  primaryMuted: '#EFF6FF',
   danger: '#B91C1C',
   dangerSoft: '#FEF2F2',
   success: '#15803D',
   successSoft: '#ECFDF5',
-  warning: '#B45309',
-  warningSoft: '#FFFBEB',
-  chip: '#F5F5F4',
-  chipText: '#44403C',
-  inputBg: '#FAFAF9',
-  overlay: 'rgba(28,25,23,0.45)',
-  tabInactive: '#78716C',
-  heroOverlay: 'rgba(28,25,23,0.55)',
+  warning: '#C2410C',
+  warningSoft: '#FFF7ED',
+  chip: '#F1F5F9',
+  chipText: '#334155',
+  inputBg: '#F8FAFC',
+  overlay: 'rgba(15,23,42,0.45)',
+  tabInactive: '#64748B',
+  heroOverlay: 'rgba(10,47,107,0.55)',
 };
 
 const dark: AppColors = {
-  bg: '#0C0A09',
-  bgElevated: '#1C1917',
-  card: '#1C1917',
-  text: '#FAFAF9',
-  textMuted: '#A8A29E',
-  textSoft: '#78716C',
-  border: '#292524',
-  borderStrong: '#44403C',
-  primary: '#FB923C',
-  primaryMuted: '#431407',
+  bg: '#0B1220',
+  bgElevated: '#111827',
+  card: '#111827',
+  text: '#F8FAFC',
+  textMuted: '#94A3B8',
+  textSoft: '#64748B',
+  border: '#1E293B',
+  borderStrong: '#334155',
+  primary: '#60A5FA',
+  primaryMuted: '#0F2744',
   danger: '#F87171',
   dangerSoft: '#450A0A',
   success: '#4ADE80',
   successSoft: '#052E16',
-  warning: '#FBBF24',
-  warningSoft: '#422006',
-  chip: '#292524',
-  chipText: '#E7E5E4',
-  inputBg: '#292524',
+  warning: '#FB923C',
+  warningSoft: '#431407',
+  chip: '#1E293B',
+  chipText: '#E2E8F0',
+  inputBg: '#1E293B',
   overlay: 'rgba(0,0,0,0.55)',
-  tabInactive: '#A8A29E',
+  tabInactive: '#94A3B8',
   heroOverlay: 'rgba(0,0,0,0.65)',
 };
 
 export function getAppColors(mode: AppThemeMode): AppColors {
   return mode === 'dark' ? dark : light;
+}
+
+/** Gradient hero na głównych ekranach (nie welcome). */
+export function getHeroGradient(mode: AppThemeMode): readonly [string, string, string] {
+  return mode === 'dark'
+    ? (['#0B1A33', '#0E3A6B', '#0B1220'] as const)
+    : (['#0A2F6B', '#0E4AA4', '#E8EEF7'] as const);
+}
+
+export function getHeaderGradient(mode: AppThemeMode): readonly [string, string] {
+  return mode === 'dark' ? (['#0B1A33', '#0B1220'] as const) : (['#0A2F6B', '#E8EEF7'] as const);
+}
+
+export function getChatsGradient(mode: AppThemeMode): readonly [string, string, string] {
+  return mode === 'dark'
+    ? (['#0B1A33', '#0E3A6B', '#111827'] as const)
+    : (['#0B3A82', '#0E4AA4', '#1A6AD4'] as const);
 }

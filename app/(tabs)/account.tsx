@@ -11,14 +11,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { uploadUserAvatar } from '@/lib/avatarStorage';
 import { clearExpoPushToken } from '@/lib/expo-push';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
+import type { TranslationKey } from '@/lib/i18n';
 import type { ListingApplication } from '@/lib/listing-applications';
 import { usePreferences } from '@/lib/preferences-context';
+import type { AppColors } from '@/lib/theme';
+import { getHeaderGradient } from '@/lib/theme';
 import { useUserConversations } from '@/lib/use-chat';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
 import { updateUserPersonalFields, useCurrentUserProfile } from '@/lib/user-profile';
-import type { AppColors } from '@/lib/theme';
-import type { TranslationKey } from '@/lib/i18n';
 
 function statusLabel(
   status: ListingApplication['status'],
@@ -170,15 +171,7 @@ export default function AccountScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
-      <LinearGradient
-        colors={
-          theme === 'dark'
-            ? (['#1C1917', '#0C0A09'] as const)
-            : (['#9A3412', '#F4F1EA'] as const)
-        }
-        locations={[0, 0.36]}
-        style={styles.bgGlow}
-      />
+      <LinearGradient colors={[...getHeaderGradient(theme)]} locations={[0, 0.36]} style={styles.bgGlow} />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>

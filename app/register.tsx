@@ -25,12 +25,14 @@ import { mapAuthError } from '@/lib/mapAuthError';
 import { needsEmailVerification } from '@/lib/auth-email';
 import { sendAccountVerificationEmail } from '@/lib/auth-verification';
 import { createUserProfile } from '@/lib/user-profile';
+import { usePreferences } from '@/lib/preferences-context';
 
 const MIN_PASSWORD_LEN = 8;
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { role } = useLocalSearchParams<{ role?: string }>();
+  const { t } = usePreferences();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -43,10 +45,10 @@ export default function RegisterScreen() {
 
   const roleHint =
     isWelder
-      ? 'Rejestracja — konto spawacza'
+      ? t('auth.registerHintWelder')
       : isEmployer
-        ? 'Rejestracja — firma / zlecenia'
-        : 'Załóż konto';
+        ? t('auth.registerHintEmployer')
+        : t('auth.registerHint');
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -61,19 +63,19 @@ export default function RegisterScreen() {
     const trimmed = email.trim();
     const nameTrimmed = displayName.trim();
     if (!trimmed || !password || !confirm) {
-      setError('Wypełnij wszystkie pola.');
+      setError(t('auth.fillAll'));
       return;
     }
     if ((isWelder || isEmployer) && !nameTrimmed) {
-      setError(isEmployer ? 'Podaj nazwę firmy.' : 'Podaj imię i nazwisko.');
+      setError(isEmployer ? t('listing.needCompany') : t('listing.needName'));
       return;
     }
     if (password.length < MIN_PASSWORD_LEN) {
-      setError(`Hasło musi mieć co najmniej ${MIN_PASSWORD_LEN} znaków.`);
+      setError(t('auth.passwordMin', { n: MIN_PASSWORD_LEN }));
       return;
     }
     if (password !== confirm) {
-      setError('Hasła muszą być takie same.');
+      setError(t('auth.passwordsMismatch'));
       return;
     }
     if (!isFirebaseConfigured()) {
@@ -108,7 +110,7 @@ export default function RegisterScreen() {
     } finally {
       setBusy(false);
     }
-  }, [email, password, confirm, displayName, isEmployer, isWelder, router]);
+  }, [email, password, confirm, displayName, isEmployer, isWelder, router, t]);
 
   return (
     <>
@@ -131,7 +133,7 @@ export default function RegisterScreen() {
                   style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
                   <MaterialIcons name="arrow-back" size={22} color={C.text} />
                 </Pressable>
-                <Text style={styles.topTitle}>Rejestracja</Text>
+                <Text style={styles.topTitle}>{t('auth.registerTitle')}</Text>
                 <View style={styles.topSpacer} />
               </View>
 
@@ -140,7 +142,7 @@ export default function RegisterScreen() {
               <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
                 {(isWelder || isEmployer) ? (
                   <>
-                    <Text style={styles.label}>{isEmployer ? 'Nazwa firmy' : 'Imię i nazwisko'}</Text>
+                    <Text style={styles.label}>{isEmployer ? t('account.companyName') : t('account.fullName')}</Text>
                     <TextInput
                       style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                       placeholder={isEmployer ? 'np. WeldPro Sp. z o.o.' : 'np. Jan Kowalski'}
@@ -151,10 +153,10 @@ export default function RegisterScreen() {
                       onChangeText={setDisplayName}
                       editable={!busy}
                     />
-                    <Text style={[styles.label, styles.labelSpaced]}>E-mail</Text>
+                    <Text style={[styles.label, styles.labelSpaced]}>{t('auth.email')}</Text>
                   </>
                 ) : (
-                  <Text style={styles.label}>E-mail</Text>
+                  <Text style={styles.label}>{t('auth.email')}</Text>
                 )}
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
@@ -170,7 +172,7 @@ export default function RegisterScreen() {
                   editable={!busy}
                 />
 
-                <Text style={[styles.label, styles.labelSpaced]}>Hasło</Text>
+                <Text style={[styles.label, styles.labelSpaced]}>{t('auth.password')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder={`min. ${MIN_PASSWORD_LEN} znaków`}
@@ -183,7 +185,7 @@ export default function RegisterScreen() {
                   editable={!busy}
                 />
 
-                <Text style={[styles.label, styles.labelSpaced]}>Powtórz hasło</Text>
+                <Text style={[styles.label, styles.labelSpaced]}>{t('auth.confirmPassword')}</Text>
                 <TextInput
                   style={[styles.input, { borderColor: C.border, color: C.text, backgroundColor: C.fieldBg }]}
                   placeholder="powtórz hasło"
@@ -213,13 +215,13 @@ export default function RegisterScreen() {
                   {busy ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Utwórz konto</Text>
+                    <Text style={styles.primaryBtnText}>{t('auth.register')}</Text>
                   )}
                 </Pressable>
 
                 <View style={styles.dividerRow}>
                   <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
-                  <Text style={[styles.dividerText, { color: C.muted }]}>lub</Text>
+                  <Text style={[styles.dividerText, { color: C.muted }]}>{t('auth.or')}</Text>
                   <View style={[styles.dividerLine, { backgroundColor: C.border }]} />
                 </View>
 
@@ -231,7 +233,7 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.loginRow}>
-                <Text style={[styles.loginLead, { color: C.muted }]}>Masz już konto? </Text>
+                <Text style={[styles.loginLead, { color: C.muted }]}>{t('auth.hasAccount')} </Text>
                 <Pressable
                   onPress={() =>
                     router.replace({
@@ -239,7 +241,7 @@ export default function RegisterScreen() {
                       ...(role === 'welder' || role === 'employer' ? { params: { role } } : {}),
                     })
                   }>
-                  <Text style={[styles.loginLink, { color: C.primary }]}>Zaloguj się</Text>
+                  <Text style={[styles.loginLink, { color: C.primary }]}>{t('auth.login')}</Text>
                 </Pressable>
               </View>
             </ScrollView>

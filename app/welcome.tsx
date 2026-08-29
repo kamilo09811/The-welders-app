@@ -5,9 +5,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { authColors as C } from '@/constants/auth-ui';
+import { APP_LOCALES } from '@/lib/i18n';
+import { usePreferences } from '@/lib/preferences-context';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t, locale, setLocale } = usePreferences();
 
   return (
     <>
@@ -19,11 +22,21 @@ export default function WelcomeScreen() {
 
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <View style={styles.heroCard}>
+            <View style={styles.langRow}>
+              {APP_LOCALES.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => void setLocale(opt.value)}
+                  style={[styles.langPill, locale === opt.value && styles.langPillActive]}>
+                  <Text style={[styles.langPillText, locale === opt.value && styles.langPillTextActive]}>
+                    {opt.nativeLabel}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             <Text style={styles.brand}>TheWeldersWorld</Text>
-            <Text style={styles.title}>Rynek pracy dla spawaczy</Text>
-            <Text style={styles.subtitle}>
-              Miejsce, w którym spawacze znajdują dobre zlecenia, a pracodawcy sprawdzonych specjalistów.
-            </Text>
+            <Text style={styles.title}>{t('welcome.title')}</Text>
+            <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
 
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -35,10 +48,8 @@ export default function WelcomeScreen() {
                   </View>
                 </View>
                 <View style={styles.stripTextCol}>
-                  <Text style={styles.stripTitle}>Dla spawaczy</Text>
-                  <Text style={styles.stripText}>
-                    Przeglądaj oferty z jasną stawką, lokalizacją i trybem pracy dopasowanym do Ciebie.
-                  </Text>
+                  <Text style={styles.stripTitle}>{t('welcome.forWelders')}</Text>
+                  <Text style={styles.stripText}>{t('welcome.forWeldersText')}</Text>
                 </View>
               </View>
 
@@ -49,10 +60,8 @@ export default function WelcomeScreen() {
                   </View>
                 </View>
                 <View style={styles.stripTextCol}>
-                  <Text style={styles.stripTitle}>Dla firm</Text>
-                  <Text style={styles.stripText}>
-                    Dodawaj zlecenia, filtruj kandydatów i buduj stały zespół spawalniczy.
-                  </Text>
+                  <Text style={styles.stripTitle}>{t('welcome.forCompanies')}</Text>
+                  <Text style={styles.stripText}>{t('welcome.forCompaniesText')}</Text>
                 </View>
               </View>
 
@@ -63,17 +72,15 @@ export default function WelcomeScreen() {
                   </View>
                 </View>
                 <View style={styles.stripTextCol}>
-                  <Text style={styles.stripTitle}>Dla osób prywatnych</Text>
-                  <Text style={styles.stripText}>
-                    Szukasz kogoś do bramy, ogrodzenia albo naprawy konstrukcji? Dodaj proste ogłoszenie.
-                  </Text>
+                  <Text style={styles.stripTitle}>{t('welcome.forPrivate')}</Text>
+                  <Text style={styles.stripText}>{t('welcome.forPrivateText')}</Text>
                 </View>
               </View>
             </ScrollView>
           </View>
 
           <View style={styles.actionsCard}>
-            <Text style={styles.sectionLabel}>Wybierz typ konta i przejdź do logowania</Text>
+            <Text style={styles.sectionLabel}>{t('welcome.chooseAccount')}</Text>
 
             <Pressable
               style={({ pressed }) => [
@@ -83,8 +90,8 @@ export default function WelcomeScreen() {
               onPress={() => router.push({ pathname: '/login', params: { role: 'welder' } })}>
               <MaterialIcons name="engineering" size={22} color="#FFFFFF" />
               <View style={styles.primaryTextCol}>
-                <Text style={styles.primaryBtnText}>Jestem spawaczem</Text>
-                <Text style={styles.primaryBtnSub}>Chcę przeglądać oferty i aplikować</Text>
+                <Text style={styles.primaryBtnText}>{t('welcome.imWelder')}</Text>
+                <Text style={styles.primaryBtnSub}>{t('welcome.imWelderSub')}</Text>
               </View>
             </Pressable>
 
@@ -96,15 +103,15 @@ export default function WelcomeScreen() {
               onPress={() => router.push({ pathname: '/login', params: { role: 'employer' } })}>
               <MaterialIcons name="business" size={22} color="#FFFFFF" />
               <View style={styles.primaryTextCol}>
-                <Text style={styles.primaryBtnText}>Szukam spawaczy / zleceniodawców</Text>
-                <Text style={styles.primaryBtnSub}>Chcę dodawać ogłoszenia i kontaktować się</Text>
+                <Text style={styles.primaryBtnText}>{t('welcome.imEmployer')}</Text>
+                <Text style={styles.primaryBtnSub}>{t('welcome.imEmployerSub')}</Text>
               </View>
             </Pressable>
 
             <View style={styles.secondaryRow}>
-              <Text style={[styles.secondaryText, { color: C.muted }]}>Nie masz jeszcze konta? </Text>
+              <Text style={[styles.secondaryText, { color: C.muted }]}>{t('welcome.noAccount')} </Text>
               <Pressable onPress={() => router.push('/register')}>
-                <Text style={[styles.link, { color: C.primary }]}>Zarejestruj się</Text>
+                <Text style={[styles.link, { color: C.primary }]}>{t('welcome.register')}</Text>
               </Pressable>
             </View>
           </View>
@@ -150,6 +157,18 @@ const styles = StyleSheet.create({
     padding: 18,
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
   },
+  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  langPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(226,232,240,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  langPillActive: { backgroundColor: '#0E4AA4', borderColor: '#0E4AA4' },
+  langPillText: { color: '#CBD5E1', fontSize: 11, fontWeight: '700' },
+  langPillTextActive: { color: '#FFFFFF' },
 
   brand: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2, color: '#E5EDFF', marginTop: 2 },
   title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 4 },
