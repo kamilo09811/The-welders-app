@@ -29,7 +29,7 @@ export default function WelcomeScreen() {
                   onPress={() => void setLocale(opt.value)}
                   style={[styles.langPill, locale === opt.value && styles.langPillActive]}>
                   <Text style={[styles.langPillText, locale === opt.value && styles.langPillTextActive]}>
-                    {opt.nativeLabel}
+                    {opt.flag} {opt.nativeLabel}
                   </Text>
                 </Pressable>
               ))}
