@@ -68,6 +68,9 @@ export type TranslationKey =
   | 'market.filters'
   | 'market.results'
   | 'market.empty'
+  | 'market.pageOf'
+  | 'market.prevPage'
+  | 'market.nextPage'
   | 'market.goToSettings'
   | 'market.quickJob'
   | 'market.applyCta'
@@ -519,6 +522,9 @@ const pl: Dict = {
   'market.filters': 'Filtry',
   'market.results': 'wyników',
   'market.empty': 'Brak ogłoszeń dla wybranych filtrów.',
+  'market.pageOf': 'Strona {page} / {pages}',
+  'market.prevPage': 'Poprzednia',
+  'market.nextPage': 'Następna',
   'market.goToSettings': 'Ustawienia preferencji',
   'market.quickJob': 'Szybkie zlecenie',
   'market.applyCta': 'Zobacz i aplikuj →',
@@ -969,6 +975,9 @@ const en: Dict = {
   'market.filters': 'Filters',
   'market.results': 'results',
   'market.empty': 'No listings for the selected filters.',
+  'market.pageOf': 'Page {page} / {pages}',
+  'market.prevPage': 'Previous',
+  'market.nextPage': 'Next',
   'market.goToSettings': 'Preference settings',
   'market.quickJob': 'Quick job',
   'market.applyCta': 'View & apply →',
@@ -1419,6 +1428,9 @@ const de: Dict = {
   'market.filters': 'Filter',
   'market.results': 'Ergebnisse',
   'market.empty': 'Keine Anzeigen für die gewählten Filter.',
+  'market.pageOf': 'Seite {page} / {pages}',
+  'market.prevPage': 'Zurück',
+  'market.nextPage': 'Weiter',
   'market.goToSettings': 'Präferenzen',
   'market.quickJob': 'Schnellauftrag',
   'market.applyCta': 'Ansehen & bewerben →',
@@ -1869,6 +1881,9 @@ const da: Dict = {
   'market.filters': 'Filtre',
   'market.results': 'resultater',
   'market.empty': 'Ingen opslag for valgte filtre.',
+  'market.pageOf': 'Side {page} / {pages}',
+  'market.prevPage': 'Forrige',
+  'market.nextPage': 'Næste',
   'market.goToSettings': 'Præferenceindstillinger',
   'market.quickJob': 'Hurtig opgave',
   'market.applyCta': 'Se & ansøg →',

@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  type ScrollView as ScrollViewType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -97,6 +98,9 @@ const OPEN_FILTERS: MarketFilters = {
   minRate: 0,
   onlyVerified: false,
 };
+
+/** Ile ogłoszeń na jednej stronie rynku. */
+const MARKET_PAGE_SIZE = 25;
 
 function countActiveFilters(f: MarketFilters): number {
   let n = 0;
@@ -297,6 +301,8 @@ export default function MarketplaceScreen() {
   const [draft, setDraft] = useState<MarketFilters>(OPEN_FILTERS);
   const [showCityHints, setShowCityHints] = useState(false);
   const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const [page, setPage] = useState(1);
+  const listRef = useRef<ScrollViewType>(null);
 
   const { verifiedByAuthor, loading: verifiedLoading } = useAuthorsEmailVerified(
     authorIds,
@@ -451,6 +457,26 @@ export default function MarketplaceScreen() {
     });
   }, [applied, listings, query, role, uid, verifiedByAuthor]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / MARKET_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * MARKET_PAGE_SIZE;
+    return filtered.slice(start, start + MARKET_PAGE_SIZE);
+  }, [filtered, safePage]);
+
+  // Po zmianie filtrów / wyszukiwania wracamy na 1. stronę.
+  useEffect(() => {
+    setPage(1);
+  }, [applied, query]);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ y: 0, animated: true });
+  }, [safePage]);
+
+  const goToPage = (next: number) => {
+    setPage(Math.min(totalPages, Math.max(1, next)));
+  };
+
   const toggleModeFilter = (mode: WorkMode) => {
     setDraft((prev) => ({
       ...prev,
@@ -513,7 +539,10 @@ export default function MarketplaceScreen() {
         style={styles.bgSheen}
       />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={listRef}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
             <View style={styles.heroTopRow}>
               <Text style={styles.brand}>TheWeldersWorld</Text>
@@ -607,6 +636,9 @@ export default function MarketplaceScreen() {
 
           <Text style={[styles.resultsLabel, { color: colors.text }]}>
             {filtered.length} {t('market.results')}
+            {filtered.length > MARKET_PAGE_SIZE
+              ? ` · ${t('market.pageOf', { page: safePage, pages: totalPages })}`
+              : ''}
           </Text>
 
           {loading || (applied.onlyVerified && verifiedLoading) ? (
@@ -626,24 +658,65 @@ export default function MarketplaceScreen() {
               ) : null}
             </View>
           ) : (
-            filtered.map((item) => (
-              <ListingRow
-                key={item.id}
-                item={item}
-                role={role}
-                showGrossRate={settings.showGrossRate}
-                locale={locale}
-                colors={colors}
-                t={t}
-                isOwn={Boolean(uid && item.authorId === uid)}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
-                onBoost={
-                  uid && item.authorId === uid
-                    ? () => setBoostListingId(item.id)
-                    : undefined
-                }
-              />
-            ))
+            <>
+              {paged.map((item) => (
+                <ListingRow
+                  key={item.id}
+                  item={item}
+                  role={role}
+                  showGrossRate={settings.showGrossRate}
+                  locale={locale}
+                  colors={colors}
+                  t={t}
+                  isOwn={Boolean(uid && item.authorId === uid)}
+                  onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
+                  onBoost={
+                    uid && item.authorId === uid
+                      ? () => setBoostListingId(item.id)
+                      : undefined
+                  }
+                />
+              ))}
+              {totalPages > 1 ? (
+                <View style={styles.pager}>
+                  <Pressable
+                    style={[
+                      styles.pagerBtn,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: safePage <= 1 ? 0.45 : 1,
+                      },
+                    ]}
+                    disabled={safePage <= 1}
+                    onPress={() => goToPage(safePage - 1)}>
+                    <MaterialIcons name="chevron-left" size={20} color={colors.primary} />
+                    <Text style={[styles.pagerBtnText, { color: colors.primary }]}>
+                      {t('market.prevPage')}
+                    </Text>
+                  </Pressable>
+                  <Text style={[styles.pagerLabel, { color: colors.textMuted }]}>
+                    {t('market.pageOf', { page: safePage, pages: totalPages })}
+                  </Text>
+                  <Pressable
+                    style={[
+                      styles.pagerBtn,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: safePage >= totalPages ? 0.45 : 1,
+                      },
+                    ]}
+                    disabled={safePage >= totalPages}
+                    onPress={() => goToPage(safePage + 1)}>
+                    <Text style={[styles.pagerBtnText, { color: colors.primary }]}>
+                      {t('market.nextPage')}
+                    </Text>
+                    <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
           )}
           {boostFeedback ? (
             <Text style={[styles.emptyText, { color: colors.success }]}>{boostFeedback}</Text>
@@ -1140,6 +1213,25 @@ const styles = StyleSheet.create({
   emptyTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800' },
   emptyText: { color: '#64748B', fontSize: 13, lineHeight: 18 },
   resetLink: { color: '#0E4AA4', fontWeight: '700', fontSize: 13 },
+
+  pager: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  pagerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  pagerBtnText: { fontWeight: '700', fontSize: 12 },
+  pagerLabel: { fontSize: 12, fontWeight: '600', textAlign: 'center', flexShrink: 1 },
 
   chip: {
     paddingHorizontal: 12,
