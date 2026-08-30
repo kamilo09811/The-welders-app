@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
@@ -22,10 +23,25 @@ export default function WelcomeScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.root}>
-        <View style={styles.circleBig} />
-        <View style={styles.circleSmall} />
+        <LinearGradient
+          colors={['#07111F', '#0B2A55', '#123F78', '#0A1A30']}
+          locations={[0, 0.35, 0.72, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={['rgba(96,165,250,0.18)', 'rgba(14,74,164,0.06)', 'transparent']}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0.15, y: 0.75 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(251,146,60,0.1)', 'transparent']}
+          start={{ x: 0, y: 0.55 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
 
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <View style={styles.topBar}>
@@ -169,25 +185,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0F172A',
-  },
-  circleBig: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(56, 189, 248, 0.13)',
-    top: -80,
-    right: -60,
-  },
-  circleSmall: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(251, 146, 60, 0.18)',
-    bottom: -40,
-    left: -40,
+    backgroundColor: '#07111F',
   },
   safe: {
     flex: 1,
@@ -209,7 +207,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(226,232,240,0.28)',
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    backgroundColor: 'rgba(7, 17, 31, 0.55)',
   },
   langBtnText: {
     color: '#E5EDFF',
@@ -220,7 +218,9 @@ const styles = StyleSheet.create({
   heroCard: {
     borderRadius: 20,
     padding: 18,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(10, 22, 40, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.18)',
   },
 
   brand: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2, color: '#E5EDFF', marginTop: 2 },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(248,250,252,0.96)',
     borderWidth: 1,
   },
   stripBlue: { borderColor: 'rgba(59, 130, 246, 0.4)', borderLeftWidth: 4 },
@@ -266,10 +266,10 @@ const styles = StyleSheet.create({
   stripText: { fontSize: 12, color: '#4B5563', marginTop: 2 },
 
   actionsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(248,250,252,0.97)',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(226,232,240,0.85)',
     padding: 18,
     gap: 12,
   },

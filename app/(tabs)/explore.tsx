@@ -17,7 +17,7 @@ import type { WorkMode } from '@/lib/market-listings';
 import { PL_CITIES } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
 import type { AppColors } from '@/lib/theme';
-import { getHeaderGradient } from '@/lib/theme';
+import { getHeaderGradient, getHeroSheen } from '@/lib/theme';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 import {
   type SettingsIntentPref,
@@ -208,10 +208,17 @@ export default function SettingsScreen() {
   ).slice(0, 8);
 
   const headerGradient = getHeaderGradient(theme);
+  const headerSheen = getHeroSheen(theme);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <LinearGradient colors={[...headerGradient]} locations={[0, 0.42]} style={styles.bgGlow} />
+      <LinearGradient
+        colors={[...headerSheen.colors]}
+        start={headerSheen.start}
+        end={headerSheen.end}
+        style={styles.bgSheen}
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -494,6 +501,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   bgGlow: { ...StyleSheet.absoluteFillObject },
+  bgSheen: { ...StyleSheet.absoluteFillObject },
   safe: { flex: 1 },
   content: { padding: 16, gap: 12, paddingBottom: 36 },
   header: { paddingTop: 4, paddingBottom: 8 },

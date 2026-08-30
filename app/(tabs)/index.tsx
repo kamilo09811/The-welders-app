@@ -18,7 +18,7 @@ import type { ListingIntent, ListingType, MarketListing, WorkMode } from '@/lib/
 import { isListingBoosted, isQuickListing } from '@/lib/market-listings';
 import { matchesLocationPreference } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
-import { getHeroGradient } from '@/lib/theme';
+import { getHeroGradient, getHeroSheen, type AppColors } from '@/lib/theme';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
 import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
@@ -33,7 +33,6 @@ import {
   quickDurationLabel,
   workModeLabel,
 } from '@/lib/i18n/labels';
-import type { AppColors } from '@/lib/theme';
 import type { TranslationKey } from '@/lib/i18n';
 
 type Role = 'welder' | 'employer';
@@ -225,6 +224,7 @@ export default function MarketplaceScreen() {
     settings.onlyVerified
   );
   const role: Role = profile.role === 'employer' ? 'employer' : 'welder';
+  const heroSheen = useMemo(() => getHeroSheen(theme), [theme]);
 
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -379,12 +379,16 @@ export default function MarketplaceScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
-      <LinearGradient colors={[...getHeroGradient(theme)]} locations={[0, 0.28, 0.55]} style={styles.bgGlow} />
+      <LinearGradient colors={[...getHeroGradient(theme)]} locations={[0, 0.32, 0.62]} style={styles.bgGlow} />
+      <LinearGradient
+        colors={[...heroSheen.colors]}
+        start={heroSheen.start}
+        end={heroSheen.end}
+        style={styles.bgSheen}
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
-            <View style={styles.heroOrbA} />
-            <View style={styles.heroOrbB} />
             <View style={styles.heroTopRow}>
               <Text style={styles.brand}>TheWeldersWorld</Text>
               <View style={styles.roleBadge}>
@@ -674,8 +678,9 @@ export default function MarketplaceScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#E8EEF7' },
+  root: { flex: 1 },
   bgGlow: { ...StyleSheet.absoluteFillObject },
+  bgSheen: { ...StyleSheet.absoluteFillObject },
   safe: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 36, gap: 12 },
 
@@ -684,24 +689,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     overflow: 'hidden',
-  },
-  heroOrbA: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    top: -60,
-    right: -40,
-  },
-  heroOrbB: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(191,215,255,0.12)',
-    top: 40,
-    left: -50,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -727,7 +714,6 @@ const styles = StyleSheet.create({
   addBtn: {
     marginTop: 14,
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -735,7 +721,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  addBtnText: { color: '#0E4AA4', fontWeight: '700', fontSize: 13 },
+  addBtnText: { fontWeight: '700', fontSize: 13 },
 
   quickBar: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   searchField: {
@@ -743,19 +729,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.92)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: 'rgba(213,222,234,0.9)',
   },
-  searchInput: { flex: 1, color: '#0F172A', fontSize: 15, padding: 0 },
+  searchInput: { flex: 1, fontSize: 15, padding: 0 },
   filtersBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0E4AA4',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,

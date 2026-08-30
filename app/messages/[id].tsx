@@ -177,23 +177,40 @@ export default function ConversationScreen() {
             <View style={styles.msgAvatarSpacer} />
           )}
           <View style={[styles.msgCol, mine && styles.msgColMine]}>
-            <View style={[styles.msgBubble, mine ? styles.msgMine : styles.msgOther]}>
+            <View
+              style={[
+                styles.msgBubble,
+                mine
+                  ? [styles.msgMine, { backgroundColor: colors.primary }]
+                  : [
+                      styles.msgOther,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ],
+              ]}>
               {isImage ? (
                 <Pressable onPress={() => setPreviewUri(m.imageUrl || m.imageThumbUrl || null)}>
                   <Image
                     source={{ uri: m.imageThumbUrl || m.imageUrl }}
-                    style={styles.msgImage}
+                    style={[styles.msgImage, { backgroundColor: colors.chip }]}
                     contentFit="cover"
                   />
                 </Pressable>
               ) : null}
               {m.text ? (
-                <Text style={[styles.msgText, mine && styles.msgTextMine, isImage && styles.msgCaption]}>
+                <Text
+                  style={[
+                    styles.msgText,
+                    { color: colors.textMuted },
+                    mine && styles.msgTextMine,
+                    isImage && styles.msgCaption,
+                  ]}>
                   {m.text}
                 </Text>
               ) : null}
             </View>
-            <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{formatMsgTime(m.createdAt, localeTag)}</Text>
+            <Text style={[styles.msgTime, { color: colors.textSoft }, mine && styles.msgTimeMine]}>
+              {formatMsgTime(m.createdAt, localeTag)}
+            </Text>
           </View>
           {mine ? (
             <UserAvatarPressable userId={senderId} avatarUrl={avatarUrl} size={28} style={styles.msgAvatar} />
@@ -203,40 +220,53 @@ export default function ConversationScreen() {
         </View>
       );
     },
-    [uid, myAvatar, otherAvatar, otherId, localeTag]
+    [uid, myAvatar, otherAvatar, otherId, localeTag, colors]
   );
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.bgElevated, borderBottomColor: colors.border },
+          ]}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
           </Pressable>
           {otherId ? (
             <UserAvatarPressable userId={otherId} avatarUrl={otherAvatar} size={40} />
           ) : (
-            <View style={styles.avatarWrap}>
-              <MaterialIcons name="person" size={18} color="#64748B" />
+            <View
+              style={[
+                styles.avatarWrap,
+                { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+              ]}>
+              <MaterialIcons name="person" size={18} color={colors.textSoft} />
             </View>
           )}
           <Pressable
             style={styles.headerTextWrap}
             disabled={!otherId}
             onPress={() => otherId && router.push({ pathname: '/user/[id]', params: { id: otherId } })}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
+            <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
               {otherName}
             </Text>
-            <Text style={styles.headerSub} numberOfLines={1}>
+            <Text style={[styles.headerSub, { color: colors.textSoft }]} numberOfLines={1}>
               {conversation?.listingTitle || t('chats.aboutListing')}
             </Text>
           </Pressable>
           {otherId ? (
             <Pressable
-              style={styles.profileBtn}
+              style={[
+                styles.profileBtn,
+                { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+              ]}
               onPress={() => router.push({ pathname: '/user/[id]', params: { id: otherId } })}>
-              <MaterialIcons name="person-outline" size={20} color="#0E4AA4" />
+              <MaterialIcons name="person-outline" size={20} color={colors.primary} />
             </Pressable>
           ) : null}
         </View>
@@ -247,8 +277,8 @@ export default function ConversationScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
           {loading ? (
             <View style={styles.centerNote}>
-              <ActivityIndicator color="#0E4AA4" />
-              <Text style={styles.note}>{t('chats.loadingMessages')}</Text>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={[styles.note, { color: colors.textSoft }]}>{t('chats.loadingMessages')}</Text>
             </View>
           ) : (
             <FlatList
@@ -264,56 +294,90 @@ export default function ConversationScreen() {
               ListFooterComponent={
                 loadingOlder ? (
                   <View style={styles.olderLoading}>
-                    <ActivityIndicator color="#0E4AA4" />
-                    <Text style={styles.olderLoadingText}>{t('chats.olderMessages')}</Text>
+                    <ActivityIndicator color={colors.primary} />
+                    <Text style={[styles.olderLoadingText, { color: colors.textSoft }]}>
+                      {t('chats.olderMessages')}
+                    </Text>
                   </View>
                 ) : hasMoreOlder && messages.length > 0 ? (
-                  <Text style={styles.hintTop}>{t('chats.scrollForHistory')}</Text>
+                  <Text style={[styles.hintTop, { color: colors.textSoft }]}>
+                    {t('chats.scrollForHistory')}
+                  </Text>
                 ) : null
               }
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
-                  <View style={styles.emptyIcon}>
-                    <MaterialIcons name="chat-bubble-outline" size={28} color="#0E4AA4" />
+                  <View style={[styles.emptyIcon, { backgroundColor: colors.primaryMuted }]}>
+                    <MaterialIcons name="chat-bubble-outline" size={28} color={colors.primary} />
                   </View>
-                  <Text style={styles.emptyTitle}>{t('chats.startConversation')}</Text>
-                  <Text style={styles.note}>{t('chats.startHint')}</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                    {t('chats.startConversation')}
+                  </Text>
+                  <Text style={[styles.note, { color: colors.textSoft }]}>{t('chats.startHint')}</Text>
                 </View>
               }
             />
           )}
 
           {feedback ? (
-            <Pressable style={styles.feedbackBar} onPress={() => setFeedback(null)}>
-              <MaterialIcons name="error-outline" size={16} color="#B91C1C" />
-              <Text style={styles.feedbackText}>{feedback}</Text>
+            <Pressable
+              style={[
+                styles.feedbackBar,
+                { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+              ]}
+              onPress={() => setFeedback(null)}>
+              <MaterialIcons name="error-outline" size={16} color={colors.danger} />
+              <Text style={[styles.feedbackText, { color: colors.danger }]}>{feedback}</Text>
             </Pressable>
           ) : null}
 
-          <View style={[styles.composer, { paddingBottom: composerBottomPad }]}>
+          <View
+            style={[
+              styles.composer,
+              {
+                paddingBottom: composerBottomPad,
+                backgroundColor: colors.bgElevated,
+                borderTopColor: colors.border,
+              },
+            ]}>
             <Pressable
-              style={[styles.iconBtn, (uploadingImage || sending) && styles.iconBtnDisabled]}
+              style={[
+                styles.iconBtn,
+                { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+                (uploadingImage || sending) && styles.iconBtnDisabled,
+              ]}
               onPress={onAttachPress}
               disabled={uploadingImage || sending}
               accessibilityLabel={t('chats.addAttachment')}>
               {uploadingImage ? (
-                <ActivityIndicator size="small" color="#0E4AA4" />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <MaterialIcons name="attach-file" size={22} color="#0E4AA4" />
+                <MaterialIcons name="attach-file" size={22} color={colors.primary} />
               )}
             </Pressable>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.inputBg,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
               value={text}
               onChangeText={setText}
               placeholder={uploadingImage ? t('chats.uploadingImage') : t('chats.writeMessage')}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSoft}
               editable={!uploadingImage}
               multiline
               maxLength={4000}
             />
             <Pressable
-              style={[styles.sendBtn, (sending || uploadingImage || !text.trim()) && styles.sendBtnDisabled]}
+              style={[
+                styles.sendBtn,
+                { backgroundColor: colors.primary },
+                (sending || uploadingImage || !text.trim()) && styles.sendBtnDisabled,
+              ]}
               onPress={() => void onSend()}
               disabled={sending || uploadingImage || !text.trim()}>
               <MaterialIcons name="send" size={18} color="#FFFFFF" />
@@ -334,7 +398,7 @@ export default function ConversationScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#E8EEF6' },
+  root: { flex: 1 },
   flex: { flex: 1 },
   header: {
     paddingHorizontal: 12,
@@ -344,16 +408,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#DFE6F2',
-    backgroundColor: '#FFFFFF',
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D5DEEA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -361,43 +421,38 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTextWrap: { flex: 1 },
-  headerTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800' },
-  headerSub: { color: '#64748B', fontSize: 12, marginTop: 1 },
+  headerTitle: { fontSize: 16, fontWeight: '800' },
+  headerSub: { fontSize: 12, marginTop: 1 },
   avatarWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#DFE6F2',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   listContent: { paddingHorizontal: 12, paddingVertical: 12, gap: 10, flexGrow: 1 },
   centerNote: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  note: { color: '#64748B', fontSize: 12, textAlign: 'center', lineHeight: 17 },
+  note: { fontSize: 12, textAlign: 'center', lineHeight: 17 },
   emptyWrap: { padding: 28, alignItems: 'center', gap: 8 },
   emptyIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
-  emptyTitle: { color: '#0F172A', fontWeight: '800', fontSize: 15 },
+  emptyTitle: { fontWeight: '800', fontSize: 15 },
   olderLoading: { paddingVertical: 12, alignItems: 'center', gap: 6 },
-  olderLoadingText: { color: '#64748B', fontSize: 11 },
-  hintTop: { color: '#94A3B8', fontSize: 11, textAlign: 'center', paddingBottom: 8 },
+  olderLoadingText: { fontSize: 11 },
+  hintTop: { fontSize: 11, textAlign: 'center', paddingBottom: 8 },
   msgRow: { width: '100%', flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
   msgRowMine: { justifyContent: 'flex-end' },
   msgRowOther: { justifyContent: 'flex-start' },
@@ -406,18 +461,16 @@ const styles = StyleSheet.create({
   msgCol: { maxWidth: '72%', gap: 3 },
   msgColMine: { alignItems: 'flex-end' },
   msgBubble: { borderRadius: 16, paddingHorizontal: 10, paddingVertical: 8 },
-  msgMine: { backgroundColor: '#0E4AA4', borderBottomRightRadius: 4 },
+  msgMine: { borderBottomRightRadius: 4 },
   msgOther: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#DFE6F2',
     borderBottomLeftRadius: 4,
   },
-  msgImage: { width: 200, height: 150, borderRadius: 10, backgroundColor: '#E2E8F0' },
-  msgText: { color: '#334155', fontSize: 14, lineHeight: 20 },
+  msgImage: { width: 200, height: 150, borderRadius: 10 },
+  msgText: { fontSize: 14, lineHeight: 20 },
   msgCaption: { marginTop: 6 },
   msgTextMine: { color: '#FFFFFF' },
-  msgTime: { color: '#94A3B8', fontSize: 10, paddingHorizontal: 4 },
+  msgTime: { fontSize: 10, paddingHorizontal: 4 },
   msgTimeMine: { textAlign: 'right' },
   feedbackBar: {
     marginHorizontal: 12,
@@ -425,14 +478,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#FECACA',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  feedbackText: { color: '#B91C1C', fontSize: 12, flex: 1 },
+  feedbackText: { fontSize: 12, flex: 1 },
   composer: {
     paddingHorizontal: 10,
     paddingTop: 10,
@@ -440,16 +491,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#DFE6F2',
-    backgroundColor: '#FFFFFF',
   },
   iconBtn: {
     width: 42,
     height: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -459,10 +506,7 @@ const styles = StyleSheet.create({
     minHeight: 42,
     maxHeight: 120,
     borderWidth: 1,
-    borderColor: '#D5DEEA',
     borderRadius: 12,
-    backgroundColor: '#F8FAFD',
-    color: '#0F172A',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
@@ -471,7 +515,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#0E4AA4',
     alignItems: 'center',
     justifyContent: 'center',
   },
