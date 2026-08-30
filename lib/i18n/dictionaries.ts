@@ -412,6 +412,15 @@ export type TranslationKey =
   | 'legal.openWeb'
   | 'legal.updated'
   | 'legal.section'
+  | 'tip.gotIt'
+  | 'tip.market.title'
+  | 'tip.market.body'
+  | 'tip.chats.title'
+  | 'tip.chats.body'
+  | 'tip.account.title'
+  | 'tip.account.body'
+  | 'tip.settings.title'
+  | 'tip.settings.body'
   | 'auth.logout';
 
 type Dict = Record<TranslationKey, string>;
@@ -823,6 +832,19 @@ const pl: Dict = {
   'legal.openWeb': 'Otwórz w przeglądarce',
   'legal.updated': 'Aktualizacja: {date}',
   'legal.section': 'Informacje prawne',
+  'tip.gotIt': 'Rozumiem',
+  'tip.market.title': 'Rynek w pigułce',
+  'tip.market.body':
+    'Tu kręci się cała giełda: oferty pracy, szukanie ludzi i szybkie zlecenia. Filtruj, sortuj — wyróżnione w miedzianej ramce lecą na górę.',
+  'tip.chats.title': 'Tu dogadujesz robotę',
+  'tip.chats.body':
+    'Po zgłoszeniu albo z ogłoszenia otwierasz czat. Wątki, powiadomienia i historia rozmów — bez gubienia kontekstu.',
+  'tip.account.title': 'Twoja wizytówka',
+  'tip.account.body':
+    'Zdjęcie, bio, zgłoszenia i oceny. To widzą inni, zanim napiszą — zadbaj, żeby wyglądało solidnie.',
+  'tip.settings.title': 'Dopasuj pod siebie',
+  'tip.settings.body':
+    'Miasto, promień, stawki, język i powiadomienia. Ustaw raz — rynek i alerty grają pod Twoje reguły.',
   'auth.logout': 'Wyloguj',
 };
 
@@ -1234,6 +1256,19 @@ const en: Dict = {
   'legal.openWeb': 'Open in browser',
   'legal.updated': 'Updated: {date}',
   'legal.section': 'Legal',
+  'tip.gotIt': 'Got it',
+  'tip.market.title': 'Market in a nutshell',
+  'tip.market.body':
+    'Jobs, seeking talent, and quick gigs live here. Filter, sort — featured listings in the copper frame rise to the top.',
+  'tip.chats.title': 'Where deals get talked through',
+  'tip.chats.body':
+    'Open a chat from an application or listing. Threads, alerts, and history stay in one place.',
+  'tip.account.title': 'Your trade card',
+  'tip.account.body':
+    'Photo, bio, applications, and ratings. Others see this before they message — make it look solid.',
+  'tip.settings.title': 'Tune it your way',
+  'tip.settings.body':
+    'City, radius, rates, language, and notifications. Set once — the market follows your rules.',
   'auth.logout': 'Sign out',
 };
 
@@ -1645,6 +1680,19 @@ const de: Dict = {
   'legal.openWeb': 'Im Browser öffnen',
   'legal.updated': 'Aktualisiert: {date}',
   'legal.section': 'Rechtliches',
+  'tip.gotIt': 'Verstanden',
+  'tip.market.title': 'Markt kurz erklärt',
+  'tip.market.body':
+    'Jobs, Gesuche und Schnellaufträge. Filtern, sortieren — hervorgehobene Anzeigen im Kupferrahmen nach oben.',
+  'tip.chats.title': 'Hier klärt ihr die Details',
+  'tip.chats.body':
+    'Chat aus Bewerbung oder Anzeige. Threads, Hinweise und Verlauf an einem Ort.',
+  'tip.account.title': 'Deine Visitenkarte',
+  'tip.account.body':
+    'Foto, Bio, Bewerbungen und Bewertungen — das sehen andere, bevor sie schreiben.',
+  'tip.settings.title': 'Pass es an',
+  'tip.settings.body':
+    'Stadt, Radius, Sätze, Sprache und Benachrichtigungen. Einmal setzen — der Markt folgt.',
   'auth.logout': 'Abmelden',
 };
 
@@ -2056,6 +2104,19 @@ const da: Dict = {
   'legal.openWeb': 'Åbn i browser',
   'legal.updated': 'Opdateret: {date}',
   'legal.section': 'Juridisk',
+  'tip.gotIt': 'Forstået',
+  'tip.market.title': 'Marked i kort form',
+  'tip.market.body':
+    'Job, søgning og hurtige opgaver. Filtrer, sorter — fremhævede opslag i kobberramme ligger øverst.',
+  'tip.chats.title': 'Her aftaler I detaljerne',
+  'tip.chats.body':
+    'Åbn chat fra ansøgning eller opslag. Tråde, notifikationer og historik samlet.',
+  'tip.account.title': 'Dit visitkort',
+  'tip.account.body':
+    'Foto, bio, ansøgninger og bedømmelser — det ser andre, før de skriver.',
+  'tip.settings.title': 'Tilpas til dig',
+  'tip.settings.body':
+    'By, radius, satser, sprog og notifikationer. Sæt én gang — markedet følger med.',
   'auth.logout': 'Log ud',
 };
 

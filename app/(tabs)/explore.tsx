@@ -10,6 +10,7 @@ import {
   saveExpoPushToken,
   type PushPermissionStatus,
 } from '@/lib/expo-push';
+import { TabTipCard } from '@/components/tab-tip-card';
 import { APP_LOCALES } from '@/lib/i18n';
 import { workModeLabel } from '@/lib/i18n/labels';
 import type { WorkMode } from '@/lib/market-listings';
@@ -216,6 +217,8 @@ export default function SettingsScreen() {
             <Text style={styles.headerTitle}>{t('settings.title')}</Text>
             <Text style={styles.headerSub}>{t('settings.subtitle')}</Text>
           </View>
+
+          <TabTipCard tipId="settings" />
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.section.appearance')}</Text>
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t('settings.theme')}</Text>

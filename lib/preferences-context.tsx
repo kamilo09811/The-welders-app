@@ -8,6 +8,7 @@ import {
   patchUserSettings,
   saveUserSettings,
   useUserSettings,
+  type TabTipId,
   type UserSettings,
 } from '@/lib/user-settings';
 
@@ -24,6 +25,8 @@ type PreferencesContextValue = {
   setTheme: (theme: AppThemeMode) => Promise<void>;
   setLocale: (locale: AppLocale) => Promise<void>;
   saveSettings: (next: UserSettings) => Promise<void>;
+  /** Zamknij tip zakładki — zapis per użytkownik (raz). */
+  dismissTabTip: (tipId: TabTipId) => Promise<void>;
 };
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
@@ -55,6 +58,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [localTheme, setLocalTheme] = useState<AppThemeMode>('light');
   const [localLocale, setLocalLocale] = useState<AppLocale>('pl');
   const [cacheReady, setCacheReady] = useState(false);
+  const [localDismissedTips, setLocalDismissedTips] = useState<TabTipId[]>([]);
   const migratedRef = useRef<string | null>(null);
   const localThemeRef = useRef(localTheme);
   const localLocaleRef = useRef(localLocale);
@@ -77,6 +81,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (uid) return;
     migratedRef.current = null;
+    setLocalDismissedTips([]);
   }, [uid]);
 
   // Sync z konta tylko gdy Firestore ma jawnie zapisane pola (nie domyślne PL z braku pola).
@@ -170,6 +175,21 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     [uid]
   );
 
+  const dismissTabTip = useCallback(
+    async (tipId: TabTipId) => {
+      setLocalDismissedTips((prev) => (prev.includes(tipId) ? prev : [...prev, tipId]));
+      if (!uid) return;
+      const merged = Array.from(new Set([...(settings.dismissedTabTips || []), tipId]));
+      await patchUserSettings(uid, { dismissedTabTips: merged });
+    },
+    [settings.dismissedTabTips, uid]
+  );
+
+  const mergedDismissed = useMemo(
+    () => Array.from(new Set([...(settings.dismissedTabTips || []), ...localDismissedTips])),
+    [localDismissedTips, settings.dismissedTabTips]
+  );
+
   const value = useMemo<PreferencesContextValue>(
     () => ({
       settings: {
@@ -177,6 +197,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         ...settings,
         theme,
         locale,
+        dismissedTabTips: mergedDismissed,
       },
       loading: loading || !cacheReady,
       theme,
@@ -186,8 +207,22 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
       setTheme,
       setLocale,
       saveSettings,
+      dismissTabTip,
     }),
-    [cacheReady, colors, loading, locale, saveSettings, setLocale, setTheme, settings, t, theme]
+    [
+      cacheReady,
+      colors,
+      dismissTabTip,
+      loading,
+      locale,
+      mergedDismissed,
+      saveSettings,
+      setLocale,
+      setTheme,
+      settings,
+      t,
+      theme,
+    ]
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
