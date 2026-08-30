@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListingLocationPicker } from '@/components/listing-location-picker';
 import {
   listingIntentForRole,
   listingTypeLabel,
@@ -19,6 +20,7 @@ import {
   type WorkMode,
 } from '@/lib/market-listings';
 import { usePreferences } from '@/lib/preferences-context';
+import { patchUserSettings } from '@/lib/user-settings';
 import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profile';
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
@@ -44,7 +46,7 @@ function SelectChip({
 export default function NewListingScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
-  const { t, colors } = usePreferences();
+  const { t, colors, settings, loading: settingsLoading } = usePreferences();
   const [kind, setKind] = useState<ListingKind | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -74,12 +76,22 @@ export default function NewListingScreen() {
   }, [isEmployer, isQuick]);
 
   useEffect(() => {
-    if (locationSeeded) return;
-    if (profile.city.trim()) {
-      setLocation(profile.city.trim());
+    if (locationSeeded || settingsLoading) return;
+    const seed =
+      settings.lastListingLocation.trim() ||
+      profile.city.trim() ||
+      settings.baseCity.trim();
+    if (seed) {
+      setLocation(seed);
       setLocationSeeded(true);
     }
-  }, [profile.city, locationSeeded]);
+  }, [
+    locationSeeded,
+    profile.city,
+    settings.baseCity,
+    settings.lastListingLocation,
+    settingsLoading,
+  ]);
 
   const canSave = useMemo(() => {
     const minRaw = rateMin.trim();
@@ -157,6 +169,8 @@ export default function NewListingScreen() {
         authorId: uid,
         durationHint: isQuick ? durationHint : undefined,
       });
+      // Zapamiętaj miejsce na kolejne ogłoszenie / mikrolicytację.
+      void patchUserSettings(uid, { lastListingLocation: location.trim() });
       router.replace({ pathname: '/listing/[id]', params: { id: listingId, boost: '1' } });
     } catch {
       setMessage(t('listing.saveFailed'));
@@ -275,6 +289,13 @@ export default function NewListingScreen() {
                 />
 
                 <Text style={styles.label}>{t('listing.locationField')}</Text>
+                <ListingLocationPicker
+                  value={location}
+                  onChange={setLocation}
+                  colors={colors}
+                  t={t}
+                  emphasize={isQuick}
+                />
                 <TextInput
                   style={styles.input}
                   value={location}

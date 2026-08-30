@@ -279,6 +279,11 @@ export type TranslationKey =
   | 'listing.mapTitle'
   | 'listing.mapFrom'
   | 'listing.mapOpen'
+  | 'listing.pickPlaceTitle'
+  | 'listing.pickPlaceHint'
+  | 'listing.pickPlaceSelected'
+  | 'listing.pickPlaceEmpty'
+  | 'listing.pickPlaceMarker'
   | 'listing.applySection'
   | 'listing.joinSection'
   | 'listing.alreadyApplied'
@@ -704,6 +709,12 @@ const pl: Dict = {
   'listing.mapTitle': "Skąd zlecenie",
   'listing.mapFrom': "Opublikowano z okolicy: {place}",
   'listing.mapOpen': "Otwórz mapę",
+  'listing.pickPlaceTitle': "Miejsce realizacji",
+  'listing.pickPlaceHint':
+    "Wybierz miejsce, w którym będziesz realizował następne zlecenie. Zapamiętamy je przy kolejnym ogłoszeniu.",
+  'listing.pickPlaceSelected': "Wybrane: {place}",
+  'listing.pickPlaceEmpty': "Dotknij mapy lub wybierz miasto poniżej",
+  'listing.pickPlaceMarker': "Tu realizujesz zlecenie",
   'listing.applySection': "Aplikacja",
   'listing.joinSection': "Dołącz do zlecenia",
   'listing.alreadyApplied': "Masz już wysłane zgłoszenie. Status: {status}.",
@@ -1133,6 +1144,12 @@ const en: Dict = {
   'listing.mapTitle': "Where it's from",
   'listing.mapFrom': "Posted around: {place}",
   'listing.mapOpen': "Open map",
+  'listing.pickPlaceTitle': "Job location",
+  'listing.pickPlaceHint':
+    "Pick where you’ll run the next job. We’ll remember it for your following listing.",
+  'listing.pickPlaceSelected': "Selected: {place}",
+  'listing.pickPlaceEmpty': "Tap the map or choose a city below",
+  'listing.pickPlaceMarker': "Job location",
   'listing.applySection': "Application",
   'listing.joinSection': "Join the job",
   'listing.alreadyApplied': "You already applied. Status: {status}.",
@@ -1562,6 +1579,12 @@ const de: Dict = {
   'listing.mapTitle': "Herkunft des Auftrags",
   'listing.mapFrom': "Veröffentlicht bei: {place}",
   'listing.mapOpen': "Karte öffnen",
+  'listing.pickPlaceTitle': "Einsatzort",
+  'listing.pickPlaceHint':
+    "Wähle den Ort für den nächsten Auftrag. Wir merken ihn für die folgende Anzeige.",
+  'listing.pickPlaceSelected': "Gewählt: {place}",
+  'listing.pickPlaceEmpty': "Karte tippen oder Stadt wählen",
+  'listing.pickPlaceMarker': "Einsatzort",
   'listing.applySection': "Bewerbung",
   'listing.joinSection': "Auftrag beitreten",
   'listing.alreadyApplied': "Du hast bereits beworben. Status: {status}.",
@@ -1991,6 +2014,12 @@ const da: Dict = {
   'listing.mapTitle': "Hvor opgaven er fra",
   'listing.mapFrom': "Offentliggjort omkring: {place}",
   'listing.mapOpen': "Åbn kort",
+  'listing.pickPlaceTitle': "Arbejdssted",
+  'listing.pickPlaceHint':
+    "Vælg stedet for næste opgave. Vi husker det til dit næste opslag.",
+  'listing.pickPlaceSelected': "Valgt: {place}",
+  'listing.pickPlaceEmpty': "Tryk på kortet eller vælg by",
+  'listing.pickPlaceMarker': "Arbejdssted",
   'listing.applySection': "Ansøgning",
   'listing.joinSection': "Deltag i opgaven",
   'listing.alreadyApplied': "Du har allerede ansøgt. Status: {status}.",
