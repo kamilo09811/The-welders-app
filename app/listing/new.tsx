@@ -51,6 +51,7 @@ export default function NewListingScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [rateMin, setRateMin] = useState('');
   const [rateMax, setRateMax] = useState('');
   const [tags, setTags] = useState('');
@@ -92,6 +93,18 @@ export default function NewListingScreen() {
     settings.lastListingLocation,
     settingsLoading,
   ]);
+
+  const onLocationPick = (next: { label: string; lat: number | null; lng: number | null }) => {
+    setLocation(next.label);
+    setLocationCoords(
+      typeof next.lat === 'number' &&
+        typeof next.lng === 'number' &&
+        Number.isFinite(next.lat) &&
+        Number.isFinite(next.lng)
+        ? { lat: next.lat, lng: next.lng }
+        : null
+    );
+  };
 
   const canSave = useMemo(() => {
     const minRaw = rateMin.trim();
@@ -153,6 +166,8 @@ export default function NewListingScreen() {
         description: description.trim(),
         company: publisherName,
         location: location.trim(),
+        locationLat: locationCoords?.lat ?? null,
+        locationLng: locationCoords?.lng ?? null,
         mode,
         type: isQuick ? 'Umowa zlecenie' : type,
         intent,
@@ -291,7 +306,8 @@ export default function NewListingScreen() {
                 <Text style={styles.label}>{t('listing.locationField')}</Text>
                 <ListingLocationPicker
                   value={location}
-                  onChange={setLocation}
+                  coords={locationCoords}
+                  onChange={onLocationPick}
                   colors={colors}
                   t={t}
                   emphasize={isQuick}
@@ -299,8 +315,12 @@ export default function NewListingScreen() {
                 <TextInput
                   style={styles.input}
                   value={location}
-                  onChangeText={setLocation}
-                  placeholder={t('listing.phLocation')}
+                  onChangeText={(text) => {
+                    setLocation(text);
+                    // Wolny tekst (wieś / zagranica) — bez wymuszania współrzędnych.
+                    setLocationCoords(null);
+                  }}
+                  placeholder={t('listing.phLocationAny')}
                   placeholderTextColor="#94A3B8"
                 />
 

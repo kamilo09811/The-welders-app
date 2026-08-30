@@ -19,6 +19,8 @@ type TFn = (key: TranslationKey, vars?: Record<string, string | number>) => stri
 
 type Props = {
   locationText: string;
+  locationLat?: number | null;
+  locationLng?: number | null;
   colors: AppColors;
   t: TFn;
   /** Podkreślenie dla szybkiego zlecenia / mikrolicytacji. */
@@ -26,7 +28,6 @@ type Props = {
 };
 
 function staticMapUri(lat: number, lng: number) {
-  // Publiczny static map OSM — fallback (web / gdy MapView niedostępny).
   return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=11&size=640x320&maptype=mapnik&markers=${lat},${lng},lightblue1`;
 }
 
@@ -39,22 +40,41 @@ function mapsUrl(lat: number, lng: number, label: string) {
 }
 
 /**
- * Mała mapka lokalizacji ogłoszenia — miasto z PL_CITIES (przybliżone współrzędne).
+ * Mała mapka lokalizacji ogłoszenia — współrzędne z listingu albo miasto z PL_CITIES.
  */
-export function ListingLocationMap({ locationText, colors, t, emphasize }: Props) {
-  const city = useMemo(() => resolvePlCity(locationText), [locationText]);
+export function ListingLocationMap({
+  locationText,
+  locationLat,
+  locationLng,
+  colors,
+  t,
+  emphasize,
+}: Props) {
+  const point = useMemo(() => {
+    if (
+      typeof locationLat === 'number' &&
+      Number.isFinite(locationLat) &&
+      typeof locationLng === 'number' &&
+      Number.isFinite(locationLng)
+    ) {
+      return { lat: locationLat, lng: locationLng, label: locationText.trim() || t('listing.mapTitle') };
+    }
+    const city = resolvePlCity(locationText);
+    if (!city) return null;
+    return { lat: city.lat, lng: city.lng, label: city.name };
+  }, [locationLat, locationLng, locationText, t]);
 
-  if (!city) return null;
+  if (!point) return null;
 
   const region = {
-    latitude: city.lat,
-    longitude: city.lng,
+    latitude: point.lat,
+    longitude: point.lng,
     latitudeDelta: 0.18,
     longitudeDelta: 0.18,
   };
 
   const openExternal = () => {
-    void Linking.openURL(mapsUrl(city.lat, city.lng, city.name));
+    void Linking.openURL(mapsUrl(point.lat, point.lng, point.label));
   };
 
   return (
@@ -75,13 +95,13 @@ export function ListingLocationMap({ locationText, colors, t, emphasize }: Props
         <Text style={[styles.title, { color: colors.text }]}>{t('listing.mapTitle')}</Text>
       </View>
       <Text style={[styles.sub, { color: colors.textMuted }]}>
-        {t('listing.mapFrom', { place: city.name })}
+        {t('listing.mapFrom', { place: point.label })}
       </Text>
 
       <Pressable onPress={openExternal} style={styles.mapPress}>
         {Platform.OS === 'web' ? (
           <Image
-            source={{ uri: staticMapUri(city.lat, city.lng) }}
+            source={{ uri: staticMapUri(point.lat, point.lng) }}
             style={styles.map}
             resizeMode="cover"
           />
@@ -96,8 +116,8 @@ export function ListingLocationMap({ locationText, colors, t, emphasize }: Props
             pitchEnabled={false}
             toolbarEnabled={false}>
             <Marker
-              coordinate={{ latitude: city.lat, longitude: city.lng }}
-              title={city.name}
+              coordinate={{ latitude: point.lat, longitude: point.lng }}
+              title={point.label}
               description={locationText}
             />
           </MapView>

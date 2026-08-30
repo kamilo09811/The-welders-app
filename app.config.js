@@ -29,6 +29,19 @@ module.exports = ({ config }) => {
     ]);
   }
 
+  const hasLocation = plugins.some((p) =>
+    Array.isArray(p) ? p[0] === 'expo-location' : p === 'expo-location'
+  );
+  if (!hasLocation) {
+    plugins.push([
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Pozwala wskazać na mapie miejsce realizacji zlecenia (także poza dużymi miastami).',
+      },
+    ]);
+  }
+
   // Schemat URL Google tylko dla prawdziwego klienta typu iOS (nie Web).
   const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || '';
   const googleScheme = googleIosUrlScheme(iosClientId);

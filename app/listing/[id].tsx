@@ -326,6 +326,8 @@ export default function ListingDetailsScreen() {
 
               <ListingLocationMap
                 locationText={listing.location}
+                locationLat={listing.locationLat}
+                locationLng={listing.locationLng}
                 colors={colors}
                 t={t}
                 emphasize={quick}
