@@ -6,14 +6,10 @@ import { needsEmailVerification } from '@/lib/auth-email';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { syncEmailVerified } from '@/lib/user-profile';
 
-const AUTH_SCREENS = new Set([
-  'welcome',
-  'login',
-  'register',
-  'forgot-password',
-  'verify-email',
-  'legal',
-]);
+const AUTH_SCREENS = new Set(['welcome', 'login', 'register', 'forgot-password', 'verify-email']);
+
+/** Trasy dostępne zalogowanym i niezalogowanym (bez przekierowania na Rynek). */
+const PUBLIC_SCREENS = new Set(['legal']);
 
 function isProtectedRoute(segments: string[]): boolean {
   const root = segments[0];
@@ -28,7 +24,15 @@ function isAuthScreen(segments: string[]): boolean {
   return AUTH_SCREENS.has(root);
 }
 
+function isPublicScreen(segments: string[]): boolean {
+  const root = segments[0];
+  return Boolean(root && PUBLIC_SCREENS.has(root));
+}
+
 function resolveRedirect(user: User | null, segments: string[]): string | null {
+  // Polityka prywatności itd. — nie wrzucaj zalogowanego usera na /(tabs).
+  if (isPublicScreen(segments)) return null;
+
   const protectedRoute = isProtectedRoute(segments);
   const authScreen = isAuthScreen(segments);
   const onVerifyEmail = segments[0] === 'verify-email';
