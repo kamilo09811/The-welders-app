@@ -95,7 +95,7 @@ function SettingRow({
 export default function SettingsScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
-  const { settings, loading, colors, t, theme, locale, saveSettings, setTheme, setLocale } =
+  const { settings, loading, colors, t, theme, locale, saveSettings, setTheme, setLocale, resetTabTips } =
     usePreferences();
   const [draft, setDraft] = useState<UserSettings>(settings);
   const [isEditing, setIsEditing] = useState(false);
@@ -104,6 +104,7 @@ export default function SettingsScreen() {
   const [showCityHints, setShowCityHints] = useState(false);
   const [pushStatus, setPushStatus] = useState<PushPermissionStatus>('undetermined');
   const [pushBusy, setPushBusy] = useState(false);
+  const [tipsResetBusy, setTipsResetBusy] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
@@ -454,6 +455,24 @@ export default function SettingsScreen() {
             <Text style={[styles.legalRowText, { color: colors.text }]}>{t('legal.privacyLink')}</Text>
             <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
           </Pressable>
+
+          {uid ? (
+            <Pressable
+              disabled={tipsResetBusy}
+              onPress={() => {
+                setTipsResetBusy(true);
+                void resetTabTips()
+                  .then(() => setMessage(t('tip.resetDone')))
+                  .finally(() => setTipsResetBusy(false));
+              }}
+              style={[styles.legalRow, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <MaterialIcons name="lightbulb-outline" size={18} color={colors.primary} />
+              <Text style={[styles.legalRowText, { color: colors.text }]}>
+                {tipsResetBusy ? t('common.loading') : t('tip.reset')}
+              </Text>
+              <MaterialIcons name="refresh" size={20} color={colors.textSoft} />
+            </Pressable>
+          ) : null}
 
           {loading ? (
             <Text style={[styles.note, { color: colors.textMuted }]}>{t('common.loading')}</Text>

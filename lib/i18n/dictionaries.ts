@@ -421,6 +421,8 @@ export type TranslationKey =
   | 'tip.account.body'
   | 'tip.settings.title'
   | 'tip.settings.body'
+  | 'tip.reset'
+  | 'tip.resetDone'
   | 'auth.logout';
 
 type Dict = Record<TranslationKey, string>;
@@ -845,6 +847,8 @@ const pl: Dict = {
   'tip.settings.title': 'Dopasuj pod siebie',
   'tip.settings.body':
     'Miasto, promień, stawki, język i powiadomienia. Ustaw raz — rynek i alerty grają pod Twoje reguły.',
+  'tip.reset': 'Pokaż wskazówki zakładek ponownie',
+  'tip.resetDone': 'Wskazówki znów pojawią się na zakładkach.',
   'auth.logout': 'Wyloguj',
 };
 
@@ -1269,6 +1273,8 @@ const en: Dict = {
   'tip.settings.title': 'Tune it your way',
   'tip.settings.body':
     'City, radius, rates, language, and notifications. Set once — the market follows your rules.',
+  'tip.reset': 'Show tab tips again',
+  'tip.resetDone': 'Tips will show again on each tab.',
   'auth.logout': 'Sign out',
 };
 
@@ -1693,6 +1699,8 @@ const de: Dict = {
   'tip.settings.title': 'Pass es an',
   'tip.settings.body':
     'Stadt, Radius, Sätze, Sprache und Benachrichtigungen. Einmal setzen — der Markt folgt.',
+  'tip.reset': 'Tab-Hinweise erneut anzeigen',
+  'tip.resetDone': 'Hinweise erscheinen wieder auf den Tabs.',
   'auth.logout': 'Abmelden',
 };
 
@@ -2117,6 +2125,8 @@ const da: Dict = {
   'tip.settings.title': 'Tilpas til dig',
   'tip.settings.body':
     'By, radius, satser, sprog og notifikationer. Sæt én gang — markedet følger med.',
+  'tip.reset': 'Vis faneblade-tips igen',
+  'tip.resetDone': 'Tips vises igen på fanerne.',
   'auth.logout': 'Log ud',
 };
 

@@ -14,6 +14,12 @@ export type TabTipId = 'market' | 'chats' | 'account' | 'settings';
 
 export const TAB_TIP_IDS: TabTipId[] = ['market', 'chats', 'account', 'settings'];
 
+/**
+ * Podbij przy nowej rundzie tipów — użytkownicy zobaczą wskazówki ponownie
+ * (stare dismissedTabTips obowiązują tylko przy tej samej generacji).
+ */
+export const TAB_TIPS_GENERATION = 1;
+
 export type UserSettings = {
   baseCity: string;
   radius: SettingsRadius;
@@ -39,6 +45,8 @@ export type UserSettings = {
   locale: AppLocale;
   /** Jednorazowe tipy zakładek już zamknięte przez użytkownika. */
   dismissedTabTips: TabTipId[];
+  /** Generacja tipów, przy której użytkownik zamykał wskazówki. */
+  tabTipsGeneration: number;
 };
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -57,6 +65,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'light',
   locale: 'pl',
   dismissedTabTips: [],
+  tabTipsGeneration: 0,
 };
 
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
@@ -88,6 +97,10 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
         typeof v === 'string' && TAB_TIP_IDS.includes(v as TabTipId)
       )
     : [];
+  const tabTipsGeneration =
+    typeof data.tabTipsGeneration === 'number' && Number.isFinite(data.tabTipsGeneration)
+      ? Math.max(0, Math.floor(data.tabTipsGeneration))
+      : 0;
 
   return {
     baseCity: typeof data.baseCity === 'string' ? data.baseCity : '',
@@ -111,6 +124,7 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
     theme,
     locale,
     dismissedTabTips,
+    tabTipsGeneration,
   };
 }
 
