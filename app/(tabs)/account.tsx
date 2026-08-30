@@ -9,6 +9,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApplicationListItem } from '@/components/application-list-item';
+import { TabTipCard } from '@/components/tab-tip-card';
 import { TrustBadge } from '@/components/trust-badge';
 import { uploadUserAvatar } from '@/lib/avatarStorage';
 import { clearExpoPushToken } from '@/lib/expo-push';
@@ -188,6 +189,8 @@ export default function AccountScreen() {
               ) : null}
             </Pressable>
           </View>
+
+          <TabTipCard tipId="account" />
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('account.shortcuts')}</Text>
           <NavRow

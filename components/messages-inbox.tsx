@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
+import { TabTipCard } from '@/components/tab-tip-card';
 import {
   isConversationMutedForUser,
   isConversationUnreadForUser,
@@ -287,6 +288,10 @@ export function MessagesInbox({ showBack = false }: Props) {
             <MaterialIcons name="close" size={18} color="#94A3B8" />
           </Pressable>
         ) : null}
+      </View>
+
+      <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+        <TabTipCard tipId="chats" />
       </View>
     </View>
   );

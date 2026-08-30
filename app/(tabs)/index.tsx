@@ -25,6 +25,7 @@ import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
 import { BoostListingSheet } from '@/components/boost-listing-sheet';
 import { BoostedFrame } from '@/components/boosted-frame';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
+import { TabTipCard } from '@/components/tab-tip-card';
 import type { AppLocale } from '@/lib/i18n';
 import {
   listingIntentShort,
@@ -406,6 +407,8 @@ export default function MarketplaceScreen() {
               <Text style={[styles.addBtnText, { color: colors.primary }]}>{t('market.addListing')}</Text>
             </Pressable>
           </View>
+
+          <TabTipCard tipId="market" />
 
           <View style={styles.quickBar}>
             <View style={[styles.searchField, { backgroundColor: colors.card, borderColor: colors.border }]}>

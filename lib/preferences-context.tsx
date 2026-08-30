@@ -5,9 +5,11 @@ import { isAppLocale, translate, type AppLocale, type TranslationKey } from '@/l
 import { getAppColors, type AppColors, type AppThemeMode } from '@/lib/theme';
 import {
   DEFAULT_SETTINGS,
+  TAB_TIPS_GENERATION,
   patchUserSettings,
   saveUserSettings,
   useUserSettings,
+  type TabTipId,
   type UserSettings,
 } from '@/lib/user-settings';
 
@@ -24,6 +26,10 @@ type PreferencesContextValue = {
   setTheme: (theme: AppThemeMode) => Promise<void>;
   setLocale: (locale: AppLocale) => Promise<void>;
   saveSettings: (next: UserSettings) => Promise<void>;
+  /** Zamknij tip zakładki — zapis per użytkownik (raz na generację). */
+  dismissTabTip: (tipId: TabTipId) => Promise<void>;
+  /** Wyczyść zamknięte tipy — pokaż wskazówki znowu na wszystkich zakładkach. */
+  resetTabTips: () => Promise<void>;
 };
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
@@ -55,6 +61,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [localTheme, setLocalTheme] = useState<AppThemeMode>('light');
   const [localLocale, setLocalLocale] = useState<AppLocale>('pl');
   const [cacheReady, setCacheReady] = useState(false);
+  const [localDismissedTips, setLocalDismissedTips] = useState<TabTipId[]>([]);
   const migratedRef = useRef<string | null>(null);
   const localThemeRef = useRef(localTheme);
   const localLocaleRef = useRef(localLocale);
@@ -77,6 +84,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (uid) return;
     migratedRef.current = null;
+    setLocalDismissedTips([]);
   }, [uid]);
 
   // Sync z konta tylko gdy Firestore ma jawnie zapisane pola (nie domyślne PL z braku pola).
@@ -170,6 +178,40 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     [uid]
   );
 
+  const dismissTabTip = useCallback(
+    async (tipId: TabTipId) => {
+      setLocalDismissedTips((prev) => (prev.includes(tipId) ? prev : [...prev, tipId]));
+      if (!uid) return;
+      const base =
+        settings.tabTipsGeneration >= TAB_TIPS_GENERATION ? settings.dismissedTabTips || [] : [];
+      const merged = Array.from(new Set([...base, tipId]));
+      await patchUserSettings(uid, {
+        dismissedTabTips: merged,
+        tabTipsGeneration: TAB_TIPS_GENERATION,
+      });
+    },
+    [settings.dismissedTabTips, settings.tabTipsGeneration, uid]
+  );
+
+  const resetTabTips = useCallback(async () => {
+    setLocalDismissedTips([]);
+    if (!uid) return;
+    await patchUserSettings(uid, {
+      dismissedTabTips: [],
+      tabTipsGeneration: 0,
+    });
+  }, [uid]);
+
+  const tipsActiveForGeneration = settings.tabTipsGeneration >= TAB_TIPS_GENERATION;
+
+  const mergedDismissed = useMemo(() => {
+    if (!tipsActiveForGeneration) {
+      // Nowa generacja tipów — ignoruj stare zamknięcia, zostaw tylko lokalne z tej sesji.
+      return [...localDismissedTips];
+    }
+    return Array.from(new Set([...(settings.dismissedTabTips || []), ...localDismissedTips]));
+  }, [localDismissedTips, settings.dismissedTabTips, tipsActiveForGeneration]);
+
   const value = useMemo<PreferencesContextValue>(
     () => ({
       settings: {
@@ -177,6 +219,10 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         ...settings,
         theme,
         locale,
+        dismissedTabTips: mergedDismissed,
+        tabTipsGeneration: tipsActiveForGeneration
+          ? Math.max(settings.tabTipsGeneration, TAB_TIPS_GENERATION)
+          : settings.tabTipsGeneration,
       },
       loading: loading || !cacheReady,
       theme,
@@ -186,8 +232,25 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
       setTheme,
       setLocale,
       saveSettings,
+      dismissTabTip,
+      resetTabTips,
     }),
-    [cacheReady, colors, loading, locale, saveSettings, setLocale, setTheme, settings, t, theme]
+    [
+      cacheReady,
+      colors,
+      dismissTabTip,
+      loading,
+      locale,
+      mergedDismissed,
+      resetTabTips,
+      saveSettings,
+      setLocale,
+      setTheme,
+      settings,
+      t,
+      theme,
+      tipsActiveForGeneration,
+    ]
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

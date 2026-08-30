@@ -10,6 +10,15 @@ import { useCurrentUserProfile } from '@/lib/user-profile';
 export type SettingsRadius = '25 km' | '50 km' | '100 km' | 'Cała Polska';
 export type SettingsSort = 'rateDesc' | 'rateAsc' | 'newest';
 export type SettingsIntentPref = 'all' | ListingIntent;
+export type TabTipId = 'market' | 'chats' | 'account' | 'settings';
+
+export const TAB_TIP_IDS: TabTipId[] = ['market', 'chats', 'account', 'settings'];
+
+/**
+ * Podbij przy nowej rundzie tipów — użytkownicy zobaczą wskazówki ponownie
+ * (stare dismissedTabTips obowiązują tylko przy tej samej generacji).
+ */
+export const TAB_TIPS_GENERATION = 1;
 
 export type UserSettings = {
   baseCity: string;
@@ -34,6 +43,10 @@ export type UserSettings = {
   theme: AppThemeMode;
   /** Język UI: pl / en / de / da. */
   locale: AppLocale;
+  /** Jednorazowe tipy zakładek już zamknięte przez użytkownika. */
+  dismissedTabTips: TabTipId[];
+  /** Generacja tipów, przy której użytkownik zamykał wskazówki. */
+  tabTipsGeneration: number;
 };
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -51,6 +64,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   hideOwnInFeed: false,
   theme: 'light',
   locale: 'pl',
+  dismissedTabTips: [],
+  tabTipsGeneration: 0,
 };
 
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
@@ -77,6 +92,15 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
 
   const theme: AppThemeMode = data.theme === 'dark' ? 'dark' : 'light';
   const locale: AppLocale = isAppLocale(data.locale) ? data.locale : DEFAULT_SETTINGS.locale;
+  const dismissedTabTips = Array.isArray(data.dismissedTabTips)
+    ? data.dismissedTabTips.filter((v): v is TabTipId =>
+        typeof v === 'string' && TAB_TIP_IDS.includes(v as TabTipId)
+      )
+    : [];
+  const tabTipsGeneration =
+    typeof data.tabTipsGeneration === 'number' && Number.isFinite(data.tabTipsGeneration)
+      ? Math.max(0, Math.floor(data.tabTipsGeneration))
+      : 0;
 
   return {
     baseCity: typeof data.baseCity === 'string' ? data.baseCity : '',
@@ -99,6 +123,8 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
     hideOwnInFeed: data.hideOwnInFeed === true,
     theme,
     locale,
+    dismissedTabTips,
+    tabTipsGeneration,
   };
 }
 

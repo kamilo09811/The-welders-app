@@ -10,6 +10,7 @@ import {
   saveExpoPushToken,
   type PushPermissionStatus,
 } from '@/lib/expo-push';
+import { TabTipCard } from '@/components/tab-tip-card';
 import { APP_LOCALES } from '@/lib/i18n';
 import { workModeLabel } from '@/lib/i18n/labels';
 import type { WorkMode } from '@/lib/market-listings';
@@ -94,7 +95,7 @@ function SettingRow({
 export default function SettingsScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
-  const { settings, loading, colors, t, theme, locale, saveSettings, setTheme, setLocale } =
+  const { settings, loading, colors, t, theme, locale, saveSettings, setTheme, setLocale, resetTabTips } =
     usePreferences();
   const [draft, setDraft] = useState<UserSettings>(settings);
   const [isEditing, setIsEditing] = useState(false);
@@ -103,6 +104,7 @@ export default function SettingsScreen() {
   const [showCityHints, setShowCityHints] = useState(false);
   const [pushStatus, setPushStatus] = useState<PushPermissionStatus>('undetermined');
   const [pushBusy, setPushBusy] = useState(false);
+  const [tipsResetBusy, setTipsResetBusy] = useState(false);
 
   useEffect(() => {
     if (isEditing) return;
@@ -216,6 +218,8 @@ export default function SettingsScreen() {
             <Text style={styles.headerTitle}>{t('settings.title')}</Text>
             <Text style={styles.headerSub}>{t('settings.subtitle')}</Text>
           </View>
+
+          <TabTipCard tipId="settings" />
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.section.appearance')}</Text>
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t('settings.theme')}</Text>
@@ -451,6 +455,24 @@ export default function SettingsScreen() {
             <Text style={[styles.legalRowText, { color: colors.text }]}>{t('legal.privacyLink')}</Text>
             <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
           </Pressable>
+
+          {uid ? (
+            <Pressable
+              disabled={tipsResetBusy}
+              onPress={() => {
+                setTipsResetBusy(true);
+                void resetTabTips()
+                  .then(() => setMessage(t('tip.resetDone')))
+                  .finally(() => setTipsResetBusy(false));
+              }}
+              style={[styles.legalRow, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <MaterialIcons name="lightbulb-outline" size={18} color={colors.primary} />
+              <Text style={[styles.legalRowText, { color: colors.text }]}>
+                {tipsResetBusy ? t('common.loading') : t('tip.reset')}
+              </Text>
+              <MaterialIcons name="refresh" size={20} color={colors.textSoft} />
+            </Pressable>
+          ) : null}
 
           {loading ? (
             <Text style={[styles.note, { color: colors.textMuted }]}>{t('common.loading')}</Text>
