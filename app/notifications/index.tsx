@@ -1,24 +1,31 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { localeToBcp47 } from '@/lib/i18n';
 import type { InAppNotification } from '@/lib/in-app-notifications';
 import { markAllInAppNotificationsRead, markInAppNotificationRead } from '@/lib/in-app-notifications';
+import { usePreferences } from '@/lib/preferences-context';
+import type { AppColors } from '@/lib/theme';
+import { getHeaderGradient } from '@/lib/theme';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useCurrentUserProfile } from '@/lib/user-profile';
 
-function formatWhen(d: Date | null): string {
+function formatWhen(d: Date | null, localeTag: string): string {
   if (!d) return '';
   try {
-    return d.toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+    return d.toLocaleString(localeTag, { dateStyle: 'short', timeStyle: 'short' });
   } catch {
     return '';
   }
 }
 
-function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 'notifications' {
+function kindIcon(
+  kind: InAppNotification['kind']
+): 'inbox' | 'flag' | 'chat' | 'work-outline' | 'notifications' {
   switch (kind) {
     case 'application_new':
       return 'inbox';
@@ -26,15 +33,74 @@ function kindIcon(kind: InAppNotification['kind']): 'inbox' | 'flag' | 'chat' | 
       return 'flag';
     case 'chat_message':
       return 'chat';
+    case 'listing_new':
+      return 'work-outline';
     default:
       return 'notifications';
   }
 }
 
+function NotificationRow({
+  n,
+  colors,
+  localeTag,
+  onPress,
+}: {
+  n: InAppNotification;
+  colors: AppColors;
+  localeTag: string;
+  onPress: () => void;
+}) {
+  const unread = !n.read;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        {
+          backgroundColor: unread ? colors.primaryMuted : colors.card,
+          borderColor: unread ? colors.primary : colors.border,
+          opacity: pressed ? 0.92 : 1,
+        },
+      ]}>
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: unread ? colors.card : colors.chip },
+        ]}>
+        <MaterialIcons
+          name={kindIcon(n.kind)}
+          size={22}
+          color={unread ? colors.primary : colors.textSoft}
+        />
+      </View>
+      <View style={styles.textCol}>
+        <View style={styles.titleRow}>
+          <Text
+            style={[styles.title, { color: unread ? colors.primary : colors.text }]}
+            numberOfLines={1}>
+            {n.title}
+          </Text>
+          <Text style={[styles.time, { color: colors.textSoft }]}>
+            {formatWhen(n.createdAt, localeTag)}
+          </Text>
+        </View>
+        <Text style={[styles.body, { color: colors.textMuted }]} numberOfLines={3}>
+          {n.body}
+        </Text>
+      </View>
+      <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
+    </Pressable>
+  );
+}
+
 export default function NotificationsCenterScreen() {
   const router = useRouter();
+  const { t, locale, colors, theme } = usePreferences();
+  const localeTag = localeToBcp47(locale);
   const { uid } = useCurrentUserProfile();
   const { items, loading, unreadCount } = useInAppNotifications(uid ?? undefined);
+  const headerGradient = getHeaderGradient(theme);
 
   const onOpen = useCallback(
     (n: InAppNotification) => {
@@ -60,127 +126,133 @@ export default function NotificationsCenterScreen() {
     if (uid && unreadCount > 0) void markAllInAppNotificationsRead(uid);
   }, [uid, unreadCount]);
 
-  const renderItem = useCallback(
-    ({ item: n }: { item: InAppNotification }) => (
-      <Pressable
-        style={[styles.row, !n.read && styles.rowUnread]}
-        onPress={() => onOpen(n)}>
-        <View style={[styles.iconWrap, !n.read && styles.iconWrapUnread]}>
-          <MaterialIcons name={kindIcon(n.kind)} size={22} color={n.read ? '#64748B' : '#0E4AA4'} />
-        </View>
-        <View style={styles.textCol}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, !n.read && styles.titleUnread]} numberOfLines={1}>
-              {n.title}
-            </Text>
-            <Text style={styles.time}>{formatWhen(n.createdAt)}</Text>
-          </View>
-          <Text style={styles.body} numberOfLines={3}>
-            {n.body}
-          </Text>
-        </View>
-      </Pressable>
-    ),
-    [onOpen]
-  );
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
-          </Pressable>
-          <Text style={styles.headerTitle}>Powiadomienia</Text>
-          {unreadCount > 0 ? (
-            <Pressable onPress={onMarkAll} style={styles.markAllBtn}>
-              <Text style={styles.markAllText}>Oznacz przeczytane</Text>
+      <View style={[styles.root, { backgroundColor: colors.bg }]}>
+        <LinearGradient colors={[...headerGradient]} locations={[0, 0.55]} style={styles.bgGlow} />
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
             </Pressable>
-          ) : (
-            <View style={styles.headerSpacer} />
-          )}
-        </View>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>{t('notif.title')}</Text>
+              {!loading ? (
+                <Text style={styles.headerSub}>
+                  {items.length} {t('market.results')}
+                  {unreadCount > 0 ? ` · ${unreadCount}` : ''}
+                </Text>
+              ) : null}
+            </View>
+            {unreadCount > 0 ? (
+              <Pressable onPress={onMarkAll} style={styles.markAllBtn}>
+                <Text style={[styles.markAllText, { color: '#FFFFFF' }]}>{t('notif.markRead')}</Text>
+              </Pressable>
+            ) : null}
+          </View>
 
-        {loading ? (
-          <View style={styles.card}>
-            <Text style={styles.note}>Ładowanie…</Text>
-          </View>
-        ) : items.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.note}>Brak powiadomień. Pojawią się przy zgłoszeniach, zmianie statusu i nowych wiadomościach.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={items}
-            keyExtractor={(n) => n.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </SafeAreaView>
+          {loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={[styles.note, { color: colors.textMuted }]}>{t('common.loading')}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={items}
+              keyExtractor={(n) => n.id}
+              contentContainerStyle={[styles.list, items.length === 0 && styles.listEmpty]}
+              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View
+                  style={[styles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.emptyIcon, { backgroundColor: colors.primaryMuted }]}>
+                    <MaterialIcons name="notifications-none" size={28} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('notif.empty')}</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <NotificationRow
+                  n={item}
+                  colors={colors}
+                  localeTag={localeTag}
+                  onPress={() => onOpen(item)}
+                />
+              )}
+            />
+          )}
+        </SafeAreaView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EEF2F8' },
+  root: { flex: 1 },
+  bgGlow: { position: 'absolute', left: 0, right: 0, top: 0, height: 160 },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 12,
+    paddingTop: 4,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D5DEEA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { flex: 1, color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  headerSpacer: { width: 72 },
-  markAllBtn: { paddingVertical: 6, paddingHorizontal: 8 },
-  markAllText: { color: '#0E4AA4', fontWeight: '700', fontSize: 12 },
-  list: { padding: 16, paddingBottom: 32, gap: 10 },
-  card: {
-    margin: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    padding: 14,
-  },
-  note: { color: '#64748B', fontSize: 12, lineHeight: 17 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#DFE6F2',
-    padding: 12,
-  },
-  rowUnread: { borderColor: '#BFDBFE', backgroundColor: '#F8FAFC' },
-  iconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapUnread: { backgroundColor: '#EFF6FF' },
-  textCol: { flex: 1, gap: 4 },
+  headerText: { flex: 1, gap: 2 },
+  headerTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
+  headerSub: { color: 'rgba(255,255,255,0.82)', fontSize: 13, fontWeight: '600' },
+  markAllBtn: { paddingVertical: 6, paddingHorizontal: 4 },
+  markAllText: { fontWeight: '700', fontSize: 12 },
+  list: { paddingHorizontal: 16, paddingBottom: 32, paddingTop: 4 },
+  listEmpty: { flexGrow: 1, justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  note: { fontSize: 13 },
+  empty: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: { fontSize: 15, fontWeight: '700', textAlign: 'center', lineHeight: 22 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+  },
+  iconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textCol: { flex: 1, gap: 4, minWidth: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  title: { flex: 1, color: '#0F172A', fontWeight: '700', fontSize: 14 },
-  titleUnread: { color: '#0E4AA4' },
-  time: { color: '#94A3B8', fontSize: 11, fontWeight: '600' },
-  body: { color: '#475569', fontSize: 13, lineHeight: 18 },
+  title: { flex: 1, fontWeight: '700', fontSize: 14 },
+  time: { fontSize: 11, fontWeight: '600' },
+  body: { fontSize: 13, lineHeight: 18 },
 });

@@ -1,2 +1,4 @@
-// Zawartość przeniesiona do: firebase/firestore.rules
-// (zagnieżdżone: users/{userId}/notifications/{notifId}).
+// Zawartość w: firebase/firestore.rules
+// users/{userId}/notifications/{notifId}:
+//   create: zabronione dla klienta (Cloud Functions / Admin SDK)
+//   update: tylko oznaczenie jako przeczytane (read, readAt)

@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
+import { usePreferencesOptional } from '@/lib/preferences-context';
+import type { AppThemeMode } from '@/lib/theme';
+
 /**
- * To support static rendering, this value needs to be re-calculated on the client side for web
+ * Web: hydrate after mount; then prefer app settings theme.
  */
-export function useColorScheme() {
+export function useColorScheme(): AppThemeMode {
   const [hasHydrated, setHasHydrated] = useState(false);
+  const prefs = usePreferencesOptional();
+  const system = useRNColorScheme();
 
   useEffect(() => {
     setHasHydrated(true);
   }, []);
 
-  const colorScheme = useRNColorScheme();
-
-  if (hasHydrated) {
-    return colorScheme;
-  }
-
-  return 'light';
+  if (!hasHydrated) return 'light';
+  if (prefs) return prefs.theme;
+  return system === 'dark' ? 'dark' : 'light';
 }

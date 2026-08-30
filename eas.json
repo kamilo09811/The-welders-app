@@ -6,13 +6,25 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "c690c7ac-79b4-4060-83f3-ca9800f7a7cd",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "c690c7ac-79b4-4060-83f3-ca9800f7a7cd",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "c690c7ac-79b4-4060-83f3-ca9800f7a7cd",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "893817844292-bl2sjnatles76gj9nmf0vo7si5pbqcm5.apps.googleusercontent.com"
+      }
     }
   },
   "submit": {
