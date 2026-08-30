@@ -16,7 +16,7 @@ import { clearExpoPushToken } from '@/lib/expo-push';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { usePreferences } from '@/lib/preferences-context';
 import type { AppColors } from '@/lib/theme';
-import { getHeaderGradient } from '@/lib/theme';
+import { getHeaderGradient, getHeroSheen } from '@/lib/theme';
 import { useUserConversations } from '@/lib/use-chat';
 import { useInAppNotifications } from '@/lib/use-in-app-notifications';
 import { useApplicationsByApplicant, useApplicationsByAuthor } from '@/lib/use-listing-applications';
@@ -56,6 +56,7 @@ export default function AccountScreen() {
   const user = auth.currentUser;
   const { uid, profile } = useCurrentUserProfile();
   const { colors, t, theme, locale } = usePreferences();
+  const headerSheen = getHeroSheen(theme);
   const { profile: publicSelf } = usePublicProfileOnce(uid ?? undefined);  const { unreadCount: messagesUnreadCount } = useUserConversations(uid ?? undefined);
   const { unreadCount: notifUnreadCount } = useInAppNotifications(uid ?? undefined);
   const { applications: myApplications, loading: loadingMyApplications } = useApplicationsByApplicant(
@@ -164,6 +165,12 @@ export default function AccountScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <LinearGradient colors={[...getHeaderGradient(theme)]} locations={[0, 0.36]} style={styles.bgGlow} />
+      <LinearGradient
+        colors={[...headerSheen.colors]}
+        start={headerSheen.start}
+        end={headerSheen.end}
+        style={styles.bgSheen}
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -365,9 +372,14 @@ export default function AccountScreen() {
             <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
           </Pressable>
 
-          <Pressable style={styles.logoutBtn} onPress={onLogout}>
-            <MaterialIcons name="logout" size={18} color="#B91C1C" />
-            <Text style={styles.logoutText}>{t('account.logout')}</Text>
+          <Pressable
+            style={[
+              styles.logoutBtn,
+              { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+            ]}
+            onPress={onLogout}>
+            <MaterialIcons name="logout" size={18} color={colors.danger} />
+            <Text style={[styles.logoutText, { color: colors.danger }]}>{t('account.logout')}</Text>
           </Pressable>
 
           {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -378,8 +390,9 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#E8EEF7' },
+  root: { flex: 1 },
   bgGlow: { ...StyleSheet.absoluteFillObject },
+  bgSheen: { ...StyleSheet.absoluteFillObject },
   safe: { flex: 1 },
   content: { padding: 16, gap: 10, paddingBottom: 36 },
   header: {

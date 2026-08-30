@@ -180,9 +180,11 @@ export function MessagesInbox({ showBack = false }: Props) {
           delayLongPress={450}
           style={({ pressed }) => [
             styles.row,
-            unread && styles.rowUnread,
+            {
+              backgroundColor: unread ? colors.primaryMuted : colors.card,
+            },
             muted && styles.rowMuted,
-            pressed && styles.rowPressed,
+            pressed && { backgroundColor: colors.chip },
             isFirst && styles.rowFirst,
             isLast && styles.rowLast,
           ]}>
@@ -190,40 +192,66 @@ export function MessagesInbox({ showBack = false }: Props) {
             {otherId ? (
               <UserAvatarPressable userId={otherId} avatarUrl={otherAvatar} size={52} />
             ) : (
-              <View style={styles.avatarFallback}>
-                <MaterialIcons name="person" size={22} color="#64748B" />
+              <View style={[styles.avatarFallback, { backgroundColor: colors.chip }]}>
+                <MaterialIcons name="person" size={22} color={colors.textSoft} />
               </View>
             )}
-            {unread ? <View style={styles.onlineDot} /> : null}
+            {unread ? (
+              <View
+                style={[
+                  styles.onlineDot,
+                  { backgroundColor: colors.primary, borderColor: colors.card },
+                ]}
+              />
+            ) : null}
           </View>
 
           <View style={styles.textCol}>
             <View style={styles.rowTop}>
-              <Text style={[styles.rowTitle, unread && styles.rowTitleUnread]} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.rowTitle,
+                  { color: colors.text },
+                  unread && styles.rowTitleUnread,
+                ]}
+                numberOfLines={1}>
                 {otherName}
               </Text>
-              <Text style={[styles.rowTime, unread && styles.rowTimeUnread]}>
+              <Text
+                style={[
+                  styles.rowTime,
+                  { color: colors.textSoft },
+                  unread && { color: colors.primary, fontWeight: '700' },
+                ]}>
                 {formatListTime(c.lastMessageAt, localeTag)}
               </Text>
             </View>
 
             {c.listingTitle ? (
-              <View style={styles.listingChip}>
-                <MaterialIcons name="work-outline" size={12} color="#0E4AA4" />
-                <Text style={styles.listingChipText} numberOfLines={1}>
+              <View style={[styles.listingChip, { backgroundColor: colors.primaryMuted }]}>
+                <MaterialIcons name="work-outline" size={12} color={colors.primary} />
+                <Text style={[styles.listingChipText, { color: colors.primary }]} numberOfLines={1}>
                   {c.listingTitle}
                 </Text>
               </View>
             ) : null}
 
             <View style={styles.previewRow}>
-              <Text style={[styles.rowSub, unread && styles.rowSubUnread]} numberOfLines={2}>
+              <Text
+                style={[
+                  styles.rowSub,
+                  { color: colors.textSoft },
+                  unread && { color: colors.textMuted, fontWeight: '600' },
+                ]}
+                numberOfLines={2}>
                 {preview}
               </Text>
               <View style={styles.previewMeta}>
-                {muted ? <MaterialIcons name="notifications-off" size={15} color="#94A3B8" /> : null}
+                {muted ? (
+                  <MaterialIcons name="notifications-off" size={15} color={colors.textSoft} />
+                ) : null}
                 {unread ? (
-                  <View style={styles.unreadPill}>
+                  <View style={[styles.unreadPill, { backgroundColor: colors.primary }]}>
                     <Text style={styles.unreadPillText}>{t('chats.newBadge')}</Text>
                   </View>
                 ) : null}
@@ -285,7 +313,7 @@ export function MessagesInbox({ showBack = false }: Props) {
         />
         {searchQuery.length > 0 ? (
           <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-            <MaterialIcons name="close" size={18} color="#94A3B8" />
+            <MaterialIcons name="close" size={18} color={colors.textSoft} />
           </Pressable>
         ) : null}
       </View>
@@ -297,7 +325,11 @@ export function MessagesInbox({ showBack = false }: Props) {
   );
 
   const empty = (
-    <View style={styles.empty}>
+    <View
+      style={[
+        styles.empty,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}>
       {loading ? (
         <>
           <ActivityIndicator color={colors.primary} />
@@ -305,20 +337,22 @@ export function MessagesInbox({ showBack = false }: Props) {
         </>
       ) : searchQuery.trim() ? (
         <>
-          <View style={styles.emptyIcon}>
-            <MaterialIcons name="search-off" size={28} color="#0E4AA4" />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.primaryMuted }]}>
+            <MaterialIcons name="search-off" size={28} color={colors.primary} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.noneFound')}</Text>
           <Text style={[styles.emptySub, { color: colors.textSoft }]}>{t('chats.noneFoundSub')}</Text>
         </>
       ) : (
         <>
-          <View style={styles.emptyIcon}>
-            <MaterialIcons name="forum" size={28} color="#0E4AA4" />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.primaryMuted }]}>
+            <MaterialIcons name="forum" size={28} color={colors.primary} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chats.empty')}</Text>
           <Text style={[styles.emptySub, { color: colors.textSoft }]}>{t('chats.emptySub')}</Text>
-          <Pressable style={styles.emptyCta} onPress={() => router.push('/(tabs)' as never)}>
+          <Pressable
+            style={[styles.emptyCta, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/(tabs)' as never)}>
             <Text style={styles.emptyCtaText}>{t('chats.goToMarket')}</Text>
             <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
           </Pressable>
@@ -337,14 +371,16 @@ export function MessagesInbox({ showBack = false }: Props) {
         ListEmptyComponent={empty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => (
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
+        )}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F1F5F9' },
+  root: { flex: 1 },
   listContent: { paddingBottom: 28, flexGrow: 1 },
   topBlock: { marginBottom: 8 },
   hero: {
@@ -372,17 +408,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 11,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#0F172A',
     paddingVertical: 0,
   },
   row: {
@@ -392,7 +425,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
   },
   rowFirst: {
     borderTopLeftRadius: 16,
@@ -403,12 +435,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
-  rowUnread: { backgroundColor: '#F8FBFF' },
   rowMuted: { opacity: 0.72 },
-  rowPressed: { backgroundColor: '#EEF2F7' },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E2E8F0',
     marginLeft: 76,
     marginRight: 24,
   },
@@ -421,7 +450,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#E8EEF8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -432,34 +460,28 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#0E4AA4',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   textCol: { flex: 1, gap: 4, minWidth: 0 },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowTitle: { color: '#0F172A', fontWeight: '700', fontSize: 16, flex: 1 },
+  rowTitle: { fontWeight: '700', fontSize: 16, flex: 1 },
   rowTitleUnread: { fontWeight: '800' },
-  rowTime: { color: '#94A3B8', fontSize: 12, fontWeight: '500' },
-  rowTimeUnread: { color: '#0E4AA4', fontWeight: '700' },
+  rowTime: { fontSize: 12, fontWeight: '500' },
   listingChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     maxWidth: '100%',
-    backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
   },
-  listingChipText: { color: '#0E4AA4', fontSize: 11, fontWeight: '600', flexShrink: 1 },
+  listingChipText: { fontSize: 11, fontWeight: '600', flexShrink: 1 },
   previewRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  rowSub: { color: '#64748B', fontSize: 13, lineHeight: 18, flex: 1 },
-  rowSubUnread: { color: '#1E293B', fontWeight: '600' },
+  rowSub: { fontSize: 13, lineHeight: 18, flex: 1 },
   previewMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 1 },
   unreadPill: {
-    backgroundColor: '#0E4AA4',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 8,
@@ -472,28 +494,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   emptyIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
-  emptyTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  emptySub: { color: '#64748B', fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 280 },
+  emptyTitle: { fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  emptySub: { fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 280 },
   emptyCta: {
     marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0E4AA4',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,

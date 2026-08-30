@@ -18,10 +18,28 @@ const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie']
 const WORK_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
 const LISTING_INTENTS: ListingIntent[] = ['offer', 'seek'];
 
-function SelectChip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+function SelectChip({
+  active,
+  label,
+  onPress,
+  colors,
+}: {
+  active: boolean;
+  label: string;
+  onPress: () => void;
+  colors: { card: string; border: string; primary: string; textMuted: string };
+}) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.chip,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        active && { backgroundColor: colors.primary, borderColor: colors.primary },
+      ]}>
+      <Text style={[styles.chipText, { color: colors.textMuted }, active && styles.chipTextActive]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -31,7 +49,7 @@ export default function EditListingScreen() {
   const { id: idParam } = useLocalSearchParams<{ id?: string }>();
   const id = typeof idParam === 'string' ? idParam : undefined;
   const { uid, profile } = useCurrentUserProfile();
-  const { t } = usePreferences();
+  const { t, colors } = usePreferences();
   const { listing, loading: loadingListing } = useMarketListing(id);
 
   const [title, setTitle] = useState('');
@@ -134,56 +152,80 @@ export default function EditListingScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>{t('listing.editTitle')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('listing.editTitle')}</Text>
           </View>
 
           {loadingListing ? (
-            <View style={styles.statusCard}>
-              <ActivityIndicator color="#0E4AA4" />
+            <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <ActivityIndicator color={colors.primary} />
             </View>
           ) : !listing ? (
-            <View style={styles.statusCard}>
-              <Text style={styles.statusTitle}>{t('listing.notFound')}</Text>
-              <Text style={styles.statusSub}>{t('listing.notFoundSub')}</Text>
+            <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.statusTitle, { color: colors.text }]}>{t('listing.notFound')}</Text>
+              <Text style={[styles.statusSub, { color: colors.textSoft }]}>{t('listing.notFoundSub')}</Text>
             </View>
           ) : listing.authorId !== uid ? (
-            <View style={styles.statusCard}>
-              <Text style={styles.statusTitle}>{t('listing.noEditPerm')}</Text>
-              <Text style={styles.statusSub}>{t('listing.editOnlyOwn')}</Text>
+            <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.statusTitle, { color: colors.text }]}>{t('listing.noEditPerm')}</Text>
+              <Text style={[styles.statusSub, { color: colors.textSoft }]}>{t('listing.editOnlyOwn')}</Text>
             </View>
           ) : (
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.publisherRow}>
-                <MaterialIcons name={isEmployer ? 'business' : 'person'} size={18} color="#0E4AA4" />
+                <MaterialIcons name={isEmployer ? 'business' : 'person'} size={18} color={colors.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.publisherLabel}>
+                  <Text style={[styles.publisherLabel, { color: colors.textSoft }]}>
                     {isEmployer ? t('listing.companyOnListing') : t('listing.publisher')}
                   </Text>
-                  <Text style={styles.publisherValue}>{publisherName}</Text>
+                  <Text style={[styles.publisherValue, { color: colors.text }]}>{publisherName}</Text>
                 </View>
                 <Pressable onPress={() => router.push('/(tabs)/account' as never)}>
-                  <Text style={styles.publisherEdit}>{t('listing.editInAccount')}</Text>
+                  <Text style={[styles.publisherEdit, { color: colors.primary }]}>
+                    {t('listing.editInAccount')}
+                  </Text>
                 </Pressable>
               </View>
-              <Text style={styles.label}>{t('listing.titleField')}</Text>
-              <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor="#94A3B8" />
-              <Text style={styles.label}>{t('listing.descriptionField')}</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.titleField')}</Text>
               <TextInput
-                style={[styles.input, styles.textarea]}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
+                ]}
+                value={title}
+                onChangeText={setTitle}
+                placeholderTextColor={colors.textSoft}
+              />
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.descriptionField')}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textarea,
+                  { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
+                ]}
                 value={description}
                 onChangeText={setDescription}
                 multiline
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSoft}
               />
-              <Text style={styles.label}>{t('listing.locationField')}</Text>
-              <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholderTextColor="#94A3B8" />
-              <Text style={styles.label}>{t('listing.workMode')}</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.locationField')}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
+                ]}
+                value={location}
+                onChangeText={setLocation}
+                placeholderTextColor={colors.textSoft}
+              />
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.workMode')}</Text>
               <View style={styles.chipsWrap}>
                 {WORK_MODES.map((v) => (
                   <SelectChip
@@ -191,10 +233,11 @@ export default function EditListingScreen() {
                     label={workModeLabel(v, t)}
                     active={mode === v}
                     onPress={() => setMode(v)}
-                  />
+                          colors={colors}
+                        />
                 ))}
               </View>
-              <Text style={styles.label}>{t('listing.intentType')}</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.intentType')}</Text>
               <View style={styles.chipsWrap}>
                 {LISTING_INTENTS.map((v) => (
                   <SelectChip
@@ -202,10 +245,11 @@ export default function EditListingScreen() {
                     label={listingIntentForRole(profile.role, v, t)}
                     active={intent === v}
                     onPress={() => setIntent(v)}
-                  />
+                          colors={colors}
+                        />
                 ))}
               </View>
-              <Text style={styles.label}>{t('listing.collabType')}</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.collabType')}</Text>
               <View style={styles.chipsWrap}>
                 {LISTING_TYPES.map((v) => (
                   <SelectChip
@@ -213,36 +257,37 @@ export default function EditListingScreen() {
                     label={listingTypeLabel(v, t)}
                     active={type === v}
                     onPress={() => setType(v)}
-                  />
+                          colors={colors}
+                        />
                 ))}
               </View>
               <View style={styles.rateRow}>
                 <View style={styles.rateCol}>
-                  <Text style={styles.label}>{t('listing.rateFrom')}</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.rateFrom')}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                     value={rateMin}
                     onChangeText={setRateMin}
                     keyboardType="numeric"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textSoft}
                   />
                 </View>
                 <View style={styles.rateCol}>
-                  <Text style={styles.label}>{t('listing.rateTo')}</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.rateTo')}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                     value={rateMax}
                     onChangeText={setRateMax}
                     keyboardType="numeric"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.textSoft}
                   />
                 </View>
               </View>
-              <Text style={styles.label}>{t('listing.tagsComma')}</Text>
-              <TextInput style={styles.input} value={tags} onChangeText={setTags} placeholderTextColor="#94A3B8" />
-              {message ? <Text style={styles.message}>{message}</Text> : null}
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.tagsComma')}</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]} value={tags} onChangeText={setTags} placeholderTextColor={colors.textSoft} />
+              {message ? <Text style={[styles.message, { color: colors.danger }]}>{message}</Text> : null}
               <Pressable
-                style={[styles.saveBtn, (!canSave || busy) && styles.saveBtnDisabled]}
+                style={[styles.saveBtn, { backgroundColor: colors.primary }, (!canSave || busy) && styles.saveBtnDisabled]}
                 onPress={onSubmit}
                 disabled={!canSave || busy}>
                 <Text style={styles.saveBtnText}>

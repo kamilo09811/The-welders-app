@@ -216,25 +216,27 @@ export default function ListingDetailsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <MaterialIcons name="arrow-back" size={20} color="#0E4AA4" />
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
               {quick ? t('listing.quickDetailTitle') : t('listing.detailTitle')}
             </Text>
           </View>
 
           {!listing ? (
-            <View style={styles.emptyCard}>
+            <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               {loadingListing ? (
-                <ActivityIndicator color="#0E4AA4" />
+                <ActivityIndicator color={colors.primary} />
               ) : (
                 <>
-                  <Text style={styles.emptyTitle}>{t('listing.notFound')}</Text>
-                  <Text style={styles.emptySub}>{t('listing.notFoundSub')}</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('listing.notFound')}</Text>
+                  <Text style={[styles.emptySub, { color: colors.textSoft }]}>{t('listing.notFoundSub')}</Text>
                 </>
               )}
             </View>
@@ -256,25 +258,47 @@ export default function ListingDetailsScreen() {
                     ) : null}
                     <View style={styles.typeRow}>
                       {quick ? (
-                        <Text style={[styles.type, styles.quickType]}>{t('listing.quickDetailTitle')}</Text>
+                        <Text
+                          style={[
+                            styles.type,
+                            { backgroundColor: colors.warningSoft, color: colors.warning },
+                          ]}>
+                          {t('listing.quickDetailTitle')}
+                        </Text>
                       ) : (
-                        <Text style={styles.type}>{listingTypeLabel(listing.type, t)}</Text>
+                        <Text
+                          style={[
+                            styles.type,
+                            { backgroundColor: colors.chip, color: colors.chipText },
+                          ]}>
+                          {listingTypeLabel(listing.type, t)}
+                        </Text>
                       )}
-                      <Text style={[styles.type, styles.intentType]}>
+                      <Text
+                        style={[
+                          styles.type,
+                          { backgroundColor: colors.warningSoft, color: colors.warning },
+                        ]}>
                         {listingIntentShort(listing.intent, t)}
                       </Text>
                       {quick && listing.durationHint ? (
-                        <Text style={[styles.type, styles.durationType]}>
+                        <Text
+                          style={[
+                            styles.type,
+                            { backgroundColor: colors.successSoft, color: colors.success },
+                          ]}>
                           {quickDurationLabel(listing.durationHint, t)}
                         </Text>
                       ) : null}
                     </View>
-                    <Text style={styles.title}>{listing.title}</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>{listing.title}</Text>
                     <Pressable
                       onPress={() =>
                         router.push({ pathname: '/user/[id]', params: { id: listing.authorId } })
                       }>
-                      <Text style={styles.company}>{listing.company || t('listing.privateListing')}</Text>
+                      <Text style={[styles.company, { color: colors.textMuted }]}>
+                        {listing.company || t('listing.privateListing')}
+                      </Text>
                       {authorProfile ? (
                         <View style={{ marginTop: 6 }}>
                           <TrustBadge
@@ -290,13 +314,17 @@ export default function ListingDetailsScreen() {
                     </Pressable>
 
                     <View style={styles.metaRow}>
-                      <MaterialIcons name="place" size={16} color="#64748B" />
-                      <Text style={styles.metaText}>{listing.location}</Text>
-                      <Text style={styles.dot}>•</Text>
-                      <Text style={styles.metaText}>{workModeLabel(listing.mode, t)}</Text>
+                      <MaterialIcons name="place" size={16} color={colors.textSoft} />
+                      <Text style={[styles.metaText, { color: colors.textSoft }]}>
+                        {listing.location}
+                      </Text>
+                      <Text style={[styles.dot, { color: colors.textSoft }]}>•</Text>
+                      <Text style={[styles.metaText, { color: colors.textSoft }]}>
+                        {workModeLabel(listing.mode, t)}
+                      </Text>
                     </View>
 
-                    <Text style={styles.rateLabel}>
+                    <Text style={[styles.rateLabel, { color: colors.primary }]}>
                       {quick ? t('listing.budgetLabel') : t('listing.rateLabel')}
                       {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate, locale)}
                     </Text>
@@ -304,8 +332,10 @@ export default function ListingDetailsScreen() {
                     {listing.tags.length > 0 ? (
                       <View style={styles.tagsWrap}>
                         {listing.tags.map((tag) => (
-                          <View key={tag} style={styles.tag}>
-                            <Text style={styles.tagText}>{tag}</Text>
+                          <View
+                            key={tag}
+                            style={[styles.tag, { backgroundColor: colors.inputBg }]}>
+                            <Text style={[styles.tagText, { color: colors.textMuted }]}>{tag}</Text>
                           </View>
                         ))}
                       </View>
@@ -321,7 +351,16 @@ export default function ListingDetailsScreen() {
                   );
                 }
 
-                return <View style={[styles.card, quick && styles.cardQuick]}>{header}</View>;
+                return (
+                  <View
+                    style={[
+                      styles.card,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      quick && { borderColor: colors.warning },
+                    ]}>
+                    {header}
+                  </View>
+                );
               })()}
 
               <ListingLocationMap
@@ -334,9 +373,9 @@ export default function ListingDetailsScreen() {
               />
 
               {quick ? (
-                <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>{t('listing.slotsTitle')}</Text>
-                  <Text style={styles.description}>
+                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('listing.slotsTitle')}</Text>
+                  <Text style={[styles.description, { color: colors.textMuted }]}>
                     {listing.quickStatus === 'awarded'
                       ? t('listing.slotsAwarded')
                       : listing.quickStatus === 'full'
@@ -347,18 +386,18 @@ export default function ListingDetailsScreen() {
                 </View>
               ) : null}
 
-              <View style={styles.card}>
-                <Text style={styles.sectionTitle}>{t('listing.description')}</Text>
-                <Text style={styles.description}>{listing.description}</Text>
+              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('listing.description')}</Text>
+                <Text style={[styles.description, { color: colors.textMuted }]}>{listing.description}</Text>
               </View>
 
               {!isAuthor ? (
-                <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>
+                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {quick ? t('listing.joinSection') : t('listing.applySection')}
                   </Text>
                   {myApplication ? (
-                    <Text style={styles.successText}>
+                    <Text style={[styles.successText, { color: colors.success }]}>
                       {quick
                         ? t('listing.alreadyJoined', {
                             status: applicationStatusLabel(myApplication.status, t),
@@ -370,17 +409,28 @@ export default function ListingDetailsScreen() {
                   ) : canJoinQuick || !quick ? (
                     <>
                       <TextInput
-                        style={styles.messageInput}
+                        style={[
+                          styles.messageInput,
+                          {
+                            backgroundColor: colors.inputBg,
+                            borderColor: colors.border,
+                            color: colors.text,
+                          },
+                        ]}
                         value={applyMessage}
                         onChangeText={setApplyMessage}
                         multiline
                         placeholder={
                           quick ? t('listing.joinPlaceholder') : t('listing.applyPlaceholder')
                         }
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.textSoft}
                       />
                       <Pressable
-                        style={[styles.ctaBtn, quick && styles.ctaBtnQuick]}
+                        style={[
+                          styles.ctaBtn,
+                          { backgroundColor: colors.primary },
+                          quick && { backgroundColor: colors.warning },
+                        ]}
                         onPress={() => void onApply()}
                         disabled={busyApply}>
                         <Text style={styles.ctaText}>
@@ -393,22 +443,33 @@ export default function ListingDetailsScreen() {
                       </Pressable>
                     </>
                   ) : (
-                    <Text style={styles.description}>{t('listing.noSlots')}</Text>
+                    <Text style={[styles.description, { color: colors.textMuted }]}>
+                      {t('listing.noSlots')}
+                    </Text>
                   )}
-                  {feedback ? <Text style={styles.successText}>{feedback}</Text> : null}
+                  {feedback ? (
+                    <Text style={[styles.successText, { color: colors.success }]}>{feedback}</Text>
+                  ) : null}
                   <Pressable
-                    style={styles.secondaryBtn}
+                    style={[
+                      styles.secondaryBtn,
+                      { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+                    ]}
                     onPress={() => {
                       void openChat(listing.authorId, listing.company || t('listing.publisher'));
                     }}>
-                    <Text style={styles.secondaryBtnText}>{t('listing.messageAuthor')}</Text>
+                    <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>
+                      {t('listing.messageAuthor')}
+                    </Text>
                   </Pressable>
                 </View>
               ) : null}
 
               {isAuthor ? (
                 <View style={styles.ownerActions}>
-                  <Pressable style={styles.boostBtn} onPress={() => setBoostOpen(true)}>
+                  <Pressable
+                    style={[styles.boostBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => setBoostOpen(true)}>
                     <MaterialIcons name="rocket-launch" size={16} color="#FFFFFF" />
                     <Text style={styles.boostBtnText}>
                       {boosted ? t('boost.extend') : t('boost.cta')}
@@ -416,41 +477,64 @@ export default function ListingDetailsScreen() {
                   </Pressable>
                   {!quick ? (
                     <Pressable
-                      style={styles.editBtn}
+                      style={[
+                        styles.editBtn,
+                        { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+                      ]}
                       onPress={() =>
                         router.push({ pathname: '/listing/edit/[id]', params: { id: listing.id } })
                       }>
-                      <MaterialIcons name="edit" size={16} color="#0E4AA4" />
-                      <Text style={styles.editBtnText}>{t('listing.editListing')}</Text>
+                      <MaterialIcons name="edit" size={16} color={colors.primary} />
+                      <Text style={[styles.editBtnText, { color: colors.primary }]}>
+                        {t('listing.editListing')}
+                      </Text>
                     </Pressable>
                   ) : null}
-                  <Pressable style={styles.deleteBtn} onPress={() => void onDelete()}>
-                    <MaterialIcons name="delete-outline" size={16} color="#B91C1C" />
-                    <Text style={styles.deleteBtnText}>{t('listing.deleteListing')}</Text>
+                  <Pressable
+                    style={[
+                      styles.deleteBtn,
+                      { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+                    ]}
+                    onPress={() => void onDelete()}>
+                    <MaterialIcons name="delete-outline" size={16} color={colors.danger} />
+                    <Text style={[styles.deleteBtnText, { color: colors.danger }]}>
+                      {t('listing.deleteListing')}
+                    </Text>
                   </Pressable>
-                  {feedback ? <Text style={styles.successText}>{feedback}</Text> : null}
+                  {feedback ? (
+                    <Text style={[styles.successText, { color: colors.success }]}>{feedback}</Text>
+                  ) : null}
                 </View>
               ) : null}
 
               {isAuthor ? (
-                <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>
+                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {quick
                       ? t('listing.candidates', { count: sortedApps.length })
                       : t('listing.applicationsCount', { count: applications.length })}
                   </Text>
                   {quick ? (
-                    <Text style={styles.description}>{t('listing.pickWinnerHint')}</Text>
+                    <Text style={[styles.description, { color: colors.textMuted }]}>
+                      {t('listing.pickWinnerHint')}
+                    </Text>
                   ) : null}
                   {loadingApplications ? (
-                    <Text style={styles.description}>{t('listing.loadingApps')}</Text>
+                    <Text style={[styles.description, { color: colors.textMuted }]}>
+                      {t('listing.loadingApps')}
+                    </Text>
                   ) : sortedApps.length === 0 ? (
-                    <Text style={styles.description}>
+                    <Text style={[styles.description, { color: colors.textMuted }]}>
                       {quick ? t('listing.noSeatsYet') : t('listing.noApps')}
                     </Text>
                   ) : (
                     sortedApps.map((app, index) => (
-                      <View key={app.id} style={styles.applicationItem}>
+                      <View
+                        key={app.id}
+                        style={[
+                          styles.applicationItem,
+                          { backgroundColor: colors.inputBg, borderColor: colors.border },
+                        ]}>
                         <View style={styles.appHead}>
                           <UserAvatarPressable
                             userId={app.applicantId}
@@ -458,11 +542,11 @@ export default function ListingDetailsScreen() {
                             size={40}
                           />
                           <View style={styles.appHeadText}>
-                            <Text style={styles.applicationTitle}>
+                            <Text style={[styles.applicationTitle, { color: colors.text }]}>
                               {quick ? `#${index + 1} · ` : ''}
                               {app.applicantName || t('common.userFallback')}
                             </Text>
-                            <Text style={styles.applicationMeta}>
+                            <Text style={[styles.applicationMeta, { color: colors.textSoft }]}>
                               {roleLabel(app.applicantRole, t)}
                               {app.applicantPhone
                                 ? ` • ${t('listing.phone', { phone: app.applicantPhone })}`
@@ -476,7 +560,9 @@ export default function ListingDetailsScreen() {
                             </Text>
                           </View>
                         </View>
-                        <Text style={styles.description}>{app.message}</Text>
+                        <Text style={[styles.description, { color: colors.textMuted }]}>
+                          {app.message}
+                        </Text>
                         {!quick ? (
                           <View style={styles.statusWrap}>
                             {(['new', 'in_progress', 'accepted', 'rejected'] as const).map((status) => (
@@ -485,12 +571,20 @@ export default function ListingDetailsScreen() {
                                 onPress={() => void onStatusChange(app.id, status)}
                                 style={[
                                   styles.statusChip,
-                                  app.status === status && styles.statusChipActive,
+                                  {
+                                    backgroundColor: colors.card,
+                                    borderColor: colors.border,
+                                  },
+                                  app.status === status && {
+                                    borderColor: colors.primary,
+                                    backgroundColor: colors.primaryMuted,
+                                  },
                                 ]}>
                                 <Text
                                   style={[
                                     styles.statusChipText,
-                                    app.status === status && styles.statusChipTextActive,
+                                    { color: colors.textMuted },
+                                    app.status === status && { color: colors.primary },
                                   ]}>
                                   {applicationStatusLabel(status, t)}
                                 </Text>
@@ -498,7 +592,7 @@ export default function ListingDetailsScreen() {
                             ))}
                           </View>
                         ) : (
-                          <Text style={styles.applicationMeta}>
+                          <Text style={[styles.applicationMeta, { color: colors.textSoft }]}>
                             {t('listing.statusPrefix', {
                               status: applicationStatusLabel(app.status, t),
                             })}
@@ -506,32 +600,46 @@ export default function ListingDetailsScreen() {
                         )}
                         <View style={styles.appActions}>
                           <Pressable
-                            style={styles.secondaryBtn}
+                            style={[
+                              styles.secondaryBtn,
+                              { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+                            ]}
                             onPress={() => {
                               void openChat(
                                 app.applicantId,
                                 app.applicantName || t('common.userFallback')
                               );
                             }}>
-                            <Text style={styles.secondaryBtnText}>{t('listing.openChat')}</Text>
+                            <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>
+                              {t('listing.openChat')}
+                            </Text>
                           </Pressable>
                           {app.status === 'accepted' ? (
                             <Pressable
-                              style={styles.secondaryBtn}
+                              style={[
+                                styles.secondaryBtn,
+                                { backgroundColor: colors.primaryMuted, borderColor: colors.border },
+                              ]}
                               onPress={() =>
                                 router.push({
                                   pathname: '/user/[id]',
                                   params: { id: app.applicantId },
                                 })
                               }>
-                              <Text style={styles.secondaryBtnText}>{t('profile.rateUser')}</Text>
+                              <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>
+                                {t('profile.rateUser')}
+                              </Text>
                             </Pressable>
                           ) : null}
                           {quick &&
                           listing.quickStatus !== 'awarded' &&
                           app.status !== 'rejected' ? (
                             <Pressable
-                              style={[styles.pickBtn, busySelect === app.id && { opacity: 0.6 }]}
+                              style={[
+                                styles.pickBtn,
+                                { backgroundColor: colors.success },
+                                busySelect === app.id && { opacity: 0.6 },
+                              ]}
                               disabled={Boolean(busySelect)}
                               onPress={() => void onSelectWinner(app.id)}>
                               <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
@@ -544,7 +652,9 @@ export default function ListingDetailsScreen() {
                       </View>
                     ))
                   )}
-                  {feedback && isAuthor ? <Text style={styles.successText}>{feedback}</Text> : null}
+                  {feedback && isAuthor ? (
+                    <Text style={[styles.successText, { color: colors.success }]}>{feedback}</Text>
+                  ) : null}
                 </View>
               ) : null}
             </>

@@ -31,14 +31,24 @@ function SelectChip({
   active,
   label,
   onPress,
+  colors,
 }: {
   active: boolean;
   label: string;
   onPress: () => void;
+  colors: { card: string; border: string; primary: string; textMuted: string };
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.chip,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        active && { backgroundColor: colors.primary, borderColor: colors.primary },
+      ]}>
+      <Text style={[styles.chipText, { color: colors.textMuted }, active && styles.chipTextActive]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -209,7 +219,7 @@ export default function NewListingScreen() {
                   router.back();
                 }
               }}
-              style={styles.backBtn}>
+              style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
             </Pressable>
             <View style={styles.headerTextCol}>
@@ -223,31 +233,49 @@ export default function NewListingScreen() {
           {!kind ? (
             <View style={styles.chooser}>
               <Text style={[styles.chooserLead, { color: colors.textMuted }]}>{t('listing.chooserLead')}</Text>
-              <Pressable style={styles.choiceCard} onPress={() => setKind('standard')}>
-                <View style={styles.choiceIcon}>
+              <Pressable
+                style={[styles.choiceCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => setKind('standard')}>
+                <View style={[styles.choiceIcon, { backgroundColor: colors.primaryMuted }]}>
                   <MaterialIcons name="description" size={26} color={colors.primary} />
                 </View>
                 <View style={styles.choiceTextCol}>
-                  <Text style={styles.choiceTitle}>{t('listing.standardTitle')}</Text>
-                  <Text style={styles.choiceSub}>{t('listing.standardSub')}</Text>
+                  <Text style={[styles.choiceTitle, { color: colors.text }]}>{t('listing.standardTitle')}</Text>
+                  <Text style={[styles.choiceSub, { color: colors.textSoft }]}>{t('listing.standardSub')}</Text>
                 </View>
-                <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
+                <MaterialIcons name="chevron-right" size={22} color={colors.textSoft} />
               </Pressable>
-              <Pressable style={[styles.choiceCard, styles.choiceCardQuick]} onPress={() => setKind('quick')}>
-                <View style={[styles.choiceIcon, styles.choiceIconQuick]}>
-                  <MaterialIcons name="bolt" size={26} color="#C2410C" />
+              <Pressable
+                style={[
+                  styles.choiceCard,
+                  {
+                    borderColor: colors.warning,
+                    backgroundColor: colors.warningSoft,
+                  },
+                ]}
+                onPress={() => setKind('quick')}>
+                <View style={[styles.choiceIcon, { backgroundColor: colors.warningSoft }]}>
+                  <MaterialIcons name="bolt" size={26} color={colors.warning} />
                 </View>
                 <View style={styles.choiceTextCol}>
-                  <Text style={styles.choiceTitle}>{t('listing.quickTitle')}</Text>
-                  <Text style={styles.choiceSub}>{t('listing.quickSub')}</Text>
+                  <Text style={[styles.choiceTitle, { color: colors.text }]}>{t('listing.quickTitle')}</Text>
+                  <Text style={[styles.choiceSub, { color: colors.textSoft }]}>{t('listing.quickSub')}</Text>
                 </View>
-                <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
+                <MaterialIcons name="chevron-right" size={22} color={colors.textSoft} />
               </Pressable>
             </View>
           ) : (
             <>
-              <View style={[styles.publisherCard, !publisherReady && styles.publisherCardWarn]}>
-                <View style={styles.publisherIcon}>
+              <View
+                style={[
+                  styles.publisherCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: publisherReady ? colors.border : colors.danger,
+                  },
+                  !publisherReady && { backgroundColor: colors.dangerSoft },
+                ]}>
+                <View style={[styles.publisherIcon, { backgroundColor: colors.primaryMuted }]}>
                   <MaterialIcons
                     name={isEmployer ? 'business' : 'person'}
                     size={22}
@@ -255,55 +283,78 @@ export default function NewListingScreen() {
                   />
                 </View>
                 <View style={styles.publisherTextCol}>
-                  <Text style={styles.publisherLabel}>
+                  <Text style={[styles.publisherLabel, { color: colors.textSoft }]}>
                     {isEmployer ? t('listing.companyOnListing') : t('listing.publisher')}
                   </Text>
-                  <Text style={styles.publisherValue} numberOfLines={1}>
+                  <Text style={[styles.publisherValue, { color: colors.text }]} numberOfLines={1}>
                     {publisherReady
                       ? publisherName
                       : isEmployer
                         ? t('listing.missingCompany')
                         : t('listing.missingName')}
                   </Text>
-                  <Text style={styles.publisherHint}>{t('listing.publisherHint')}</Text>
+                  <Text style={[styles.publisherHint, { color: colors.textSoft }]}>
+                    {t('listing.publisherHint')}
+                  </Text>
                 </View>
                 <Pressable
                   style={styles.publisherEdit}
                   onPress={() => router.push('/(tabs)/account' as never)}>
-                  <Text style={styles.publisherEditText}>{t('listing.editInAccount')}</Text>
+                  <Text style={[styles.publisherEditText, { color: colors.primary }]}>
+                    {t('listing.editInAccount')}
+                  </Text>
                 </Pressable>
               </View>
 
               {isQuick ? (
-                <View style={styles.quickBanner}>
-                  <MaterialIcons name="bolt" size={18} color="#C2410C" />
-                  <Text style={styles.quickBannerText}>{t('listing.quickBanner')}</Text>
+                <View
+                  style={[
+                    styles.quickBanner,
+                    { backgroundColor: colors.warningSoft, borderColor: colors.warning },
+                  ]}>
+                  <MaterialIcons name="bolt" size={18} color={colors.warning} />
+                  <Text style={[styles.quickBannerText, { color: colors.warning }]}>
+                    {t('listing.quickBanner')}
+                  </Text>
                 </View>
               ) : null}
 
-              <View style={styles.card}>
-                <Text style={styles.sectionLabel}>{isQuick ? t('listing.quickTitle') : t('listing.basics')}</Text>
+              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.sectionLabel, { color: colors.text }]}>
+                  {isQuick ? t('listing.quickTitle') : t('listing.basics')}
+                </Text>
 
-                <Text style={styles.label}>{t('listing.titleField')}</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.titleField')}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
+                  ]}
                   value={title}
                   onChangeText={setTitle}
                   placeholder={t('listing.phQuickTitle')}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.textSoft}
                 />
 
-                <Text style={styles.label}>{t('listing.descriptionField')}</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  {t('listing.descriptionField')}
+                </Text>
                 <TextInput
-                  style={[styles.input, styles.textarea]}
+                  style={[
+                    styles.input,
+                    styles.textarea,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
+                  ]}
                   value={description}
                   onChangeText={setDescription}
                   multiline
                   placeholder={t('listing.phDesc')}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.textSoft}
                 />
 
-                <Text style={styles.label}>{t('listing.locationField')}</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  {t('listing.locationField')}
+                </Text>
                 <ListingLocationPicker
                   value={location}
                   coords={locationCoords}
@@ -313,7 +364,7 @@ export default function NewListingScreen() {
                   emphasize={isQuick}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                   value={location}
                   onChangeText={(text) => {
                     setLocation(text);
@@ -321,12 +372,12 @@ export default function NewListingScreen() {
                     setLocationCoords(null);
                   }}
                   placeholder={t('listing.phLocationAny')}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.textSoft}
                 />
 
                 {isQuick ? (
                   <>
-                    <Text style={styles.label}>{t('listing.duration')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.duration')}</Text>
                     <View style={styles.chipsWrap}>
                       {QUICK_DURATION_VALUES.map((v) => (
                         <SelectChip
@@ -334,23 +385,24 @@ export default function NewListingScreen() {
                           label={quickDurationLabel(v, t)}
                           active={durationHint === v}
                           onPress={() => setDurationHint(v)}
+                          colors={colors}
                         />
                       ))}
                     </View>
-                    <Text style={styles.label}>{t('listing.budgetOptional')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.budgetOptional')}</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                       value={rateMin}
                       onChangeText={setRateMin}
                       keyboardType="numeric"
                       placeholder={t('listing.phBudget')}
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.textSoft}
                     />
                   </>
                 ) : (
                   <>
-                    <Text style={styles.sectionLabel}>{t('listing.details')}</Text>
-                    <Text style={styles.label}>{t('listing.workMode')}</Text>
+                    <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('listing.details')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.workMode')}</Text>
                     <View style={styles.chipsWrap}>
                       {WORK_MODES.map((v) => (
                         <SelectChip
@@ -358,10 +410,11 @@ export default function NewListingScreen() {
                           label={workModeLabel(v, t)}
                           active={mode === v}
                           onPress={() => setMode(v)}
+                          colors={colors}
                         />
                       ))}
                     </View>
-                    <Text style={styles.label}>{t('listing.intentType')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.intentType')}</Text>
                     <View style={styles.chipsWrap}>
                       {LISTING_INTENTS.map((v) => (
                         <SelectChip
@@ -369,10 +422,11 @@ export default function NewListingScreen() {
                           label={listingIntentForRole(profile.role, v, t)}
                           active={intent === v}
                           onPress={() => setIntent(v)}
+                          colors={colors}
                         />
                       ))}
                     </View>
-                    <Text style={styles.label}>{t('listing.collabType')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.collabType')}</Text>
                     <View style={styles.chipsWrap}>
                       {LISTING_TYPES.map((v) => (
                         <SelectChip
@@ -380,30 +434,31 @@ export default function NewListingScreen() {
                           label={listingTypeLabel(v, t)}
                           active={type === v}
                           onPress={() => setType(v)}
+                          colors={colors}
                         />
                       ))}
                     </View>
                     <View style={styles.rateRow}>
                       <View style={styles.rateCol}>
-                        <Text style={styles.label}>{t('listing.rateFrom')}</Text>
+                        <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.rateFrom')}</Text>
                         <TextInput
-                          style={styles.input}
+                          style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                           value={rateMin}
                           onChangeText={setRateMin}
                           keyboardType="numeric"
                           placeholder="50"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.textSoft}
                         />
                       </View>
                       <View style={styles.rateCol}>
-                        <Text style={styles.label}>{t('listing.rateTo')}</Text>
+                        <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.rateTo')}</Text>
                         <TextInput
-                          style={styles.input}
+                          style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                           value={rateMax}
                           onChangeText={setRateMax}
                           keyboardType="numeric"
                           placeholder="75"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.textSoft}
                         />
                       </View>
                     </View>
@@ -412,18 +467,18 @@ export default function NewListingScreen() {
 
                 {!isQuick ? (
                   <>
-                    <Text style={styles.label}>{t('listing.tags')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.tags')}</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                       value={tags}
                       onChangeText={setTags}
                       placeholder={t('listing.phTags')}
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.textSoft}
                     />
                   </>
                 ) : (
                   <>
-                    <Text style={styles.label}>{t('listing.mode')}</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>{t('listing.mode')}</Text>
                     <View style={styles.chipsWrap}>
                       {WORK_MODES.map((v) => (
                         <SelectChip
@@ -431,16 +486,17 @@ export default function NewListingScreen() {
                           label={workModeLabel(v, t)}
                           active={mode === v}
                           onPress={() => setMode(v)}
+                          colors={colors}
                         />
                       ))}
                     </View>
                   </>
                 )}
 
-                {message ? <Text style={styles.message}>{message}</Text> : null}
+                {message ? <Text style={[styles.message, { color: colors.danger }]}>{message}</Text> : null}
 
                 <Pressable
-                  style={[styles.saveBtn, (!canSave || busy) && styles.saveBtnDisabled]}
+                  style={[styles.saveBtn, { backgroundColor: colors.primary }, (!canSave || busy) && styles.saveBtnDisabled]}
                   onPress={() => void onSubmit()}
                   disabled={!canSave || busy}>
                   <MaterialIcons name={isQuick ? 'bolt' : 'publish'} size={18} color="#FFFFFF" />
