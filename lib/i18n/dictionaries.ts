@@ -406,6 +406,12 @@ export type TranslationKey =
   | 'boost.badge'
   | 'boost.activeUntil'
   | 'boost.extend'
+  | 'legal.privacyTitle'
+  | 'legal.privacyLink'
+  | 'legal.privacyAccept'
+  | 'legal.openWeb'
+  | 'legal.updated'
+  | 'legal.section'
   | 'auth.logout';
 
 type Dict = Record<TranslationKey, string>;
@@ -811,6 +817,12 @@ const pl: Dict = {
   'boost.badge': "Wyróżnione",
   'boost.activeUntil': "Wyróżnione do {date}",
   'boost.extend': "Przedłuż booster",
+  'legal.privacyTitle': 'Polityka prywatności',
+  'legal.privacyLink': 'Polityka prywatności',
+  'legal.privacyAccept': 'Rejestrując się, akceptujesz politykę prywatności.',
+  'legal.openWeb': 'Otwórz w przeglądarce',
+  'legal.updated': 'Aktualizacja: {date}',
+  'legal.section': 'Informacje prawne',
   'auth.logout': 'Wyloguj',
 };
 
@@ -1216,6 +1228,12 @@ const en: Dict = {
   'boost.badge': "Featured",
   'boost.activeUntil': "Featured until {date}",
   'boost.extend': "Extend booster",
+  'legal.privacyTitle': 'Privacy Policy',
+  'legal.privacyLink': 'Privacy Policy',
+  'legal.privacyAccept': 'By signing up, you accept the privacy policy.',
+  'legal.openWeb': 'Open in browser',
+  'legal.updated': 'Updated: {date}',
+  'legal.section': 'Legal',
   'auth.logout': 'Sign out',
 };
 
@@ -1621,6 +1639,12 @@ const de: Dict = {
   'boost.badge': "Hervorgehoben",
   'boost.activeUntil': "Hervorgehoben bis {date}",
   'boost.extend': "Booster verlängern",
+  'legal.privacyTitle': 'Datenschutzerklärung',
+  'legal.privacyLink': 'Datenschutzerklärung',
+  'legal.privacyAccept': 'Mit der Registrierung akzeptierst du die Datenschutzerklärung.',
+  'legal.openWeb': 'Im Browser öffnen',
+  'legal.updated': 'Aktualisiert: {date}',
+  'legal.section': 'Rechtliches',
   'auth.logout': 'Abmelden',
 };
 
@@ -2026,6 +2050,12 @@ const da: Dict = {
   'boost.badge': "Fremhævet",
   'boost.activeUntil': "Fremhævet til {date}",
   'boost.extend': "Forlæng booster",
+  'legal.privacyTitle': 'Privatlivspolitik',
+  'legal.privacyLink': 'Privatlivspolitik',
+  'legal.privacyAccept': 'Ved at oprette en konto accepterer du privatlivspolitikken.',
+  'legal.openWeb': 'Åbn i browser',
+  'legal.updated': 'Opdateret: {date}',
+  'legal.section': 'Juridisk',
   'auth.logout': 'Log ud',
 };
 

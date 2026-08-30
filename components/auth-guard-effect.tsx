@@ -6,7 +6,14 @@ import { needsEmailVerification } from '@/lib/auth-email';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
 import { syncEmailVerified } from '@/lib/user-profile';
 
-const AUTH_SCREENS = new Set(['welcome', 'login', 'register', 'forgot-password', 'verify-email']);
+const AUTH_SCREENS = new Set([
+  'welcome',
+  'login',
+  'register',
+  'forgot-password',
+  'verify-email',
+  'legal',
+]);
 
 function isProtectedRoute(segments: string[]): boolean {
   const root = segments[0];

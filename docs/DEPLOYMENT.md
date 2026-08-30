@@ -30,7 +30,7 @@ W repozytorium:
 
 ---
 
-## 3. Deploy Firebase (reguly, indeksy, storage, funkcje)
+## 3. Deploy Firebase (reguly, indeksy, storage, funkcje, hosting)
 
 Zaloguj sie i wybierz projekt (jednorazowo):
 
@@ -46,13 +46,15 @@ Deploy (z katalogu glownego):
 cd C:\Users\Damian\my-app\functions
 npm install
 cd ..
-firebase deploy --only firestore:rules,firestore:indexes,storage,functions
+node scripts\generate-privacy-html.js
+firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting
 ```
 
 Po sukcesie:
 
 - Reguly Firestore i Storage beda aktywne w projekcie.
 - Indeksy zostana utworzone lub zaktualizowane (duze indeksy moga budowac sie kilka minut).
+- **Hosting:** polityka prywatnosci pod `https://theweldersworld-92857.web.app/privacy` (App Store Connect → Privacy Policy URL). Szczegoly: `docs/PRIVACY_POLICY.md`.
 - Funkcje w `europe-west1`:
   - `onApplicationCreatedNotify` / `onApplicationStatusNotify` / `onChatMessageNotify` — tworzą powiadomienia in-app
   - `onInAppNotificationPush` — Expo Push po utworzeniu in-app notification

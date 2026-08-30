@@ -354,6 +354,14 @@ export default function AccountScreen() {
             </View>
           )}
 
+          <Pressable
+            style={[styles.legalBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+            onPress={() => router.push('/legal/privacy')}>
+            <MaterialIcons name="policy" size={18} color={colors.primary} />
+            <Text style={[styles.legalBtnText, { color: colors.text }]}>{t('legal.privacyLink')}</Text>
+            <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
+          </Pressable>
+
           <Pressable style={styles.logoutBtn} onPress={onLogout}>
             <MaterialIcons name="logout" size={18} color="#B91C1C" />
             <Text style={styles.logoutText}>{t('account.logout')}</Text>
@@ -492,6 +500,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  legalBtn: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  legalBtnText: { flex: 1, fontWeight: '700', fontSize: 14 },
   logoutText: { color: '#B91C1C', fontWeight: '700' },
   message: { textAlign: 'center', color: '#0E4AA4', fontWeight: '600', marginTop: 4 },
 });

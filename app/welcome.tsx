@@ -121,6 +121,10 @@ export default function WelcomeScreen() {
                 <Text style={[styles.link, { color: C.primary }]}>{t('welcome.register')}</Text>
               </Pressable>
             </View>
+
+            <Pressable onPress={() => router.push('/legal/privacy')} style={styles.legalLink}>
+              <Text style={[styles.legalLinkText, { color: C.muted }]}>{t('legal.privacyLink')}</Text>
+            </Pressable>
           </View>
         </SafeAreaView>
 
@@ -285,6 +289,8 @@ const styles = StyleSheet.create({
   secondaryRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 4 },
   secondaryText: { fontSize: 14 },
   link: { fontSize: 14, fontWeight: '700' },
+  legalLink: { alignSelf: 'center', marginTop: 14, paddingVertical: 6 },
+  legalLinkText: { fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
 
   modalBackdrop: {
     flex: 1,

@@ -195,6 +195,10 @@ export default function LoginScreen() {
                   <Text style={[styles.registerLink, { color: C.primary }]}>{t('auth.register')}</Text>
                 </Pressable>
               </View>
+
+              <Pressable onPress={() => router.push('/legal/privacy')} style={styles.legalLink}>
+                <Text style={[styles.legalLinkText, { color: C.muted }]}>{t('legal.privacyLink')}</Text>
+              </Pressable>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -333,4 +337,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  legalLink: { alignSelf: 'center', marginTop: 16, paddingVertical: 4 },
+  legalLinkText: { fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
 });

@@ -1,5 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -91,6 +92,7 @@ function SettingRow({
 }
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
   const { settings, loading, colors, t, theme, locale, saveSettings, setTheme, setLocale } =
     usePreferences();
@@ -441,6 +443,15 @@ export default function SettingsScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('legal.section')}</Text>
+          <Pressable
+            onPress={() => router.push('/legal/privacy')}
+            style={[styles.legalRow, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <MaterialIcons name="policy" size={18} color={colors.primary} />
+            <Text style={[styles.legalRowText, { color: colors.text }]}>{t('legal.privacyLink')}</Text>
+            <MaterialIcons name="chevron-right" size={20} color={colors.textSoft} />
+          </Pressable>
+
           {loading ? (
             <Text style={[styles.note, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : null}
@@ -504,6 +515,16 @@ const styles = StyleSheet.create({
   settingTitle: { fontSize: 14, fontWeight: '600' },
   settingSub: { fontSize: 12 },
   note: { fontSize: 12 },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  legalRowText: { flex: 1, fontSize: 14, fontWeight: '700' },
   saveBtn: {
     borderRadius: 12,
     paddingVertical: 13,
