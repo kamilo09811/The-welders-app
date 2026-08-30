@@ -21,7 +21,10 @@ export const TAB_TIP_IDS: TabTipId[] = ['market', 'chats', 'account', 'settings'
 export const TAB_TIPS_GENERATION = 1;
 
 export type UserSettings = {
+  /** Preferowane miasto bazowe do filtrów rynku. */
   baseCity: string;
+  /** Ostatnio wybrana lokalizacja przy dodawaniu ogłoszenia. */
+  lastListingLocation: string;
   radius: SettingsRadius;
   notifNewJobs: boolean;
   notifMessages: boolean;
@@ -51,6 +54,7 @@ export type UserSettings = {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   baseCity: '',
+  lastListingLocation: '',
   radius: '50 km',
   notifNewJobs: true,
   notifMessages: true,
@@ -104,6 +108,8 @@ export function normalizeUserSettings(data: Record<string, unknown>): UserSettin
 
   return {
     baseCity: typeof data.baseCity === 'string' ? data.baseCity : '',
+    lastListingLocation:
+      typeof data.lastListingLocation === 'string' ? data.lastListingLocation.trim() : '',
     radius:
       data.radius === '25 km' ||
       data.radius === '50 km' ||

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListingLocationPicker } from '@/components/listing-location-picker';
 import {
   listingIntentForRole,
   listingTypeLabel,
@@ -19,6 +20,7 @@ import {
   type WorkMode,
 } from '@/lib/market-listings';
 import { usePreferences } from '@/lib/preferences-context';
+import { patchUserSettings } from '@/lib/user-settings';
 import { getListingPublisherName, useCurrentUserProfile } from '@/lib/user-profile';
 
 const LISTING_TYPES: ListingType[] = ['Umowa o pracę', 'B2B', 'Umowa zlecenie'];
@@ -44,11 +46,12 @@ function SelectChip({
 export default function NewListingScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
-  const { t, colors } = usePreferences();
+  const { t, colors, settings, loading: settingsLoading } = usePreferences();
   const [kind, setKind] = useState<ListingKind | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [rateMin, setRateMin] = useState('');
   const [rateMax, setRateMax] = useState('');
   const [tags, setTags] = useState('');
@@ -74,12 +77,34 @@ export default function NewListingScreen() {
   }, [isEmployer, isQuick]);
 
   useEffect(() => {
-    if (locationSeeded) return;
-    if (profile.city.trim()) {
-      setLocation(profile.city.trim());
+    if (locationSeeded || settingsLoading) return;
+    const seed =
+      settings.lastListingLocation.trim() ||
+      profile.city.trim() ||
+      settings.baseCity.trim();
+    if (seed) {
+      setLocation(seed);
       setLocationSeeded(true);
     }
-  }, [profile.city, locationSeeded]);
+  }, [
+    locationSeeded,
+    profile.city,
+    settings.baseCity,
+    settings.lastListingLocation,
+    settingsLoading,
+  ]);
+
+  const onLocationPick = (next: { label: string; lat: number | null; lng: number | null }) => {
+    setLocation(next.label);
+    setLocationCoords(
+      typeof next.lat === 'number' &&
+        typeof next.lng === 'number' &&
+        Number.isFinite(next.lat) &&
+        Number.isFinite(next.lng)
+        ? { lat: next.lat, lng: next.lng }
+        : null
+    );
+  };
 
   const canSave = useMemo(() => {
     const minRaw = rateMin.trim();
@@ -141,6 +166,8 @@ export default function NewListingScreen() {
         description: description.trim(),
         company: publisherName,
         location: location.trim(),
+        locationLat: locationCoords?.lat ?? null,
+        locationLng: locationCoords?.lng ?? null,
         mode,
         type: isQuick ? 'Umowa zlecenie' : type,
         intent,
@@ -157,6 +184,8 @@ export default function NewListingScreen() {
         authorId: uid,
         durationHint: isQuick ? durationHint : undefined,
       });
+      // Zapamiętaj miejsce na kolejne ogłoszenie / mikrolicytację.
+      void patchUserSettings(uid, { lastListingLocation: location.trim() });
       router.replace({ pathname: '/listing/[id]', params: { id: listingId, boost: '1' } });
     } catch {
       setMessage(t('listing.saveFailed'));
@@ -275,11 +304,23 @@ export default function NewListingScreen() {
                 />
 
                 <Text style={styles.label}>{t('listing.locationField')}</Text>
+                <ListingLocationPicker
+                  value={location}
+                  coords={locationCoords}
+                  onChange={onLocationPick}
+                  colors={colors}
+                  t={t}
+                  emphasize={isQuick}
+                />
                 <TextInput
                   style={styles.input}
                   value={location}
-                  onChangeText={setLocation}
-                  placeholder={t('listing.phLocation')}
+                  onChangeText={(text) => {
+                    setLocation(text);
+                    // Wolny tekst (wieś / zagranica) — bez wymuszania współrzędnych.
+                    setLocationCoords(null);
+                  }}
+                  placeholder={t('listing.phLocationAny')}
                   placeholderTextColor="#94A3B8"
                 />
 

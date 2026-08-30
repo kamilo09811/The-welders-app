@@ -44,6 +44,9 @@ export type MarketListing = {
   description: string;
   company: string;
   location: string;
+  /** Opcjonalne współrzędne miejsca (mapa / geokodowanie). */
+  locationLat?: number | null;
+  locationLng?: number | null;
   mode: WorkMode;
   type: ListingType;
   intent: ListingIntent;
@@ -78,11 +81,15 @@ type FirestoreListing = Omit<
   | 'boostedUntil'
   | 'boostTier'
   | 'boostedAt'
+  | 'locationLat'
+  | 'locationLng'
 > & {
   createdAt?: Timestamp;
   boostedUntil?: Timestamp | null;
   boostTier?: string | null;
   boostedAt?: Timestamp | null;
+  locationLat?: number | null;
+  locationLng?: number | null;
   kind?: ListingKind | string;
   quickStatus?: QuickListingStatus | string;
   selectedApplicantId?: string;
@@ -105,6 +112,8 @@ export type CreateListingInput = {
   description: string;
   company: string;
   location: string;
+  locationLat?: number | null;
+  locationLng?: number | null;
   mode: WorkMode;
   type: ListingType;
   intent: ListingIntent;
@@ -170,6 +179,12 @@ function normalizeListing(id: string, data: FirestoreListing): MarketListing {
     authorId: data.authorId || '',
     createdAt: data.createdAt?.toDate?.() ?? null,
   };
+  if (typeof data.locationLat === 'number' && Number.isFinite(data.locationLat)) {
+    listing.locationLat = data.locationLat;
+  }
+  if (typeof data.locationLng === 'number' && Number.isFinite(data.locationLng)) {
+    listing.locationLng = data.locationLng;
+  }
   if (kind === 'quick') {
     listing.quickSlots = normalizeQuickSlots(data.quickSlots);
     listing.quickStatus =
@@ -285,6 +300,15 @@ export async function createListing(input: CreateListingInput) {
     payload.quickSlots = { max: QUICK_SLOT_MAX, filled: 0, applicants: [] };
     if (input.durationHint?.trim()) payload.durationHint = input.durationHint.trim();
   }
+  if (
+    typeof input.locationLat === 'number' &&
+    Number.isFinite(input.locationLat) &&
+    typeof input.locationLng === 'number' &&
+    Number.isFinite(input.locationLng)
+  ) {
+    payload.locationLat = input.locationLat;
+    payload.locationLng = input.locationLng;
+  }
   const ref = await addDoc(collection(getFirebaseFirestore(), LISTINGS_COLLECTION), payload);
   return ref.id;
 }
@@ -306,6 +330,15 @@ export async function updateListing(id: string, input: UpdateListingInput) {
   };
   if (input.durationHint !== undefined) {
     payload.durationHint = input.durationHint.trim();
+  }
+  if (
+    typeof input.locationLat === 'number' &&
+    Number.isFinite(input.locationLat) &&
+    typeof input.locationLng === 'number' &&
+    Number.isFinite(input.locationLng)
+  ) {
+    payload.locationLat = input.locationLat;
+    payload.locationLng = input.locationLng;
   }
   await setDoc(listingRef(id), payload, { merge: true });
 }

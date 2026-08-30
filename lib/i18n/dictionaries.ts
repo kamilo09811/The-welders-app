@@ -276,6 +276,16 @@ export type TranslationKey =
   | 'listing.rateLabel'
   | 'listing.budgetLabel'
   | 'listing.description'
+  | 'listing.mapTitle'
+  | 'listing.mapFrom'
+  | 'listing.mapOpen'
+  | 'listing.pickPlaceTitle'
+  | 'listing.pickPlaceHint'
+  | 'listing.pickPlaceAny'
+  | 'listing.pickPlaceShortcuts'
+  | 'listing.pickPlaceSelected'
+  | 'listing.pickPlaceEmpty'
+  | 'listing.pickPlaceMarker'
   | 'listing.applySection'
   | 'listing.joinSection'
   | 'listing.alreadyApplied'
@@ -322,6 +332,7 @@ export type TranslationKey =
   | 'listing.needNameShort'
   | 'listing.loginToAdd'
   | 'listing.phLocation'
+  | 'listing.phLocationAny'
   | 'listing.phDesc'
   | 'listing.phBudget'
   | 'listing.phTags'
@@ -698,6 +709,18 @@ const pl: Dict = {
   'listing.rateLabel': "Stawka: ",
   'listing.budgetLabel': "Budżet / stawka: ",
   'listing.description': "Opis",
+  'listing.mapTitle': "Skąd zlecenie",
+  'listing.mapFrom': "Opublikowano z okolicy: {place}",
+  'listing.mapOpen': "Otwórz mapę",
+  'listing.pickPlaceTitle': "Miejsce realizacji",
+  'listing.pickPlaceHint':
+    "Wybierz miejsce realizacji zlecenia — tapnij mapę (wieś, małe miasto, zagranica) albo wpisz poniżej.",
+  'listing.pickPlaceAny':
+    "Skróty to duże miasta PL. Dowolną miejscowość wpisz w polu tekstowym.",
+  'listing.pickPlaceShortcuts': "Szybki wybór (duże miasta)",
+  'listing.pickPlaceSelected': "Wybrane: {place}",
+  'listing.pickPlaceEmpty': "Dotknij mapy lub wpisz lokalizację poniżej",
+  'listing.pickPlaceMarker': "Tu realizujesz zlecenie",
   'listing.applySection': "Aplikacja",
   'listing.joinSection': "Dołącz do zlecenia",
   'listing.alreadyApplied': "Masz już wysłane zgłoszenie. Status: {status}.",
@@ -744,6 +767,7 @@ const pl: Dict = {
   'listing.needNameShort': "Uzupełnij imię i nazwisko w Koncie.",
   'listing.loginToAdd': "Zaloguj się, aby dodać ogłoszenie.",
   'listing.phLocation': "np. Katowice / Śląsk",
+  'listing.phLocationAny': "np. Żory, Cieszyn, Ostrava, Berlin…",
   'listing.phDesc': "Zakres prac, wymagania, termin, lokalizacja szczegółowa…",
   'listing.phBudget': "np. 400 — możesz pominąć",
   'listing.phTags': "TIG 141, Inox, Start od zaraz",
@@ -1124,6 +1148,18 @@ const en: Dict = {
   'listing.rateLabel': "Rate: ",
   'listing.budgetLabel': "Budget / rate: ",
   'listing.description': "Description",
+  'listing.mapTitle': "Where it's from",
+  'listing.mapFrom': "Posted around: {place}",
+  'listing.mapOpen': "Open map",
+  'listing.pickPlaceTitle': "Job location",
+  'listing.pickPlaceHint':
+    "Pick the job location — tap the map (village, small town, abroad) or type below.",
+  'listing.pickPlaceAny':
+    "Shortcuts are major PL cities. Type any place in the text field.",
+  'listing.pickPlaceShortcuts': "Quick pick (major cities)",
+  'listing.pickPlaceSelected': "Selected: {place}",
+  'listing.pickPlaceEmpty': "Tap the map or type a location below",
+  'listing.pickPlaceMarker': "Job location",
   'listing.applySection': "Application",
   'listing.joinSection': "Join the job",
   'listing.alreadyApplied': "You already applied. Status: {status}.",
@@ -1170,6 +1206,7 @@ const en: Dict = {
   'listing.needNameShort': "Add your full name in Account.",
   'listing.loginToAdd': "Sign in to add a listing.",
   'listing.phLocation': "e.g. Katowice / Silesia",
+  'listing.phLocationAny': "e.g. Żory, Cieszyn, Ostrava, Berlin…",
   'listing.phDesc': "Scope, requirements, timing, detailed location…",
   'listing.phBudget': "e.g. 400 — optional",
   'listing.phTags': "TIG 141, Inox, Start ASAP",
@@ -1550,6 +1587,18 @@ const de: Dict = {
   'listing.rateLabel': "Satz: ",
   'listing.budgetLabel': "Budget / Satz: ",
   'listing.description': "Beschreibung",
+  'listing.mapTitle': "Herkunft des Auftrags",
+  'listing.mapFrom': "Veröffentlicht bei: {place}",
+  'listing.mapOpen': "Karte öffnen",
+  'listing.pickPlaceTitle': "Einsatzort",
+  'listing.pickPlaceHint':
+    "Wähle den Einsatzort — tippe auf die Karte (Dorf, Kleinstadt, Ausland) oder tippe unten.",
+  'listing.pickPlaceAny':
+    "Shortcuts sind große PL-Städte. Beliebigen Ort im Textfeld eingeben.",
+  'listing.pickPlaceShortcuts': "Schnellwahl (große Städte)",
+  'listing.pickPlaceSelected': "Gewählt: {place}",
+  'listing.pickPlaceEmpty': "Karte tippen oder Ort unten eingeben",
+  'listing.pickPlaceMarker': "Einsatzort",
   'listing.applySection': "Bewerbung",
   'listing.joinSection': "Auftrag beitreten",
   'listing.alreadyApplied': "Du hast bereits beworben. Status: {status}.",
@@ -1596,6 +1645,7 @@ const de: Dict = {
   'listing.needNameShort': "Namen im Konto ergänzen.",
   'listing.loginToAdd': "Melde dich an, um eine Anzeige zu erstellen.",
   'listing.phLocation': "z. B. Katowice / Schlesien",
+  'listing.phLocationAny': "z. B. Żory, Cieszyn, Ostrava, Berlin…",
   'listing.phDesc': "Umfang, Anforderungen, Termin, Ort…",
   'listing.phBudget': "z. B. 400 — optional",
   'listing.phTags': "TIG 141, Inox, Sofortstart",
@@ -1976,6 +2026,18 @@ const da: Dict = {
   'listing.rateLabel': "Sats: ",
   'listing.budgetLabel': "Budget / sats: ",
   'listing.description': "Beskrivelse",
+  'listing.mapTitle': "Hvor opgaven er fra",
+  'listing.mapFrom': "Offentliggjort omkring: {place}",
+  'listing.mapOpen': "Åbn kort",
+  'listing.pickPlaceTitle': "Arbejdssted",
+  'listing.pickPlaceHint':
+    "Vælg arbejdssted — tryk på kortet (landsby, mindre by, udland) eller skriv nedenfor.",
+  'listing.pickPlaceAny':
+    "Genveje er større PL-byer. Skriv et hvilket som helst sted i tekstfeltet.",
+  'listing.pickPlaceShortcuts': "Hurtigvalg (store byer)",
+  'listing.pickPlaceSelected': "Valgt: {place}",
+  'listing.pickPlaceEmpty': "Tryk på kortet eller skriv lokation nedenfor",
+  'listing.pickPlaceMarker': "Arbejdssted",
   'listing.applySection': "Ansøgning",
   'listing.joinSection': "Deltag i opgaven",
   'listing.alreadyApplied': "Du har allerede ansøgt. Status: {status}.",
@@ -2022,6 +2084,7 @@ const da: Dict = {
   'listing.needNameShort': "Tilføj navn under Konto.",
   'listing.loginToAdd': "Log ind for at oprette opslag.",
   'listing.phLocation': "fx Katowice / Schlesien",
+  'listing.phLocationAny': "fx Żory, Cieszyn, Ostrava, Berlin…",
   'listing.phDesc': "Omfang, krav, tid, detaljeret sted…",
   'listing.phBudget': "fx 400 — valgfrit",
   'listing.phTags': "TIG 141, Inox, Start snart",

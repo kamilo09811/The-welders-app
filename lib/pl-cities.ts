@@ -80,6 +80,20 @@ export function resolvePlCity(locationText: string): PlCity | null {
   return null;
 }
 
+/** Najbliższe miasto z listy do punktu na mapie. */
+export function nearestPlCity(lat: number, lng: number): PlCity {
+  let best = PL_CITIES[0];
+  let bestD = Number.POSITIVE_INFINITY;
+  for (const city of PL_CITIES) {
+    const d = haversineKm({ lat, lng }, city);
+    if (d < bestD) {
+      bestD = d;
+      best = city;
+    }
+  }
+  return best;
+}
+
 export type RadiusSetting = '25 km' | '50 km' | '100 km' | 'Cała Polska';
 
 export function radiusToKm(radius: RadiusSetting): number | null {
