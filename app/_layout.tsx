@@ -67,6 +67,7 @@ function RootNavigation() {
         <Stack.Screen name="login" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="register" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="legal/privacy" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>

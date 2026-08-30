@@ -234,6 +234,15 @@ export default function RegisterScreen() {
                 />
               </View>
 
+              <Text style={[styles.legalAccept, { color: C.muted }]}>
+                {t('legal.privacyAccept')}{' '}
+                <Text
+                  style={{ color: C.primary, fontWeight: '700' }}
+                  onPress={() => router.push('/legal/privacy')}>
+                  {t('legal.privacyLink')}
+                </Text>
+              </Text>
+
               <View style={styles.loginRow}>
                 <Text style={[styles.loginLead, { color: C.muted }]}>{t('auth.hasAccount')} </Text>
                 <Pressable
@@ -348,4 +357,5 @@ const styles = StyleSheet.create({
   },
   loginLead: { fontSize: 15 },
   loginLink: { fontSize: 15, fontWeight: '700' },
+  legalAccept: { marginTop: 16, fontSize: 12, lineHeight: 18, textAlign: 'center' },
 });
