@@ -23,6 +23,7 @@ import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
 import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
 import { BoostListingSheet } from '@/components/boost-listing-sheet';
+import { BoostedFrame } from '@/components/boosted-frame';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import type { AppLocale } from '@/lib/i18n';
 import {
@@ -109,22 +110,24 @@ function ListingRow({
   const quick = isQuickListing(item);
   const boosted = isListingBoosted(item);
   const intentLabel = listingIntentShort(item.intent, t);
-  return (
+
+  const row = (
     <Pressable
       style={[
         styles.listingRow,
         { borderBottomColor: colors.border },
-        quick && { backgroundColor: colors.warningSoft, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, borderBottomWidth: 0 },
-        boosted && !quick && { backgroundColor: colors.primaryMuted, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, borderBottomWidth: 0 },
+        quick && !boosted && {
+          backgroundColor: colors.warningSoft,
+          marginHorizontal: -8,
+          paddingHorizontal: 8,
+          borderRadius: 12,
+          borderBottomWidth: 0,
+        },
+        boosted && styles.listingRowBoosted,
       ]}
       onPress={onPress}>
       <View style={styles.listingTop}>
         <View style={styles.listingBadges}>
-          {boosted ? (
-            <Text style={[styles.metaBadge, { color: colors.primary, backgroundColor: colors.primaryMuted }]}>
-              {t('boost.badge')}
-            </Text>
-          ) : null}
           {quick ? (
             <Text style={[styles.metaBadge, { color: colors.warning, backgroundColor: colors.warningSoft }]}>
               {t('market.quickJob')}
@@ -198,6 +201,16 @@ function ListingRow({
       )}
     </Pressable>
   );
+
+  if (boosted) {
+    return (
+      <BoostedFrame colors={colors} label={t('boost.badge')} compact>
+        {row}
+      </BoostedFrame>
+    );
+  }
+
+  return row;
 }
 
 export default function MarketplaceScreen() {
@@ -771,6 +784,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(148,163,184,0.45)',
     gap: 5,
+  },
+  listingRowBoosted: {
+    borderBottomWidth: 0,
+    paddingVertical: 6,
+    paddingHorizontal: 0,
   },
   listingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   listingBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 },

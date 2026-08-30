@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BoostListingSheet } from '@/components/boost-listing-sheet';
+import { BoostedFrame } from '@/components/boosted-frame';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import { TrustBadge } from '@/components/trust-badge';
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
@@ -238,78 +239,89 @@ export default function ListingDetailsScreen() {
             </View>
           ) : (
             <>
-              <View style={[styles.card, quick && styles.cardQuick]}>
-                <View style={styles.typeRow}>
-                  {boosted ? (
-                    <Text style={[styles.type, styles.boostType]}>{t('boost.badge')}</Text>
-                  ) : null}
-                  {quick ? (
-                    <Text style={[styles.type, styles.quickType]}>{t('listing.quickDetailTitle')}</Text>
-                  ) : (
-                    <Text style={styles.type}>{listingTypeLabel(listing.type, t)}</Text>
-                  )}
-                  <Text style={[styles.type, styles.intentType]}>
-                    {listingIntentShort(listing.intent, t)}
-                  </Text>
-                  {quick && listing.durationHint ? (
-                    <Text style={[styles.type, styles.durationType]}>
-                      {quickDurationLabel(listing.durationHint, t)}
-                    </Text>
-                  ) : null}
-                </View>
-                {boosted && listing.boostedUntil ? (
-                  <Text style={styles.boostUntil}>
-                    {t('boost.activeUntil', {
-                      date: listing.boostedUntil.toLocaleDateString(localeTag, {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      }),
-                    })}
-                  </Text>
-                ) : null}
-                <Text style={styles.title}>{listing.title}</Text>
-                <Pressable
-                  onPress={() =>
-                    router.push({ pathname: '/user/[id]', params: { id: listing.authorId } })
-                  }>
-                  <Text style={styles.company}>{listing.company || t('listing.privateListing')}</Text>
-                  {authorProfile ? (
-                    <View style={{ marginTop: 6 }}>
-                      <TrustBadge
-                        average={authorProfile.ratingAverage}
-                        count={authorProfile.ratingCount}
-                        locale={locale}
-                        colors={colors}
-                        size={14}
-                        compact
-                      />
+              {(() => {
+                const header = (
+                  <>
+                    {boosted && listing.boostedUntil ? (
+                      <Text style={[styles.boostUntil, { color: colors.warning }]}>
+                        {t('boost.activeUntil', {
+                          date: listing.boostedUntil.toLocaleDateString(localeTag, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          }),
+                        })}
+                      </Text>
+                    ) : null}
+                    <View style={styles.typeRow}>
+                      {quick ? (
+                        <Text style={[styles.type, styles.quickType]}>{t('listing.quickDetailTitle')}</Text>
+                      ) : (
+                        <Text style={styles.type}>{listingTypeLabel(listing.type, t)}</Text>
+                      )}
+                      <Text style={[styles.type, styles.intentType]}>
+                        {listingIntentShort(listing.intent, t)}
+                      </Text>
+                      {quick && listing.durationHint ? (
+                        <Text style={[styles.type, styles.durationType]}>
+                          {quickDurationLabel(listing.durationHint, t)}
+                        </Text>
+                      ) : null}
                     </View>
-                  ) : null}
-                </Pressable>
+                    <Text style={styles.title}>{listing.title}</Text>
+                    <Pressable
+                      onPress={() =>
+                        router.push({ pathname: '/user/[id]', params: { id: listing.authorId } })
+                      }>
+                      <Text style={styles.company}>{listing.company || t('listing.privateListing')}</Text>
+                      {authorProfile ? (
+                        <View style={{ marginTop: 6 }}>
+                          <TrustBadge
+                            average={authorProfile.ratingAverage}
+                            count={authorProfile.ratingCount}
+                            locale={locale}
+                            colors={colors}
+                            size={14}
+                            compact
+                          />
+                        </View>
+                      ) : null}
+                    </Pressable>
 
-                <View style={styles.metaRow}>
-                  <MaterialIcons name="place" size={16} color="#64748B" />
-                  <Text style={styles.metaText}>{listing.location}</Text>
-                  <Text style={styles.dot}>•</Text>
-                  <Text style={styles.metaText}>{workModeLabel(listing.mode, t)}</Text>
-                </View>
+                    <View style={styles.metaRow}>
+                      <MaterialIcons name="place" size={16} color="#64748B" />
+                      <Text style={styles.metaText}>{listing.location}</Text>
+                      <Text style={styles.dot}>•</Text>
+                      <Text style={styles.metaText}>{workModeLabel(listing.mode, t)}</Text>
+                    </View>
 
-                <Text style={styles.rateLabel}>
-                  {quick ? t('listing.budgetLabel') : t('listing.rateLabel')}
-                  {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate, locale)}
-                </Text>
+                    <Text style={styles.rateLabel}>
+                      {quick ? t('listing.budgetLabel') : t('listing.rateLabel')}
+                      {formatRateLabel(listing.rateMin, listing.rateMax, settings.showGrossRate, locale)}
+                    </Text>
 
-                {listing.tags.length > 0 ? (
-                  <View style={styles.tagsWrap}>
-                    {listing.tags.map((tag) => (
-                      <View key={tag} style={styles.tag}>
-                        <Text style={styles.tagText}>{tag}</Text>
+                    {listing.tags.length > 0 ? (
+                      <View style={styles.tagsWrap}>
+                        {listing.tags.map((tag) => (
+                          <View key={tag} style={styles.tag}>
+                            <Text style={styles.tagText}>{tag}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
+                    ) : null}
+                  </>
+                );
+
+                if (boosted) {
+                  return (
+                    <BoostedFrame colors={colors} label={t('boost.badge')}>
+                      <View style={styles.boostInner}>{header}</View>
+                    </BoostedFrame>
+                  );
+                }
+
+                return <View style={[styles.card, quick && styles.cardQuick]}>{header}</View>;
+              })()}
 
               {quick ? (
                 <View style={styles.card}>
@@ -577,6 +589,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardQuick: { borderColor: '#FDBA74' },
+  boostInner: { gap: 8 },
   type: {
     alignSelf: 'flex-start',
     backgroundColor: '#F1F5FB',
