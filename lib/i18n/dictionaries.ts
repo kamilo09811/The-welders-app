@@ -268,6 +268,17 @@ export type TranslationKey =
   | 'intent.seek'
   | 'market.allFilter'
   | 'market.minRateStrip'
+  | 'market.clearFilters'
+  | 'market.applyFilters'
+  | 'market.filterLocation'
+  | 'market.filterLocationPh'
+  | 'market.filterRadius'
+  | 'market.filterKind'
+  | 'market.kindAll'
+  | 'market.kindStandard'
+  | 'market.kindQuick'
+  | 'market.filterMinRate'
+  | 'market.popularCities'
   | 'listing.detailTitle'
   | 'listing.quickDetailTitle'
   | 'listing.notFound'
@@ -701,6 +712,17 @@ const pl: Dict = {
   'intent.seek': "Poszukuję",
   'market.allFilter': "Wszystkie",
   'market.minRateStrip': "min. {n} PLN/h",
+  'market.clearFilters': 'Wyczyść filtry',
+  'market.applyFilters': 'Zastosuj',
+  'market.filterLocation': 'Lokalizacja',
+  'market.filterLocationPh': 'Miasto lub miejscowość…',
+  'market.filterRadius': 'Promień',
+  'market.filterKind': 'Typ ogłoszenia',
+  'market.kindAll': 'Wszystkie',
+  'market.kindStandard': 'Standardowe',
+  'market.kindQuick': 'Szybkie zlecenia',
+  'market.filterMinRate': 'Min. stawka',
+  'market.popularCities': 'Popularne miasta',
   'listing.detailTitle': "Szczegóły ogłoszenia",
   'listing.quickDetailTitle': "Szybkie zlecenie",
   'listing.notFound': "Nie znaleziono ogłoszenia",
@@ -1140,6 +1162,17 @@ const en: Dict = {
   'intent.seek': "Looking for",
   'market.allFilter': "All",
   'market.minRateStrip': "min. {n} PLN/h",
+  'market.clearFilters': 'Clear filters',
+  'market.applyFilters': 'Apply',
+  'market.filterLocation': 'Location',
+  'market.filterLocationPh': 'City or place…',
+  'market.filterRadius': 'Radius',
+  'market.filterKind': 'Listing type',
+  'market.kindAll': 'All',
+  'market.kindStandard': 'Standard',
+  'market.kindQuick': 'Quick jobs',
+  'market.filterMinRate': 'Min. rate',
+  'market.popularCities': 'Popular cities',
   'listing.detailTitle': "Listing details",
   'listing.quickDetailTitle': "Quick job",
   'listing.notFound': "Listing not found",
@@ -1579,6 +1612,17 @@ const de: Dict = {
   'intent.seek': "Suche",
   'market.allFilter': "Alle",
   'market.minRateStrip': "min. {n} PLN/h",
+  'market.clearFilters': 'Filter löschen',
+  'market.applyFilters': 'Anwenden',
+  'market.filterLocation': 'Standort',
+  'market.filterLocationPh': 'Stadt oder Ort…',
+  'market.filterRadius': 'Radius',
+  'market.filterKind': 'Anzeigentyp',
+  'market.kindAll': 'Alle',
+  'market.kindStandard': 'Standard',
+  'market.kindQuick': 'Schnellaufträge',
+  'market.filterMinRate': 'Min. Satz',
+  'market.popularCities': 'Beliebte Städte',
   'listing.detailTitle': "Anzeigendetails",
   'listing.quickDetailTitle': "Schnellauftrag",
   'listing.notFound': "Anzeige nicht gefunden",
@@ -2018,6 +2062,17 @@ const da: Dict = {
   'intent.seek': "Søger",
   'market.allFilter': "Alle",
   'market.minRateStrip': "min. {n} PLN/t",
+  'market.clearFilters': 'Ryd filtre',
+  'market.applyFilters': 'Anvend',
+  'market.filterLocation': 'Lokation',
+  'market.filterLocationPh': 'By eller sted…',
+  'market.filterRadius': 'Radius',
+  'market.filterKind': 'Opslagstype',
+  'market.kindAll': 'Alle',
+  'market.kindStandard': 'Standard',
+  'market.kindQuick': 'Hurtige opgaver',
+  'market.filterMinRate': 'Min. sats',
+  'market.popularCities': 'Populære byer',
   'listing.detailTitle': "Opslagsdetaljer",
   'listing.quickDetailTitle': "Hurtig opgave",
   'listing.notFound': "Opslag ikke fundet",
