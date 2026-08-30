@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -9,19 +9,24 @@ import {
   Text,
   TextInput,
   View,
+  type ScrollView as ScrollViewType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-import type { ListingIntent, ListingType, MarketListing, WorkMode } from '@/lib/market-listings';
+import type { ListingIntent, ListingKind, ListingType, MarketListing, WorkMode } from '@/lib/market-listings';
 import { isListingBoosted, isQuickListing } from '@/lib/market-listings';
-import { matchesLocationPreference } from '@/lib/pl-cities';
+import { matchesLocationPreference, PL_CITIES } from '@/lib/pl-cities';
 import { usePreferences } from '@/lib/preferences-context';
 import { getHeroGradient, getHeroSheen, type AppColors } from '@/lib/theme';
 import { useMarketListings } from '@/lib/use-market-listings';
 import { useCurrentUserProfile, useAuthorsEmailVerified } from '@/lib/user-profile';
-import { formatRateLabel, type SettingsSort } from '@/lib/user-settings';
+import {
+  formatRateLabel,
+  type SettingsRadius,
+  type SettingsSort,
+} from '@/lib/user-settings';
 import { BoostListingSheet } from '@/components/boost-listing-sheet';
 import { BoostedFrame } from '@/components/boosted-frame';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
@@ -36,8 +41,27 @@ import {
 import type { TranslationKey } from '@/lib/i18n';
 
 type Role = 'welder' | 'employer';
+type KindFilter = 'all' | ListingKind;
 
 const ALL_MODES: WorkMode[] = ['Na hali', 'Hybryda', 'Mobilnie'];
+const RADIUS_VALUES: SettingsRadius[] = ['25 km', '50 km', '100 km', 'Cała Polska'];
+const MIN_RATE_OPTIONS = [0, 40, 50, 60, 80] as const;
+const POPULAR_CITIES = [
+  'Warszawa',
+  'Kraków',
+  'Wrocław',
+  'Poznań',
+  'Gdańsk',
+  'Katowice',
+  'Łódź',
+  'Lublin',
+  'Szczecin',
+  'Bydgoszcz',
+];
+
+const CITY_SUGGESTIONS = [...new Set(PL_CITIES.map((c) => c.name))].sort((a, b) =>
+  a.localeCompare(b, 'pl')
+);
 
 const chipsType: ('Wszystkie' | ListingType)[] = [
   'Wszystkie',
@@ -46,6 +70,53 @@ const chipsType: ('Wszystkie' | ListingType)[] = [
   'Umowa zlecenie',
 ];
 const chipsIntent: ('Wszystkie' | ListingIntent)[] = ['Wszystkie', 'offer', 'seek'];
+
+type MarketFilters = {
+  locationCity: string;
+  radius: SettingsRadius;
+  type: 'Wszystkie' | ListingType;
+  intent: 'Wszystkie' | ListingIntent;
+  modeFilter: WorkMode[];
+  sort: SettingsSort;
+  onlyMine: boolean;
+  hideOwn: boolean;
+  kind: KindFilter;
+  minRate: number;
+  onlyVerified: boolean;
+};
+
+const OPEN_FILTERS: MarketFilters = {
+  locationCity: '',
+  radius: 'Cała Polska',
+  type: 'Wszystkie',
+  intent: 'Wszystkie',
+  modeFilter: [],
+  sort: 'newest',
+  onlyMine: false,
+  hideOwn: false,
+  kind: 'all',
+  minRate: 0,
+  onlyVerified: false,
+};
+
+/** Ile ogłoszeń na jednej stronie rynku. */
+const MARKET_PAGE_SIZE = 25;
+
+function countActiveFilters(f: MarketFilters): number {
+  let n = 0;
+  if (f.locationCity.trim()) n += 1;
+  if (f.locationCity.trim() && f.radius !== 'Cała Polska') n += 1;
+  if (f.type !== 'Wszystkie') n += 1;
+  if (f.intent !== 'Wszystkie') n += 1;
+  if (f.modeFilter.length > 0) n += 1;
+  if (f.sort !== 'newest') n += 1;
+  if (f.hideOwn) n += 1;
+  if (f.onlyMine) n += 1;
+  if (f.kind !== 'all') n += 1;
+  if (f.minRate > 0) n += 1;
+  if (f.onlyVerified) n += 1;
+  return n;
+}
 
 function effectiveRate(item: MarketListing): number {
   return Math.max(item.rateMin || 0, item.rateMax || 0);
@@ -219,10 +290,6 @@ export default function MarketplaceScreen() {
   const { settings, loading: settingsLoading, colors, t, locale, theme } = usePreferences();
   const { listings, loading } = useMarketListings();
   const authorIds = useMemo(() => listings.map((i) => i.authorId), [listings]);
-  const { verifiedByAuthor, loading: verifiedLoading } = useAuthorsEmailVerified(
-    authorIds,
-    settings.onlyVerified
-  );
   const role: Role = profile.role === 'employer' ? 'employer' : 'welder';
   const heroSheen = useMemo(() => getHeroSheen(theme), [theme]);
 
@@ -230,95 +297,141 @@ export default function MarketplaceScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [boostListingId, setBoostListingId] = useState<string | null>(null);
   const [boostFeedback, setBoostFeedback] = useState<string | null>(null);
-  const [location, setLocation] = useState('Wszystkie');
-  const [type, setType] = useState<'Wszystkie' | ListingType>('Wszystkie');
-  const [intent, setIntent] = useState<'Wszystkie' | ListingIntent>('Wszystkie');
-  const [sort, setSort] = useState<SettingsSort>('newest');
-  const [modeFilter, setModeFilter] = useState<WorkMode[]>([]);
-  const [onlyMine, setOnlyMine] = useState(false);
-  const [hideOwn, setHideOwn] = useState(false);
+  const [applied, setApplied] = useState<MarketFilters>(OPEN_FILTERS);
+  const [draft, setDraft] = useState<MarketFilters>(OPEN_FILTERS);
+  const [showCityHints, setShowCityHints] = useState(false);
+  const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const [page, setPage] = useState(1);
+  const listRef = useRef<ScrollViewType>(null);
 
-  // Preferencje z Ustawień są źródłem prawdy — synchronizuj po każdym zapisie / załadowaniu.
+  const { verifiedByAuthor, loading: verifiedLoading } = useAuthorsEmailVerified(
+    authorIds,
+    applied.onlyVerified || draft.onlyVerified
+  );
+
+  // Preferencje z Ustawień — startowe wartości filtrów (jednorazowo po załadowaniu).
   useEffect(() => {
-    if (settingsLoading) return;
-    setSort(settings.defaultSort);
-    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
-    setModeFilter([...settings.preferredModes]);
-    setHideOwn(settings.hideOwnInFeed);
+    if (settingsLoading || prefsHydrated) return;
+    const next: MarketFilters = {
+      locationCity: settings.baseCity.trim(),
+      radius: settings.radius,
+      type: 'Wszystkie',
+      intent: settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent,
+      modeFilter: [...settings.preferredModes],
+      sort: settings.defaultSort,
+      onlyMine: false,
+      hideOwn: settings.hideOwnInFeed,
+      kind: 'all',
+      minRate: settings.minRate,
+      onlyVerified: settings.onlyVerified,
+    };
+    setApplied(next);
+    setDraft(next);
+    setPrefsHydrated(true);
   }, [
+    prefsHydrated,
+    settings.baseCity,
     settings.defaultSort,
     settings.hideOwnInFeed,
+    settings.minRate,
+    settings.onlyVerified,
     settings.preferredIntent,
     settings.preferredModes,
+    settings.radius,
     settingsLoading,
   ]);
 
-  const chipsLocation = useMemo(() => {
-    const unique = Array.from(new Set(listings.map((i) => i.location))).sort((a, b) =>
-      a.localeCompare(b, 'pl')
+  const patchDraft = <K extends keyof MarketFilters>(key: K, value: MarketFilters[K]) => {
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const openFilters = () => {
+    setDraft(applied);
+    setShowCityHints(false);
+    setFiltersOpen(true);
+  };
+
+  const cancelFilters = () => {
+    setFiltersOpen(false);
+    setShowCityHints(false);
+  };
+
+  const clearDraftFilters = () => {
+    setDraft({ ...OPEN_FILTERS });
+    setShowCityHints(false);
+  };
+
+  const applyFilters = () => {
+    setApplied({
+      ...draft,
+      locationCity: draft.locationCity.trim(),
+      modeFilter: [...draft.modeFilter],
+    });
+    setFiltersOpen(false);
+    setShowCityHints(false);
+  };
+
+  const clearAppliedFilters = () => {
+    setApplied({ ...OPEN_FILTERS });
+    setDraft({ ...OPEN_FILTERS });
+  };
+
+  const cityHints = useMemo(() => {
+    const q = draft.locationCity.trim().toLowerCase();
+    return CITY_SUGGESTIONS.filter((c) => (q ? c.toLowerCase().includes(q) : true)).slice(0, 10);
+  }, [draft.locationCity]);
+
+  const listingCities = useMemo(() => {
+    const unique = Array.from(new Set(listings.map((i) => i.location.trim()).filter(Boolean))).sort(
+      (a, b) => a.localeCompare(b, 'pl')
     );
-    return ['Wszystkie', ...unique];
+    return unique.slice(0, 12);
   }, [listings]);
 
-  const activeFilterCount = useMemo(() => {
-    let n = 0;
-    if (location !== 'Wszystkie') n += 1;
-    if (type !== 'Wszystkie') n += 1;
-    if (intent !== 'Wszystkie') n += 1;
-    if (modeFilter.length > 0) n += 1;
-    if (sort !== settings.defaultSort) n += 1;
-    if (hideOwn !== settings.hideOwnInFeed) n += 1;
-    if (onlyMine) n += 1;
-    return n;
-  }, [
-    hideOwn,
-    intent,
-    location,
-    modeFilter.length,
-    onlyMine,
-    settings.defaultSort,
-    settings.hideOwnInFeed,
-    sort,
-    type,
-  ]);
+  const activeFilterCount = useMemo(() => countActiveFilters(applied), [applied]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const data = listings.filter((i) => {
-      // Zakończone szybkie zlecenia znikają z tablicy (zostają w „tylko moje”).
       if (
         i.kind === 'quick' &&
         (i.quickStatus === 'awarded' || i.quickStatus === 'closed') &&
-        !onlyMine
+        !applied.onlyMine
       ) {
         return false;
       }
       if (!uid) return i.targetRole === role;
-      if (onlyMine) return i.authorId === uid;
-      if (hideOwn && i.authorId === uid) return false;
+      if (applied.onlyMine) return i.authorId === uid;
+      if (applied.hideOwn && i.authorId === uid) return false;
       return i.targetRole === role || i.authorId === uid;
     });
-    const afterSettingsLocation = data.filter((i) =>
-      matchesLocationPreference(i.location, settings.baseCity, settings.radius)
+
+    const afterKind =
+      applied.kind === 'all'
+        ? data
+        : data.filter((i) => (applied.kind === 'quick' ? isQuickListing(i) : !isQuickListing(i)));
+
+    const afterLocation = afterKind.filter((i) =>
+      matchesLocationPreference(i.location, applied.locationCity, applied.radius)
     );
-    const afterLocation =
-      location === 'Wszystkie'
-        ? afterSettingsLocation
-        : afterSettingsLocation.filter((i) => i.location.toLowerCase() === location.toLowerCase());
-    const afterType = type === 'Wszystkie' ? afterLocation : afterLocation.filter((i) => i.type === type);
+    const afterType =
+      applied.type === 'Wszystkie'
+        ? afterLocation
+        : afterLocation.filter((i) => i.type === applied.type);
     const afterIntent =
-      intent === 'Wszystkie' ? afterType : afterType.filter((i) => i.intent === intent);
+      applied.intent === 'Wszystkie'
+        ? afterType
+        : afterType.filter((i) => i.intent === applied.intent);
     const afterModes =
-      modeFilter.length === 0
+      applied.modeFilter.length === 0
         ? afterIntent
-        : afterIntent.filter((i) => modeFilter.includes(i.mode));
+        : afterIntent.filter((i) => applied.modeFilter.includes(i.mode));
     const afterMinRate =
-      settings.minRate > 0
+      applied.minRate > 0
         ? afterModes.filter((i) => {
             const top = effectiveRate(i);
-            // Ogłoszenia bez stawki nie wypadają z feedu przy filtrze minRate.
             if (top <= 0) return true;
-            return top >= settings.minRate;
+            return top >= applied.minRate;
           })
         : afterModes;
     const afterQuery = !q
@@ -330,7 +443,7 @@ export default function MarketplaceScreen() {
             i.location.toLowerCase().includes(q) ||
             i.tags.some((tag) => tag.toLowerCase().includes(q))
         );
-    const afterVerified = settings.onlyVerified
+    const afterVerified = applied.onlyVerified
       ? afterQuery.filter((i) => verifiedByAuthor[i.authorId] === true)
       : afterQuery;
 
@@ -338,44 +451,83 @@ export default function MarketplaceScreen() {
       const aBoost = isListingBoosted(a) ? 1 : 0;
       const bBoost = isListingBoosted(b) ? 1 : 0;
       if (aBoost !== bBoost) return bBoost - aBoost;
-      if (sort === 'rateAsc') return effectiveRate(a) - effectiveRate(b);
-      if (sort === 'rateDesc') return effectiveRate(b) - effectiveRate(a);
+      if (applied.sort === 'rateAsc') return effectiveRate(a) - effectiveRate(b);
+      if (applied.sort === 'rateDesc') return effectiveRate(b) - effectiveRate(a);
       return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
     });
-  }, [
-    hideOwn,
-    intent,
-    listings,
-    location,
-    modeFilter,
-    onlyMine,
-    query,
-    role,
-    settings.baseCity,
-    settings.minRate,
-    settings.onlyVerified,
-    settings.radius,
-    sort,
-    type,
-    uid,
-    verifiedByAuthor,
-  ]);
+  }, [applied, listings, query, role, uid, verifiedByAuthor]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / MARKET_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * MARKET_PAGE_SIZE;
+    return filtered.slice(start, start + MARKET_PAGE_SIZE);
+  }, [filtered, safePage]);
+
+  // Po zmianie filtrów / wyszukiwania wracamy na 1. stronę.
+  useEffect(() => {
+    setPage(1);
+  }, [applied, query]);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ y: 0, animated: true });
+  }, [safePage]);
+
+  const goToPage = (next: number) => {
+    setPage(Math.min(totalPages, Math.max(1, next)));
+  };
 
   const toggleModeFilter = (mode: WorkMode) => {
-    setModeFilter((prev) =>
-      prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]
-    );
+    setDraft((prev) => ({
+      ...prev,
+      modeFilter: prev.modeFilter.includes(mode)
+        ? prev.modeFilter.filter((m) => m !== mode)
+        : [...prev.modeFilter, mode],
+    }));
   };
 
-  const resetFilters = () => {
-    setLocation('Wszystkie');
-    setType('Wszystkie');
-    setIntent(settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent);
-    setSort(settings.defaultSort);
-    setModeFilter([...settings.preferredModes]);
-    setHideOwn(settings.hideOwnInFeed);
-    setOnlyMine(false);
-  };
+  const radiusLabel = (r: SettingsRadius) =>
+    r === 'Cała Polska' ? t('settings.radiusPoland') : r;
+
+  const draftResultCount = useMemo(() => {
+    // Szybkie podglądowe liczenie przy otwartym arkuszu — te same reguły co `filtered`.
+    if (!filtersOpen) return filtered.length;
+    const probe = { ...draft, locationCity: draft.locationCity.trim() };
+    return listings.filter((i) => {
+      if (
+        i.kind === 'quick' &&
+        (i.quickStatus === 'awarded' || i.quickStatus === 'closed') &&
+        !probe.onlyMine
+      ) {
+        return false;
+      }
+      if (!uid) {
+        if (i.targetRole !== role) return false;
+      } else if (probe.onlyMine) {
+        if (i.authorId !== uid) return false;
+      } else {
+        if (probe.hideOwn && i.authorId === uid) return false;
+        if (!(i.targetRole === role || i.authorId === uid)) return false;
+      }
+      if (probe.kind === 'quick' && !isQuickListing(i)) return false;
+      if (probe.kind === 'standard' && isQuickListing(i)) return false;
+      if (!matchesLocationPreference(i.location, probe.locationCity, probe.radius)) return false;
+      if (probe.type !== 'Wszystkie' && i.type !== probe.type) return false;
+      if (probe.intent !== 'Wszystkie' && i.intent !== probe.intent) return false;
+      if (probe.modeFilter.length > 0 && !probe.modeFilter.includes(i.mode)) return false;
+      if (probe.minRate > 0) {
+        const top = effectiveRate(i);
+        if (top > 0 && top < probe.minRate) return false;
+      }
+      const q = query.trim().toLowerCase();
+      if (q) {
+        const hay = `${i.title} ${i.company} ${i.location} ${i.tags.join(' ')}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (probe.onlyVerified && verifiedByAuthor[i.authorId] !== true) return false;
+      return true;
+    }).length;
+  }, [draft, filtered.length, filtersOpen, listings, query, role, uid, verifiedByAuthor]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
@@ -387,7 +539,10 @@ export default function MarketplaceScreen() {
         style={styles.bgSheen}
       />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={listRef}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
             <View style={styles.heroTopRow}>
               <Text style={styles.brand}>TheWeldersWorld</Text>
@@ -431,7 +586,7 @@ export default function MarketplaceScreen() {
                 </Pressable>
               ) : null}
             </View>
-            <Pressable style={[styles.filtersBtn, { backgroundColor: colors.primary }]} onPress={() => setFiltersOpen(true)}>
+            <Pressable style={[styles.filtersBtn, { backgroundColor: colors.primary }]} onPress={openFilters}>
               <MaterialIcons name="tune" size={18} color="#FFFFFF" />
               <Text style={styles.filtersBtnText}>{t('market.filters')}</Text>
               {activeFilterCount > 0 ? (
@@ -442,40 +597,38 @@ export default function MarketplaceScreen() {
             </Pressable>
           </View>
 
-          {settings.baseCity.trim() ||
+          {activeFilterCount > 0 ||
+          settings.baseCity.trim() ||
           settings.onlyVerified ||
-          settings.minRate > 0 ||
-          settings.preferredModes.length > 0 ||
-          settings.preferredIntent !== 'all' ||
-          settings.defaultSort !== 'newest' ||
-          settings.hideOwnInFeed ? (
-            <Pressable style={styles.prefsLine} onPress={() => router.push('/(tabs)/explore')}>
+          settings.minRate > 0 ? (
+            <Pressable style={styles.prefsLine} onPress={openFilters}>
               <Text style={[styles.prefsLineText, { color: colors.textMuted }]} numberOfLines={2}>
                 {[
-                  settings.baseCity.trim()
-                    ? settings.radius === 'Cała Polska'
-                      ? settings.baseCity.trim()
-                      : `${settings.baseCity.trim()} · ${settings.radius}`
+                  applied.locationCity.trim()
+                    ? applied.radius === 'Cała Polska'
+                      ? applied.locationCity.trim()
+                      : `${applied.locationCity.trim()} · ${radiusLabel(applied.radius)}`
                     : '',
-                  settings.minRate > 0 ? t('market.minRateStrip', { n: settings.minRate }) : '',
-                  settings.preferredIntent === 'offer'
+                  applied.minRate > 0 ? t('market.minRateStrip', { n: applied.minRate }) : '',
+                  applied.kind === 'quick'
+                    ? t('market.kindQuick')
+                    : applied.kind === 'standard'
+                      ? t('market.kindStandard')
+                      : '',
+                  applied.intent === 'offer'
                     ? t('settings.intentOffer')
-                    : settings.preferredIntent === 'seek'
+                    : applied.intent === 'seek'
                       ? t('settings.intentSeek')
                       : '',
-                  settings.preferredModes.length > 0
-                    ? settings.preferredModes.map((m) => workModeLabel(m, t)).join(', ')
+                  applied.modeFilter.length > 0
+                    ? applied.modeFilter.map((m) => workModeLabel(m, t)).join(', ')
                     : '',
-                  settings.defaultSort === 'rateDesc'
-                    ? t('settings.sortRateDesc')
-                    : settings.defaultSort === 'rateAsc'
-                      ? t('settings.sortRateAsc')
-                      : '',
-                  settings.hideOwnInFeed ? t('settings.hideOwn') : '',
-                  settings.onlyVerified ? t('settings.onlyVerified') : '',
+                  applied.onlyMine ? t('market.myListings') : '',
+                  applied.hideOwn ? t('settings.hideOwn') : '',
+                  applied.onlyVerified ? t('settings.onlyVerified') : '',
                 ]
                   .filter(Boolean)
-                  .join(' · ')}
+                  .join(' · ') || t('market.filters')}
               </Text>
               <MaterialIcons name="chevron-right" size={18} color={colors.textSoft} />
             </Pressable>
@@ -483,9 +636,12 @@ export default function MarketplaceScreen() {
 
           <Text style={[styles.resultsLabel, { color: colors.text }]}>
             {filtered.length} {t('market.results')}
+            {filtered.length > MARKET_PAGE_SIZE
+              ? ` · ${t('market.pageOf', { page: safePage, pages: totalPages })}`
+              : ''}
           </Text>
 
-          {loading || (settings.onlyVerified && verifiedLoading) ? (
+          {loading || (applied.onlyVerified && verifiedLoading) ? (
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('common.loading')}</Text>
           ) : filtered.length === 0 ? (
             <View style={styles.emptyBlock}>
@@ -494,30 +650,73 @@ export default function MarketplaceScreen() {
                 <Text style={[styles.resetLink, { color: colors.primary }]}>{t('market.goToSettings')}</Text>
               </Pressable>
               {activeFilterCount > 0 ? (
-                <Pressable onPress={resetFilters}>
-                  <Text style={[styles.resetLink, { color: colors.primary }]}>{t('common.cancel')}</Text>
+                <Pressable onPress={clearAppliedFilters}>
+                  <Text style={[styles.resetLink, { color: colors.primary }]}>
+                    {t('market.clearFilters')}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
           ) : (
-            filtered.map((item) => (
-              <ListingRow
-                key={item.id}
-                item={item}
-                role={role}
-                showGrossRate={settings.showGrossRate}
-                locale={locale}
-                colors={colors}
-                t={t}
-                isOwn={Boolean(uid && item.authorId === uid)}
-                onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
-                onBoost={
-                  uid && item.authorId === uid
-                    ? () => setBoostListingId(item.id)
-                    : undefined
-                }
-              />
-            ))
+            <>
+              {paged.map((item) => (
+                <ListingRow
+                  key={item.id}
+                  item={item}
+                  role={role}
+                  showGrossRate={settings.showGrossRate}
+                  locale={locale}
+                  colors={colors}
+                  t={t}
+                  isOwn={Boolean(uid && item.authorId === uid)}
+                  onPress={() => router.push({ pathname: '/listing/[id]', params: { id: item.id } })}
+                  onBoost={
+                    uid && item.authorId === uid
+                      ? () => setBoostListingId(item.id)
+                      : undefined
+                  }
+                />
+              ))}
+              {totalPages > 1 ? (
+                <View style={styles.pager}>
+                  <Pressable
+                    style={[
+                      styles.pagerBtn,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: safePage <= 1 ? 0.45 : 1,
+                      },
+                    ]}
+                    disabled={safePage <= 1}
+                    onPress={() => goToPage(safePage - 1)}>
+                    <MaterialIcons name="chevron-left" size={20} color={colors.primary} />
+                    <Text style={[styles.pagerBtnText, { color: colors.primary }]}>
+                      {t('market.prevPage')}
+                    </Text>
+                  </Pressable>
+                  <Text style={[styles.pagerLabel, { color: colors.textMuted }]}>
+                    {t('market.pageOf', { page: safePage, pages: totalPages })}
+                  </Text>
+                  <Pressable
+                    style={[
+                      styles.pagerBtn,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: safePage >= totalPages ? 0.45 : 1,
+                      },
+                    ]}
+                    disabled={safePage >= totalPages}
+                    onPress={() => goToPage(safePage + 1)}>
+                    <Text style={[styles.pagerBtnText, { color: colors.primary }]}>
+                      {t('market.nextPage')}
+                    </Text>
+                    <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
           )}
           {boostFeedback ? (
             <Text style={[styles.emptyText, { color: colors.success }]}>{boostFeedback}</Text>
@@ -539,138 +738,328 @@ export default function MarketplaceScreen() {
         />
       ) : null}
 
-      <Modal visible={filtersOpen} animationType="slide" transparent onRequestClose={() => setFiltersOpen(false)}>
-        <Pressable style={[styles.sheetBackdrop, { backgroundColor: colors.overlay }]} onPress={() => setFiltersOpen(false)} />
-        <View style={[styles.sheet, { backgroundColor: colors.bgElevated }]}>
-          <View style={[styles.sheetHandle, { backgroundColor: colors.borderStrong }]} />
-          <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('market.filters')}</Text>
-            <Pressable onPress={resetFilters}>
-              <Text style={[styles.resetLink, { color: colors.primary }]}>{t('common.cancel')}</Text>
+      <Modal visible={filtersOpen} animationType="slide" transparent onRequestClose={cancelFilters}>
+        <View style={styles.sheetRoot}>
+          <Pressable
+            style={[styles.sheetBackdrop, { backgroundColor: colors.overlay }]}
+            onPress={cancelFilters}
+          />
+          <View style={[styles.sheet, { backgroundColor: colors.bgElevated }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.borderStrong }]} />
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('market.filters')}</Text>
+              <View style={styles.sheetHeaderActions}>
+                <Pressable onPress={clearDraftFilters} hitSlop={8}>
+                  <Text style={[styles.resetLink, { color: colors.textMuted }]}>
+                    {t('market.clearFilters')}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={cancelFilters} hitSlop={8}>
+                  <Text style={[styles.resetLink, { color: colors.primary }]}>{t('common.cancel')}</Text>
+                </Pressable>
+              </View>
+            </View>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sheetBody}
+              keyboardShouldPersistTaps="handled">
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('market.filterLocation')}
+              </Text>
+              <View
+                style={[
+                  styles.locationField,
+                  { backgroundColor: colors.inputBg, borderColor: colors.border },
+                ]}>
+                <MaterialIcons name="place" size={18} color={colors.textSoft} />
+                <TextInput
+                  style={[styles.locationInput, { color: colors.text }]}
+                  value={draft.locationCity}
+                  onChangeText={(v) => {
+                    patchDraft('locationCity', v);
+                    setShowCityHints(true);
+                  }}
+                  onFocus={() => setShowCityHints(true)}
+                  placeholder={t('market.filterLocationPh')}
+                  placeholderTextColor={colors.textSoft}
+                  autoCorrect={false}
+                />
+                {draft.locationCity ? (
+                  <Pressable
+                    onPress={() => {
+                      patchDraft('locationCity', '');
+                      setShowCityHints(false);
+                    }}
+                    hitSlop={8}>
+                    <MaterialIcons name="close" size={18} color={colors.textSoft} />
+                  </Pressable>
+                ) : null}
+              </View>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('market.allFilter')}
+                  active={!draft.locationCity.trim()}
+                  onPress={() => {
+                    patchDraft('locationCity', '');
+                    patchDraft('radius', 'Cała Polska');
+                    setShowCityHints(false);
+                  }}
+                  colors={colors}
+                />
+                {profile.city.trim() ? (
+                  <Chip
+                    label={profile.city.trim()}
+                    active={
+                      draft.locationCity.trim().toLowerCase() === profile.city.trim().toLowerCase()
+                    }
+                    onPress={() => {
+                      patchDraft('locationCity', profile.city.trim());
+                      setShowCityHints(false);
+                    }}
+                    colors={colors}
+                  />
+                ) : null}
+              </View>
+              <Text style={[styles.sheetHint, { color: colors.textSoft }]}>
+                {t('market.popularCities')}
+              </Text>
+              <View style={styles.chipWrap}>
+                {POPULAR_CITIES.map((c) => (
+                  <Chip
+                    key={c}
+                    label={c}
+                    active={draft.locationCity.trim().toLowerCase() === c.toLowerCase()}
+                    onPress={() => {
+                      patchDraft('locationCity', c);
+                      if (draft.radius === 'Cała Polska') patchDraft('radius', '50 km');
+                      setShowCityHints(false);
+                    }}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+              {showCityHints && cityHints.length > 0 ? (
+                <View style={styles.chipWrap}>
+                  {cityHints.map((c) => (
+                    <Chip
+                      key={`hint-${c}`}
+                      label={c}
+                      active={draft.locationCity.trim().toLowerCase() === c.toLowerCase()}
+                      onPress={() => {
+                        patchDraft('locationCity', c);
+                        if (draft.radius === 'Cała Polska') patchDraft('radius', '50 km');
+                        setShowCityHints(false);
+                      }}
+                      colors={colors}
+                    />
+                  ))}
+                </View>
+              ) : null}
+              {listingCities.length > 0 ? (
+                <View style={styles.chipWrap}>
+                  {listingCities.map((c) => (
+                    <Chip
+                      key={`listing-${c}`}
+                      label={c}
+                      active={draft.locationCity.trim().toLowerCase() === c.toLowerCase()}
+                      onPress={() => {
+                        patchDraft('locationCity', c);
+                        setShowCityHints(false);
+                      }}
+                      colors={colors}
+                    />
+                  ))}
+                </View>
+              ) : null}
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('market.filterRadius')}
+              </Text>
+              <View style={styles.chipWrap}>
+                {RADIUS_VALUES.map((r) => (
+                  <Chip
+                    key={r}
+                    label={radiusLabel(r)}
+                    active={draft.radius === r}
+                    onPress={() => patchDraft('radius', r)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('market.filterKind')}
+              </Text>
+              <View style={styles.chipWrap}>
+                {(
+                  [
+                    ['all', t('market.kindAll')],
+                    ['standard', t('market.kindStandard')],
+                    ['quick', t('market.kindQuick')],
+                  ] as const
+                ).map(([value, label]) => (
+                  <Chip
+                    key={value}
+                    label={label}
+                    active={draft.kind === value}
+                    onPress={() => patchDraft('kind', value)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>{t('listing.collabType')}</Text>
+              <View style={styles.chipWrap}>
+                {chipsType.map((c) => (
+                  <Chip
+                    key={c}
+                    label={c === 'Wszystkie' ? t('market.allFilter') : listingTypeLabel(c, t)}
+                    active={draft.type === c}
+                    onPress={() => patchDraft('type', c)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('settings.preferredModes')}
+              </Text>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('market.allFilter')}
+                  active={draft.modeFilter.length === 0}
+                  onPress={() => patchDraft('modeFilter', [])}
+                  colors={colors}
+                />
+                {ALL_MODES.map((mode) => (
+                  <Chip
+                    key={mode}
+                    label={workModeLabel(mode, t)}
+                    active={draft.modeFilter.includes(mode)}
+                    onPress={() => toggleModeFilter(mode)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('settings.preferredIntent')}
+              </Text>
+              <View style={styles.chipWrap}>
+                {chipsIntent.map((c) => (
+                  <Chip
+                    key={c}
+                    label={
+                      c === 'Wszystkie'
+                        ? t('market.allFilter')
+                        : c === 'offer'
+                          ? t('settings.intentOffer')
+                          : t('settings.intentSeek')
+                    }
+                    active={draft.intent === c}
+                    onPress={() => patchDraft('intent', c)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('market.filterMinRate')}
+              </Text>
+              <View style={styles.chipWrap}>
+                {MIN_RATE_OPTIONS.map((n) => (
+                  <Chip
+                    key={n}
+                    label={n === 0 ? t('market.allFilter') : `${n}+ PLN/h`}
+                    active={draft.minRate === n}
+                    onPress={() => patchDraft('minRate', n)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('settings.defaultSort')}
+              </Text>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('settings.sortNewest')}
+                  active={draft.sort === 'newest'}
+                  onPress={() => patchDraft('sort', 'newest')}
+                  colors={colors}
+                />
+                <Chip
+                  label={t('settings.sortRateDesc')}
+                  active={draft.sort === 'rateDesc'}
+                  onPress={() => patchDraft('sort', 'rateDesc')}
+                  colors={colors}
+                />
+                <Chip
+                  label={t('settings.sortRateAsc')}
+                  active={draft.sort === 'rateAsc'}
+                  onPress={() => patchDraft('sort', 'rateAsc')}
+                  colors={colors}
+                />
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('settings.onlyVerified')}
+              </Text>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('market.allFilter')}
+                  active={!draft.onlyVerified}
+                  onPress={() => patchDraft('onlyVerified', false)}
+                  colors={colors}
+                />
+                <Chip
+                  label={t('settings.onlyVerified')}
+                  active={draft.onlyVerified}
+                  onPress={() => patchDraft('onlyVerified', true)}
+                  colors={colors}
+                />
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.hideOwn')}</Text>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('market.allFilter')}
+                  active={!draft.hideOwn}
+                  onPress={() => patchDraft('hideOwn', false)}
+                  colors={colors}
+                />
+                <Chip
+                  label={t('settings.hideOwn')}
+                  active={draft.hideOwn}
+                  onPress={() => patchDraft('hideOwn', true)}
+                  colors={colors}
+                />
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>{t('market.myListings')}</Text>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('market.allFilter')}
+                  active={!draft.onlyMine}
+                  onPress={() => patchDraft('onlyMine', false)}
+                  colors={colors}
+                />
+                <Chip
+                  label={t('market.myListings')}
+                  active={draft.onlyMine}
+                  onPress={() => patchDraft('onlyMine', true)}
+                  colors={colors}
+                />
+              </View>
+            </ScrollView>
+            <Pressable
+              style={[styles.sheetApply, { backgroundColor: colors.primary }]}
+              onPress={applyFilters}>
+              <Text style={styles.sheetApplyText}>
+                {t('market.applyFilters')} · {draftResultCount} {t('market.results')}
+              </Text>
             </Pressable>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.section.location')}</Text>
-            <View style={styles.chipWrap}>
-              {chipsLocation.map((c) => (
-                <Chip
-                  key={c}
-                  label={c === 'Wszystkie' ? t('market.allFilter') : c}
-                  active={location === c}
-                  onPress={() => setLocation(c)}
-                  colors={colors}
-                />
-              ))}
-            </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('listing.collabType')}</Text>
-            <View style={styles.chipWrap}>
-              {chipsType.map((c) => (
-                <Chip
-                  key={c}
-                  label={
-                    c === 'Wszystkie' ? t('market.allFilter') : listingTypeLabel(c, t)
-                  }
-                  active={type === c}
-                  onPress={() => setType(c)}
-                  colors={colors}
-                />
-              ))}
-            </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.preferredModes')}</Text>
-            <View style={styles.chipWrap}>
-              <Chip
-                label={t('market.allFilter')}
-                active={modeFilter.length === 0}
-                onPress={() => setModeFilter([])}
-                colors={colors}
-              />
-              {ALL_MODES.map((mode) => (
-                <Chip
-                  key={mode}
-                  label={workModeLabel(mode, t)}
-                  active={modeFilter.includes(mode)}
-                  onPress={() => toggleModeFilter(mode)}
-                  colors={colors}
-                />
-              ))}
-            </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.preferredIntent')}</Text>
-            <View style={styles.chipWrap}>
-              {chipsIntent.map((c) => (
-                <Chip
-                  key={c}
-                  label={
-                    c === 'Wszystkie'
-                      ? t('market.allFilter')
-                      : c === 'offer'
-                        ? t('settings.intentOffer')
-                        : t('settings.intentSeek')
-                  }
-                  active={intent === c}
-                  onPress={() => setIntent(c)}
-                  colors={colors}
-                />
-              ))}
-            </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.defaultSort')}</Text>
-            <View style={styles.chipWrap}>
-              <Chip
-                label={t('settings.sortNewest')}
-                active={sort === 'newest'}
-                onPress={() => setSort('newest')}
-                colors={colors}
-              />
-              <Chip
-                label={t('settings.sortRateDesc')}
-                active={sort === 'rateDesc'}
-                onPress={() => setSort('rateDesc')}
-                colors={colors}
-              />
-              <Chip
-                label={t('settings.sortRateAsc')}
-                active={sort === 'rateAsc'}
-                onPress={() => setSort('rateAsc')}
-                colors={colors}
-              />
-            </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('settings.hideOwn')}</Text>
-            <View style={styles.chipWrap}>
-              <Chip
-                label={t('market.allFilter')}
-                active={!hideOwn}
-                onPress={() => setHideOwn(false)}
-                colors={colors}
-              />
-              <Chip
-                label={t('settings.hideOwn')}
-                active={hideOwn}
-                onPress={() => setHideOwn(true)}
-                colors={colors}
-              />
-            </View>
-            <Text style={[styles.sheetSection, { color: colors.text }]}>{t('market.myListings')}</Text>
-            <View style={styles.chipWrap}>
-              <Chip
-                label={t('market.allFilter')}
-                active={!onlyMine}
-                onPress={() => setOnlyMine(false)}
-                colors={colors}
-              />
-              <Chip
-                label={t('market.myListings')}
-                active={onlyMine}
-                onPress={() => setOnlyMine(true)}
-                colors={colors}
-              />
-            </View>
-          </ScrollView>
-          <Pressable
-            style={[styles.sheetApply, { backgroundColor: colors.primary }]}
-            onPress={() => setFiltersOpen(false)}>
-            <Text style={styles.sheetApplyText}>
-              {filtered.length} {t('market.results')}
-            </Text>
-          </Pressable>
         </View>
       </Modal>
     </View>
@@ -825,6 +1214,25 @@ const styles = StyleSheet.create({
   emptyText: { color: '#64748B', fontSize: 13, lineHeight: 18 },
   resetLink: { color: '#0E4AA4', fontWeight: '700', fontSize: 13 },
 
+  pager: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  pagerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  pagerBtnText: { fontWeight: '700', fontSize: 12 },
+  pagerLabel: { fontSize: 12, fontWeight: '600', textAlign: 'center', flexShrink: 1 },
+
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -838,12 +1246,12 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#FFFFFF' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.4)' },
+  sheetRoot: { flex: 1, justifyContent: 'flex-end' },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject },
   sheet: {
-    backgroundColor: '#F8FAFC',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '78%',
+    maxHeight: '86%',
     paddingBottom: 16,
   },
   sheetHandle: {
@@ -851,7 +1259,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#CBD5E1',
     marginTop: 10,
     marginBottom: 6,
   },
@@ -861,14 +1268,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
+    gap: 12,
   },
-  sheetTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  sheetHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  sheetTitle: { fontSize: 18, fontWeight: '800', flexShrink: 1 },
   sheetBody: { paddingHorizontal: 16, paddingBottom: 20, gap: 10 },
-  sheetSection: { color: '#10233E', fontSize: 13, fontWeight: '700', marginTop: 8 },
+  sheetSection: { fontSize: 13, fontWeight: '700', marginTop: 8 },
+  sheetHint: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  locationField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  locationInput: { flex: 1, fontSize: 15, padding: 0 },
   sheetApply: {
     marginHorizontal: 16,
     marginTop: 8,
-    backgroundColor: '#0E4AA4',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
