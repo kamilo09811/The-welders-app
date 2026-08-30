@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BoostListingSheet } from '@/components/boost-listing-sheet';
 import { BoostedFrame } from '@/components/boosted-frame';
+import { ListingLocationMap } from '@/components/listing-location-map';
 import { QuickSlotsAvatars } from '@/components/quick-slots-avatars';
 import { TrustBadge } from '@/components/trust-badge';
 import { UserAvatarPressable } from '@/components/user-avatar-pressable';
@@ -322,6 +323,13 @@ export default function ListingDetailsScreen() {
 
                 return <View style={[styles.card, quick && styles.cardQuick]}>{header}</View>;
               })()}
+
+              <ListingLocationMap
+                locationText={listing.location}
+                colors={colors}
+                t={t}
+                emphasize={quick}
+              />
 
               {quick ? (
                 <View style={styles.card}>

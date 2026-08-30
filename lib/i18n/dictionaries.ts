@@ -276,6 +276,9 @@ export type TranslationKey =
   | 'listing.rateLabel'
   | 'listing.budgetLabel'
   | 'listing.description'
+  | 'listing.mapTitle'
+  | 'listing.mapFrom'
+  | 'listing.mapOpen'
   | 'listing.applySection'
   | 'listing.joinSection'
   | 'listing.alreadyApplied'
@@ -698,6 +701,9 @@ const pl: Dict = {
   'listing.rateLabel': "Stawka: ",
   'listing.budgetLabel': "Budżet / stawka: ",
   'listing.description': "Opis",
+  'listing.mapTitle': "Skąd zlecenie",
+  'listing.mapFrom': "Opublikowano z okolicy: {place}",
+  'listing.mapOpen': "Otwórz mapę",
   'listing.applySection': "Aplikacja",
   'listing.joinSection': "Dołącz do zlecenia",
   'listing.alreadyApplied': "Masz już wysłane zgłoszenie. Status: {status}.",
@@ -1124,6 +1130,9 @@ const en: Dict = {
   'listing.rateLabel': "Rate: ",
   'listing.budgetLabel': "Budget / rate: ",
   'listing.description': "Description",
+  'listing.mapTitle': "Where it's from",
+  'listing.mapFrom': "Posted around: {place}",
+  'listing.mapOpen': "Open map",
   'listing.applySection': "Application",
   'listing.joinSection': "Join the job",
   'listing.alreadyApplied': "You already applied. Status: {status}.",
@@ -1550,6 +1559,9 @@ const de: Dict = {
   'listing.rateLabel': "Satz: ",
   'listing.budgetLabel': "Budget / Satz: ",
   'listing.description': "Beschreibung",
+  'listing.mapTitle': "Herkunft des Auftrags",
+  'listing.mapFrom': "Veröffentlicht bei: {place}",
+  'listing.mapOpen': "Karte öffnen",
   'listing.applySection': "Bewerbung",
   'listing.joinSection': "Auftrag beitreten",
   'listing.alreadyApplied': "Du hast bereits beworben. Status: {status}.",
@@ -1976,6 +1988,9 @@ const da: Dict = {
   'listing.rateLabel': "Sats: ",
   'listing.budgetLabel': "Budget / sats: ",
   'listing.description': "Beskrivelse",
+  'listing.mapTitle': "Hvor opgaven er fra",
+  'listing.mapFrom': "Offentliggjort omkring: {place}",
+  'listing.mapOpen': "Åbn kort",
   'listing.applySection': "Ansøgning",
   'listing.joinSection': "Deltag i opgaven",
   'listing.alreadyApplied': "Du har allerede ansøgt. Status: {status}.",
