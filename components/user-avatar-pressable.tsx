@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 type Props = {
@@ -14,14 +15,31 @@ type Props = {
 /** Awatar otwierający publiczny profil użytkownika. */
 export function UserAvatarPressable({ userId, avatarUrl, size = 42, style, disabled }: Props) {
   const router = useRouter();
+  const [failed, setFailed] = useState(false);
+  const uri = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
+  const showImage = Boolean(uri) && !failed;
+
+  useEffect(() => {
+    setFailed(false);
+  }, [uri]);
+
+  const body = showImage ? (
+    <Image
+      source={{ uri }}
+      style={styles.fill}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      recyclingKey={uri}
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <MaterialIcons name="person" size={size * 0.45} color="#64748B" />
+  );
+
   if (!userId || disabled) {
     return (
       <View style={[styles.wrap, { width: size, height: size, borderRadius: size / 2 }, style]}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.fill} contentFit="cover" />
-        ) : (
-          <MaterialIcons name="person" size={size * 0.45} color="#64748B" />
-        )}
+        {body}
       </View>
     );
   }
@@ -36,11 +54,7 @@ export function UserAvatarPressable({ userId, avatarUrl, size = 42, style, disab
         { width: size, height: size, borderRadius: size / 2, opacity: pressed ? 0.85 : 1 },
         style,
       ]}>
-      {avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={styles.fill} contentFit="cover" />
-      ) : (
-        <MaterialIcons name="person" size={size * 0.45} color="#64748B" />
-      )}
+      {body}
     </Pressable>
   );
 }
