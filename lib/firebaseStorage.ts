@@ -1,13 +1,15 @@
 import { getStorage } from 'firebase/storage';
 
-import { getFirebaseApp } from '@/lib/firebaseApp';
+import { getFirebaseApp, getFirebaseStorageBucketGs } from '@/lib/firebaseApp';
 
 let storage: ReturnType<typeof getStorage> | null = null;
 
 /** Firebase Storage — w konsoli włącz Storage i wgraj reguły z `firebase/storage.rules`. */
 export function getFirebaseStorage() {
   if (!storage) {
-    storage = getStorage(getFirebaseApp());
+    const app = getFirebaseApp();
+    const gs = getFirebaseStorageBucketGs();
+    storage = gs ? getStorage(app, gs) : getStorage(app);
   }
   return storage;
 }

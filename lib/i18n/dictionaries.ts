@@ -282,6 +282,10 @@ export type TranslationKey =
   | 'market.kindQuick'
   | 'market.filterMinRate'
   | 'market.popularCities'
+  | 'market.filterAudience'
+  | 'market.audienceAll'
+  | 'market.audienceForMe'
+  | 'market.listingsError'
   | 'listing.detailTitle'
   | 'listing.quickDetailTitle'
   | 'listing.notFound'
@@ -729,6 +733,10 @@ const pl: Dict = {
   'market.kindQuick': 'Szybkie zlecenia',
   'market.filterMinRate': 'Min. stawka',
   'market.popularCities': 'Popularne miasta',
+  'market.filterAudience': 'Widoczność ogłoszeń',
+  'market.audienceAll': 'Cały rynek',
+  'market.audienceForMe': 'Tylko dla mnie',
+  'market.listingsError': 'Nie udało się wczytać ogłoszeń. Sprawdź połączenie i spróbuj ponownie.',
   'listing.detailTitle': "Szczegóły ogłoszenia",
   'listing.quickDetailTitle': "Szybkie zlecenie",
   'listing.notFound': "Nie znaleziono ogłoszenia",
@@ -1182,6 +1190,10 @@ const en: Dict = {
   'market.kindQuick': 'Quick jobs',
   'market.filterMinRate': 'Min. rate',
   'market.popularCities': 'Popular cities',
+  'market.filterAudience': 'Listing audience',
+  'market.audienceAll': 'Whole market',
+  'market.audienceForMe': 'For me only',
+  'market.listingsError': 'Could not load listings. Check your connection and try again.',
   'listing.detailTitle': "Listing details",
   'listing.quickDetailTitle': "Quick job",
   'listing.notFound': "Listing not found",
@@ -1635,6 +1647,10 @@ const de: Dict = {
   'market.kindQuick': 'Schnellaufträge',
   'market.filterMinRate': 'Min. Satz',
   'market.popularCities': 'Beliebte Städte',
+  'market.filterAudience': 'Anzeigensichtbarkeit',
+  'market.audienceAll': 'Ganzer Markt',
+  'market.audienceForMe': 'Nur für mich',
+  'market.listingsError': 'Anzeigen konnten nicht geladen werden. Verbindung prüfen und erneut versuchen.',
   'listing.detailTitle': "Anzeigendetails",
   'listing.quickDetailTitle': "Schnellauftrag",
   'listing.notFound': "Anzeige nicht gefunden",
@@ -2088,6 +2104,10 @@ const da: Dict = {
   'market.kindQuick': 'Hurtige opgaver',
   'market.filterMinRate': 'Min. sats',
   'market.popularCities': 'Populære byer',
+  'market.filterAudience': 'Opslagssynlighed',
+  'market.audienceAll': 'Hele markedet',
+  'market.audienceForMe': 'Kun til mig',
+  'market.listingsError': 'Kunne ikke indlæse opslag. Tjek forbindelsen og prøv igen.',
   'listing.detailTitle': "Opslagsdetaljer",
   'listing.quickDetailTitle': "Hurtig opgave",
   'listing.notFound': "Opslag ikke fundet",

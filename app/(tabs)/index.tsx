@@ -83,6 +83,8 @@ type MarketFilters = {
   kind: KindFilter;
   minRate: number;
   onlyVerified: boolean;
+  /** all = cały rynek; forMe = tylko ogłoszenia skierowane do mojej roli */
+  audience: 'all' | 'forMe';
 };
 
 const OPEN_FILTERS: MarketFilters = {
@@ -97,6 +99,7 @@ const OPEN_FILTERS: MarketFilters = {
   kind: 'all',
   minRate: 0,
   onlyVerified: false,
+  audience: 'all',
 };
 
 /** Ile ogłoszeń na jednej stronie rynku. */
@@ -115,6 +118,7 @@ function countActiveFilters(f: MarketFilters): number {
   if (f.kind !== 'all') n += 1;
   if (f.minRate > 0) n += 1;
   if (f.onlyVerified) n += 1;
+  if (f.audience === 'forMe') n += 1;
   return n;
 }
 
@@ -288,7 +292,7 @@ export default function MarketplaceScreen() {
   const router = useRouter();
   const { uid, profile } = useCurrentUserProfile();
   const { settings, loading: settingsLoading, colors, t, locale, theme } = usePreferences();
-  const { listings, loading } = useMarketListings();
+  const { listings, loading, error: listingsError } = useMarketListings();
   const authorIds = useMemo(() => listings.map((i) => i.authorId), [listings]);
   const role: Role = profile.role === 'employer' ? 'employer' : 'welder';
   const heroSheen = useMemo(() => getHeroSheen(theme), [theme]);
@@ -313,8 +317,11 @@ export default function MarketplaceScreen() {
   useEffect(() => {
     if (settingsLoading || prefsHydrated) return;
     const next: MarketFilters = {
-      locationCity: settings.baseCity.trim(),
-      radius: settings.radius,
+      // Lokalizacja z Ustawień NIE jest już twardym filtrem feedu —
+      // inaczej testerzy z różnymi miastami „nie widzą się nawzajem”.
+      // Miasto bazowe zostaje w settings (alerty push / preferencje).
+      locationCity: '',
+      radius: 'Cała Polska',
       type: 'Wszystkie',
       intent: settings.preferredIntent === 'all' ? 'Wszystkie' : settings.preferredIntent,
       modeFilter: [...settings.preferredModes],
@@ -324,20 +331,19 @@ export default function MarketplaceScreen() {
       kind: 'all',
       minRate: settings.minRate,
       onlyVerified: settings.onlyVerified,
+      audience: 'all',
     };
     setApplied(next);
     setDraft(next);
     setPrefsHydrated(true);
   }, [
     prefsHydrated,
-    settings.baseCity,
     settings.defaultSort,
     settings.hideOwnInFeed,
     settings.minRate,
     settings.onlyVerified,
     settings.preferredIntent,
     settings.preferredModes,
-    settings.radius,
     settingsLoading,
   ]);
 
@@ -400,10 +406,16 @@ export default function MarketplaceScreen() {
       ) {
         return false;
       }
-      if (!uid) return i.targetRole === role;
+      if (!uid) {
+        return applied.audience === 'forMe' ? i.targetRole === role : true;
+      }
       if (applied.onlyMine) return i.authorId === uid;
       if (applied.hideOwn && i.authorId === uid) return false;
-      return i.targetRole === role || i.authorId === uid;
+      if (applied.audience === 'forMe') {
+        return i.targetRole === role || i.authorId === uid;
+      }
+      // Domyślnie cały rynek — obie role widzą nawzajem ogłoszenia.
+      return true;
     });
 
     const afterKind =
@@ -502,12 +514,14 @@ export default function MarketplaceScreen() {
         return false;
       }
       if (!uid) {
-        if (i.targetRole !== role) return false;
+        if (probe.audience === 'forMe' && i.targetRole !== role) return false;
       } else if (probe.onlyMine) {
         if (i.authorId !== uid) return false;
       } else {
         if (probe.hideOwn && i.authorId === uid) return false;
-        if (!(i.targetRole === role || i.authorId === uid)) return false;
+        if (probe.audience === 'forMe' && !(i.targetRole === role || i.authorId === uid)) {
+          return false;
+        }
       }
       if (probe.kind === 'quick' && !isQuickListing(i)) return false;
       if (probe.kind === 'standard' && isQuickListing(i)) return false;
@@ -598,7 +612,6 @@ export default function MarketplaceScreen() {
           </View>
 
           {activeFilterCount > 0 ||
-          settings.baseCity.trim() ||
           settings.onlyVerified ||
           settings.minRate > 0 ? (
             <Pressable style={styles.prefsLine} onPress={openFilters}>
@@ -626,6 +639,7 @@ export default function MarketplaceScreen() {
                   applied.onlyMine ? t('market.myListings') : '',
                   applied.hideOwn ? t('settings.hideOwn') : '',
                   applied.onlyVerified ? t('settings.onlyVerified') : '',
+                  applied.audience === 'forMe' ? t('market.audienceForMe') : '',
                 ]
                   .filter(Boolean)
                   .join(' · ') || t('market.filters')}
@@ -640,6 +654,11 @@ export default function MarketplaceScreen() {
               ? ` · ${t('market.pageOf', { page: safePage, pages: totalPages })}`
               : ''}
           </Text>
+          {listingsError ? (
+            <Text style={[styles.emptyText, { color: colors.danger }]}>
+              {t('market.listingsError')}
+            </Text>
+          ) : null}
 
           {loading || (applied.onlyVerified && verifiedLoading) ? (
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t('common.loading')}</Text>
@@ -885,6 +904,24 @@ export default function MarketplaceScreen() {
                     colors={colors}
                   />
                 ))}
+              </View>
+
+              <Text style={[styles.sheetSection, { color: colors.text }]}>
+                {t('market.filterAudience')}
+              </Text>
+              <View style={styles.chipWrap}>
+                <Chip
+                  label={t('market.audienceAll')}
+                  active={draft.audience === 'all'}
+                  onPress={() => patchDraft('audience', 'all')}
+                  colors={colors}
+                />
+                <Chip
+                  label={t('market.audienceForMe')}
+                  active={draft.audience === 'forMe'}
+                  onPress={() => patchDraft('audience', 'forMe')}
+                  colors={colors}
+                />
               </View>
 
               <Text style={[styles.sheetSection, { color: colors.text }]}>
